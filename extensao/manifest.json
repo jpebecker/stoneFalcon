@@ -1,0 +1,47 @@
+{
+  "manifest_version": 3,
+  "name": "StoneFalcon",
+  "version": "4.0.0",
+  "description": "Roda os agentes do StoneFalcon ao lado de qualquer página, com o texto selecionado. Protótipo acadêmico (UFSC).",
+  "minimum_chrome_version": "116",
+  "icons": {
+    "16": "icones/icone16.png",
+    "32": "icones/icone32.png",
+    "48": "icones/icone48.png",
+    "128": "icones/icone128.png"
+  },
+  "action": {
+    "default_title": "Abrir os agentes do StoneFalcon",
+    "default_icon": {
+      "16": "icones/icone16.png",
+      "32": "icones/icone32.png"
+    }
+  },
+  "background": {
+    "service_worker": "fundo.js"
+  },
+  "side_panel": {
+    "default_path": "painel.html"
+  },
+  "options_page": "opcoes.html",
+  "permissions": [
+    "sidePanel",
+    "contextMenus",
+    "storage"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "botao.js"
+      ],
+      "css": [
+        "botao.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

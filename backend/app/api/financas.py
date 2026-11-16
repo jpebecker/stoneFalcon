@@ -1,0 +1,92 @@
+"""Gestão financeira: custos, retorno, orçamento, calculadora e indicadores da banca."""
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
+from sqlmodel import Session
+
+from ..agents import ciclo
+from ..core.db import sessao
+from ..core.identidade import GESTOR_IA, Persona, exigir, usuario_atual
+from ..finance import calculadora, resumo
+from ..finance.premissas import Premissas
+from ..observability import avaliar_seguro
+from ..seed import historico
+
+rotas = APIRouter(prefix="/api/v1", tags=["financas"])
+
+
+@rotas.get("/financas/resumo")
+def financas_resumo(dias: int = 30, pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
+    return resumo.resumo(s, pessoa, min(max(dias, 1), 365))
+
+
+@rotas.get("/financas/indicadores")
+def financas_indicadores(dias: int = 30, pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
+    return resumo.indicadores(s, pessoa, min(max(dias, 1), 365))
+
+
+@rotas.get("/financas/premissas")
+def premissas(pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
+    """Valores iniciais do documento de custos + o que a plataforma já mediu (tempo da tarefa e custo por execução)."""
+    pr = Premissas()
+    i = resumo.indicadores(s, pessoa, 30)
+    medidas = {}
+    if i["execucoes"]:
+        medidas = {"minutos_por_tarefa": i["tempo_execucao"]["manual_min"],
+                   "custo_por_execucao": i["custo_operacional"]["agente_brl"]}
+    return {"valores": pr.model_dump(), "medidas": medidas, "medidas_demo": i["tem_demo"],
+            "descricoes": {k: f.description for k, f in Premissas.model_fields.items() if f.description}}
+
+
+@rotas.post("/financas/calculadora")
+def calcular(pr: Premissas, _p: Persona = Depends(usuario_atual)):
+    r = calculadora.projetar(pr)
+    r["ponto_de_equilibrio_execucoes_mes"] = calculadora.ponto_de_equilibrio(pr)
+    return r
+
+
+class PedidoOrcamento(BaseModel):
+    valor_brl: float = Field(ge=0, le=1_000_000)
+
+
+@rotas.put("/agentes/{agente_id}/orcamento")
+def orcamento(agente_id: str, pedido: PedidoOrcamento, pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
+    try:
+        a = ciclo.definir_orcamento(s, pessoa, agente_id, pedido.valor_brl)
+    except ciclo.ErroCiclo as e:
+        raise HTTPException(status_code=e.status, detail=str(e))
+    avaliar_seguro(s)
+    s.refresh(a)
+    return a.model_dump()
+
+
+@rotas.post("/demo/historico")
+def demo_historico(pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
+    exigir(pessoa, GESTOR_IA)
+    historico.apagar(s)
+    return {"execucoes": historico.gerar(s)}
+
+
+@rotas.post("/demo/reiniciar")
+def demo_reiniciar(pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
+    """Volta a plataforma ao estado inicial da demonstração (antes de gravar ou apresentar)."""
+    exigir(pessoa, GESTOR_IA)
+    from sqlmodel import SQLModel
+
+    from ..core import db
+    from ..seed.demo import semear
+    from ..tools import dados_ficticios, executor
+    s.close()
+    with db.trava:
+        SQLModel.metadata.drop_all(db.motor())
+        db.criar_tabelas()
+    dados_ficticios.zerar()
+    executor.zerar_limites()
+    with Session(db.motor()) as nova:
+        semear(nova)
+    return {"ok": True}
+
+
+@rotas.delete("/demo/historico")
+def demo_apagar(pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
+    exigir(pessoa, GESTOR_IA)
+    return {"apagadas": historico.apagar(s)}

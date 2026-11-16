@@ -1,0 +1,16 @@
+html, body { height: 100%; margin: 0; }
+body { font: 15px/1.5 "Segoe UI", system-ui, sans-serif; color: #10201A; background: #F6F5F1; }
+iframe { width: 100%; height: 100%; border: 0; display: block; }
+iframe[hidden] { display: none; }
+.estado { padding: 28px 22px; }
+.estado h1 { font-size: 19px; margin: 0 0 8px; }
+.estado p { margin: 0 0 12px; color: #46564F; }
+.estado code { background: #E4E4DC; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+.estado button, .cartao button { background: #10201A; color: #fff; border: 0; border-radius: 8px; padding: 9px 16px; font: inherit; font-weight: 600; cursor: pointer; margin-right: 6px; }
+.estado button.claro, .cartao button.claro { background: #fff; color: #10201A; border: 1px solid #D3D3C8; font-weight: 500; }
+.cartao { max-width: 560px; margin: 40px auto; background: #fff; border: 1px solid #E4E4DC; border-radius: 10px; padding: 26px; }
+.cartao h1 { font-size: 20px; margin: 0 0 6px; }
+.cartao label { display: block; font-weight: 600; margin: 16px 0 6px; }
+.cartao input { width: 100%; box-sizing: border-box; padding: 9px 12px; border: 1px solid #D3D3C8; border-radius: 8px; font: inherit; }
+.cartao p { color: #46564F; margin: 0 0 10px; }
+#resultado { margin-top: 14px; font-weight: 600; }

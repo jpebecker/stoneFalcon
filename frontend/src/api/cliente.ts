@@ -1,0 +1,178 @@
+// Cliente da API do StoneFalcon. O login é simulado: o perfil escolhido vai no
+// cabeçalho X-Usuario (em produção, o token do SSO da empresa).
+
+const CHAVE_PERFIL = "stonefalcon.perfil";
+
+export function perfilAtual(): string | null {
+  try {
+    return localStorage.getItem(CHAVE_PERFIL);
+  } catch {
+    return null;
+  }
+}
+
+export function definirPerfil(id: string | null) {
+  try {
+    if (id) localStorage.setItem(CHAVE_PERFIL, id);
+    else localStorage.removeItem(CHAVE_PERFIL);
+  } catch {
+    /* navegação privada: segue só na memória */
+  }
+}
+
+export class ErroApi extends Error {
+  constructor(public status: number, mensagem: string) {
+    super(mensagem);
+  }
+}
+
+export async function api<T>(rota: string, corpo?: unknown, metodo?: string): Promise<T> {
+  const cabecalhos: Record<string, string> = { "Content-Type": "application/json" };
+  const perfil = perfilAtual();
+  if (perfil) cabecalhos["X-Usuario"] = perfil;
+  const resp = await fetch("/api/v1" + rota, {
+    method: metodo ?? (corpo === undefined ? "GET" : "POST"),
+    headers: cabecalhos,
+    body: corpo === undefined ? undefined : JSON.stringify(corpo),
+  });
+  const dados = await resp.json().catch(() => ({}));
+  if (!resp.ok) {
+    const det = (dados as { detail?: unknown }).detail;
+    const msg = typeof det === "string" ? det : Array.isArray(det) ? det.map((d) => d.msg).join("; ") : "Erro " + resp.status;
+    throw new ErroApi(resp.status, msg);
+  }
+  return dados as T;
+}
+
+// ---------- tipos (espelham o backend) ----------
+export type Persona = {
+  id: string; nome: string; area: string; area_nome: string; cargo: string; nivel: string; papeis: string[];
+};
+
+export type Passo = {
+  id: string; titulo: string; tipo: "ferramenta" | "agente" | "aprovacao"; depende_de: string[];
+  instrucao: string; ferramentas: string[]; modelo: "auto" | "rapido" | "forte"; max_iteracoes: number;
+  ferramenta: string | null; entrada: Record<string, unknown>;
+};
+
+export type Blueprint = {
+  nome: string; objetivo: string; area: string; instrucoes: string; campos_entrada: string[];
+  passos: Passo[]; limites: { max_custo_brl: number; max_chamadas_modelo: number }; minutos_manual: number;
+};
+
+export type Risco = { nivel: "baixo" | "medio" | "alto"; motivos: string[]; exige_revisao_seguranca: boolean };
+export type Estimativa = { custo_por_execucao_brl: number; chamadas_modelo: number; por_passo: Record<string, { modelo: string | null; custo_brl: number }> };
+export type Explicacao = { passo: string; titulo: string; explicacao: string };
+
+export type Sugestao = {
+  blueprint: Blueprint; origem: string; explicacao: Explicacao[]; ferramentas_removidas: Record<string, string>;
+  alertas: string[]; risco: Risco; estimativa: Estimativa; niveis: string[][]; custo_sugestao_brl: number;
+};
+
+export type Validacao =
+  | { valido: false; erros: string[] }
+  | { valido: true; erros: []; niveis: string[][]; sem_permissao: Record<string, string>; risco: Risco; estimativa: Estimativa; explicacao: Explicacao[] };
+
+export type Ferramenta = {
+  id: string; nome: string; descricao: string; modulo: string; modulo_nome: string; classificacao: string;
+  areas: string[]; acao: string; exige_aprovacao: boolean; limite_por_minuto: number; ativo: boolean;
+  falha: string | null; disponivel_para_mim: boolean; motivo: string;
+  parametros: Record<string, { type: string; description?: string; enum?: string[] }>; obrigatorios: string[];
+};
+
+export type UsoFerramenta = { conector: string; ok: boolean; erro: string | null; tipo_erro: string | null; latencia_ms: number; mascarados: { tipo: string; rotulo: string; quantidade: number }[]; suspeitas: string[] };
+
+export type RegistroPasso = {
+  id: string; titulo: string; tipo: string; status: string; saida: unknown; motivo: string | null; modelo: string | null;
+  motivos_modelo: string[]; ferramentas: UsoFerramenta[]; iteracoes: number; custo_usd: number;
+  duracao_ms: number; duracao_estimada_ms: number;
+  pendencia: Pendencia | null;
+};
+
+export type Pendencia = { passo: string; tipo: "ferramenta" | "aprovacao"; conector?: string; conector_nome?: string; entrada?: Record<string, unknown>; justificativa?: string | null; titulo?: string };
+
+export type Execucao = {
+  id: string; agente_id: string | null; agente_nome: string; area: string; persona: string; status: string;
+  motivo: string | null; entrada: Record<string, unknown>; blueprint: Blueprint; passos: Record<string, RegistroPasso>;
+  pendencia: Pendencia | null; resultado: string | null; chamadas_modelo: number; tokens_entrada: number;
+  tokens_saida: number; custo_usd: number; custo_brl: number; duracao_ms: number; duracao_estimada_ms: number;
+  simulado: boolean; inicio: string; fim: string | null;
+  resultado_tela?: string; passos_tela?: Record<string, RegistroPasso>;
+};
+
+export type Saude = { ok: boolean; versao: string; modo: "real" | "simulado"; modelos: Record<string, string>; cotacao_dolar: number };
+
+export type Agente = {
+  id: string; nome: string; area: string; dono: string; estado: "rascunho" | "em_revisao" | "publicado" | "pausado" | "depreciado";
+  versao_publicada: number | null; ultima_versao: number; risco: "baixo" | "medio" | "alto"; compartilhado_com: string[];
+  motivo_estado: string | null; criado_em: string; atualizado_em: string;
+  execucoes: number; escaladas: number; custo_brl: number;
+};
+
+export type VersaoAgente = {
+  id: string; agente_id: string; numero: number; estado: string; blueprint: Blueprint; nota: string; autor: string;
+  criada_em: string; risco: string; revisor: string | null; parecer: string | null; revisada_em: string | null; publicada_em: string | null;
+};
+
+export type EventoAuditoria = { seq: number; id: string; tipo: string; quando: string; ator: string; agente_id: string | null; dados: Record<string, unknown> };
+
+export type AgenteDetalhe = Agente & { versoes: VersaoAgente[]; pode_executar: boolean; historico: EventoAuditoria[] };
+
+export type Mudanca = { tipo: "adicionado" | "removido" | "alterado"; alvo: string; campo: string | null; antes: unknown; depois: unknown };
+
+export type ItemRevisao = { agente: Agente; versao: VersaoAgente; mudancas: Mudanca[] };
+
+export type Alerta = {
+  id: string; regra: string; severidade: "atencao" | "critico"; agente_id: string | null; conector: string | null;
+  titulo: string; detalhe: string; destinatarios: string[]; ocorrencias: number; aberto_em: string; atualizado_em: string;
+  resolvido_em: string | null; lido?: boolean;
+};
+
+export type MetricasAgente = {
+  execucoes: number; concluidas: number; escaladas: number; falhas: number; aguardando: number; taxa_sucesso: number | null;
+  latencia_p50_ms: number; latencia_p95_ms: number; custo_brl: number; custo_medio_brl: number;
+};
+
+export type SaudeAgente = {
+  agente: { id: string; nome: string; area: string; dono: string; estado: string; risco: string };
+  metricas: MetricasAgente; score: { nota: number; status: "saudavel" | "atencao" | "critico" }; alertas: Alerta[];
+};
+
+export type SaudeConector = {
+  id: string; nome: string; modulo: string; status: "ok" | "lento" | "fora"; chamadas: number; erros: number; taxa_erro: number;
+  latencia_tipica_ms: number; latencia_p95_ms?: number; detalhe: string | null;
+};
+
+export type FinancasAgente = {
+  id: string; nome: string; area: string; estado: string; minutos_manual: number; execucoes: number; concluidas: number;
+  custo_brl: number; ganho_brl: number; horas_liberadas: number; roi: number | null; custo_medio_brl: number;
+  orcamento_mensal_brl: number; gasto_mes_brl: number; uso_orcamento: number | null;
+};
+
+export type ResumoFinancas = {
+  dias: number; tem_demo: boolean; execucoes: number; custo_brl: number; custo_sem_roteador_brl: number;
+  economia_roteador_pct: number | null; ganho_brl: number; roi_variavel: number | null;
+  por_agente: FinancasAgente[]; por_area: { area: string; execucoes: number; custo_brl: number; ganho_brl: number }[];
+  por_modelo: { modelo: string; chamadas: number; custo_brl: number }[];
+  por_dia: { dia: string; execucoes: number; custo_brl: number; rapido_brl: number; forte_brl: number }[];
+  premissas?: Record<string, number | boolean>;
+};
+
+export type Premissas = Record<string, number | boolean>;
+
+export type Projecao = {
+  meses: { mes: number; usuarios_ativos: number; execucoes: number; horas_liberadas: number; custo_tokens: number; custo_fixo: number; beneficio: number; fluxo: number; acumulado: number }[];
+  investimento_total: number; custo_fixo_mensal: number; ganho_por_tarefa: number; payback_mes: number | null; vpl: number;
+  tir_anual: number | null; roi: number | null; beneficio_total: number; custo_total: number; tokens_participacao: number;
+  ponto_de_equilibrio_execucoes_mes: number | null;
+};
+
+export type Indicadores = {
+  dias: number; tem_demo: boolean; execucoes: number;
+  tempo_execucao: { manual_min: number; agente_min: number; revisao_humana_min: number; reducao_pct: number | null };
+  custo_operacional: { manual_brl: number; agente_brl: number; economia_por_operacao_brl: number; economia_roteador_pct: number | null };
+  produtividade: { tarefas_concluidas: number; horas_liberadas: number; agentes_ativos: number };
+  taxa_erros: { agente: number | null; manual_premissa: number; escaladas_ou_falhas: number; acessos_bloqueados: number; dados_mascarados: number };
+  roi: { periodo_ganho_brl: number; periodo_custo_brl: number; periodo_roi_variavel: number | null; projecao_payback_mes: number | null; projecao_vpl: number; projecao_roi: number | null; projecao_tir_anual: number | null };
+  premissas_usadas: Record<string, number>;
+};

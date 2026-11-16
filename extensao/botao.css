@@ -1,0 +1,12 @@
+#stonefalcon-botao {
+  all: initial;
+  position: fixed; right: 18px; bottom: 18px; z-index: 2147483600;
+  width: 48px; height: 48px; border-radius: 14px;
+  background: #10201A; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 14px rgba(16, 32, 26, .35);
+  transition: transform .12s ease;
+}
+#stonefalcon-botao:hover { transform: translateY(-2px); }
+#stonefalcon-botao:focus-visible { outline: 3px solid #1FB37A; outline-offset: 2px; }
+@media print { #stonefalcon-botao { display: none; } }
