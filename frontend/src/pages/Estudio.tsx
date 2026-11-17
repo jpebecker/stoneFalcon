@@ -5,6 +5,8 @@ import {
   api, type Agente, type AgenteDetalhe, type Blueprint, type Execucao, type Ferramenta, type Passo, type Persona, type Saude, type Sugestao, type Validacao,
 } from "../api/cliente";
 import Canvas from "../components/Canvas";
+import CampoEntrada from "../components/CampoEntrada";
+import { registrarCtx, usePreenche } from "../roteiro/estado";
 import EditorPasso from "../components/EditorPasso";
 import LinhaDoTempo from "../components/LinhaDoTempo";
 import { COR_RISCO, reais } from "../components/formato";
@@ -33,6 +35,14 @@ export default function Estudio({ pessoa }: { pessoa: Persona }) {
   const qc = useQueryClient();
   const [nota, setNota] = useState("");
 
+  // roteiro guiado: o passo atual já deixa a descrição e a entrada do teste preenchidas
+  const pre = usePreenche();
+  useEffect(() => {
+    if (pre?.passoId === "criar" && pre.descricao && !bp) setDescricao(pre.descricao);
+    if (pre?.passoId === "testar" && pre.entrada) setEntrada(pre.entrada);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pre?.passoId]);
+
   // editando um agente existente: carrega a última versão
   const existente = useQuery({ queryKey: ["agente", agenteId], queryFn: () => api<AgenteDetalhe>("/agentes/" + agenteId), enabled: !!agenteId });
   useEffect(() => {
@@ -47,7 +57,7 @@ export default function Estudio({ pessoa }: { pessoa: Persona }) {
       if (publicarDepois) await api(`/agentes/${id}/publicar`, {});
       return id;
     },
-    onSuccess: (id) => { qc.invalidateQueries({ queryKey: ["agentes"] }); qc.invalidateQueries({ queryKey: ["agente", id] }); navegar("/agentes/" + id); },
+    onSuccess: (id) => { registrarCtx({ agenteId: id }); qc.invalidateQueries({ queryKey: ["agentes"] }); qc.invalidateQueries({ queryKey: ["agente", id] }); navegar("/agentes/" + id); },
   });
 
   const padroes = useQuery({ queryKey: ["padroes"], queryFn: () => api<Padrao[]>("/estudio/padroes") });
@@ -220,14 +230,11 @@ export default function Estudio({ pessoa }: { pessoa: Persona }) {
         <h2 className="text-lg">Testar no sandbox</h2>
         <p className="mt-1 text-sm text-tinta-3">Roda com as suas permissões, sobre sistemas de teste. Nada é publicado.</p>
         <div className="mt-4 flex flex-wrap items-end gap-3">
-          {bp.campos_entrada.map((c) => (
-            <label key={c} className="min-w-[180px] flex-1">
-              <span className="rotulo">{c.replace(/_/g, " ")}</span>
-              <input className="campo" value={entrada[c] ?? ""} onChange={(e) => setEntrada({ ...entrada, [c]: e.target.value })}
-                placeholder={c === "lojista_id" ? "L1001 a L1004" : c === "colaborador_id" ? "C501 ou C502" : ""} />
-            </label>
+          {bp.campos.map((c) => (
+            <CampoEntrada key={c.id} campo={c} pessoa={pessoa} valor={entrada[c.id] ?? ""}
+              aoMudar={(v) => setEntrada((e) => ({ ...e, [c.id]: v }))} />
           ))}
-          <button className="botao-pedra" disabled={!valido || testar.isPending || bp.campos_entrada.some((c) => !entrada[c])}
+          <button className="botao-pedra" disabled={!valido || testar.isPending || bp.campos.some((c) => !entrada[c.id])}
             onClick={() => testar.mutate()}>
             {testar.isPending ? "Executando…" : "Executar teste"}
           </button>

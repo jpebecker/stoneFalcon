@@ -1,0 +1,1327 @@
+{
+ "numeros": {
+  "investimento_inicial": 690000,
+  "modulos": 300000,
+  "investimento_total": 990000,
+  "custo_fixo": 22900,
+  "cpe_premissa": 0.03,
+  "cpe_modelado": 0.017074438071693447,
+  "tokens_min": 0.008922645822579456,
+  "tokens_max": 0.038406502203651764,
+  "economia_roteador": 0.7048296727924697,
+  "payback_base": 21,
+  "vpl_base": 773842.0221519056,
+  "tir_base": 0.5737443035901095,
+  "roi_base": 0.63694469517699,
+  "payback_medido": 17,
+  "vpl_medido": 1412137.5971463262,
+  "vpl_conservador": -769042.0469988747,
+  "payback_conservador": "não se paga",
+  "vpl_otimista": 4217035.469924165,
+  "payback_otimista": 11,
+  "adocao_minima": 0.151740956509958,
+  "adocao_minima_vpl": 0.17133909643432815,
+  "minutos_minimos": 6.887153502235469,
+  "custo_36m_stonefalcon": 1844595,
+  "custo_36m_copilot": 1609364.48,
+  "empate_copilot_x": 1.467497591467591,
+  "cpe_copilot": 0.52992,
+  "piloto_tranche1": 908700,
+  "piloto_meses": 3,
+  "escalada_demo": 0.0593,
+  "minutos_demo": 12.021013597033374
+ },
+ "origem": {
+  "investimento_inicial": {
+   "rotulo": "Investimento inicial (desenvolvimento + implantação + 15%)",
+   "celula": "Resumo para slides!C5",
+   "origem": "Investimento (CAPEX)!D14"
+  },
+  "modulos": {
+   "rotulo": "Módulos de integração (4 conectores)",
+   "celula": "Resumo para slides!C6",
+   "origem": "Investimento (CAPEX)!E24"
+  },
+  "investimento_total": {
+   "rotulo": "Investimento total",
+   "celula": "Resumo para slides!C7",
+   "origem": "Motor (Base)"
+  },
+  "custo_fixo": {
+   "rotulo": "Operação mensal (hospedagem + sustentação)",
+   "celula": "Resumo para slides!C8",
+   "origem": "Operação (OPEX)!C10"
+  },
+  "cpe_premissa": {
+   "rotulo": "Custo de tokens por execução: premissa do Base",
+   "celula": "Resumo para slides!C9",
+   "origem": "Premissas"
+  },
+  "cpe_modelado": {
+   "rotulo": "Custo de tokens por execução: modelado (agentes da demo)",
+   "celula": "Resumo para slides!C10",
+   "origem": "Tokens!D40"
+  },
+  "tokens_min": {
+   "rotulo": "Tokens no custo total: menor entre os cenários",
+   "celula": "Resumo para slides!C11",
+   "origem": "Cenários (linha 20)"
+  },
+  "tokens_max": {
+   "rotulo": "Tokens no custo total: maior entre os cenários",
+   "celula": "Resumo para slides!C12",
+   "origem": "Cenários (linha 20)"
+  },
+  "economia_roteador": {
+   "rotulo": "Economia do roteador (mix de agentes da demo)",
+   "celula": "Resumo para slides!C13",
+   "origem": "Tokens!E31"
+  },
+  "payback_base": {
+   "rotulo": "Payback do cenário Base (mês)",
+   "celula": "Resumo para slides!C14",
+   "origem": "Cenários!B13"
+  },
+  "vpl_base": {
+   "rotulo": "VPL do cenário Base (36 meses, 12% a.a.)",
+   "celula": "Resumo para slides!C15",
+   "origem": "Cenários!B14"
+  },
+  "tir_base": {
+   "rotulo": "TIR anual do cenário Base",
+   "celula": "Resumo para slides!C16",
+   "origem": "Cenários!B15"
+  },
+  "roi_base": {
+   "rotulo": "ROI do cenário Base no horizonte",
+   "celula": "Resumo para slides!C17",
+   "origem": "Cenários!B16"
+  },
+  "payback_medido": {
+   "rotulo": "Payback do Base medido (mês)",
+   "celula": "Resumo para slides!C18",
+   "origem": "Cenários!E13"
+  },
+  "vpl_medido": {
+   "rotulo": "VPL do Base medido",
+   "celula": "Resumo para slides!C19",
+   "origem": "Cenários!E14"
+  },
+  "vpl_conservador": {
+   "rotulo": "VPL do Conservador",
+   "celula": "Resumo para slides!C20",
+   "origem": "Cenários!C14"
+  },
+  "payback_conservador": {
+   "rotulo": "Payback do Conservador",
+   "celula": "Resumo para slides!C21",
+   "origem": "Cenários!C13"
+  },
+  "vpl_otimista": {
+   "rotulo": "VPL do Otimista",
+   "celula": "Resumo para slides!C22",
+   "origem": "Cenários!D14"
+  },
+  "payback_otimista": {
+   "rotulo": "Payback do Otimista (mês)",
+   "celula": "Resumo para slides!C23",
+   "origem": "Cenários!D13"
+  },
+  "adocao_minima": {
+   "rotulo": "Adoção mínima para se pagar em 36 meses (acumulado ≥ 0)",
+   "celula": "Resumo para slides!C24",
+   "origem": "Cenários!B35"
+  },
+  "adocao_minima_vpl": {
+   "rotulo": "Adoção mínima para VPL ≥ 0",
+   "celula": "Resumo para slides!C25",
+   "origem": "Cenários!C35"
+  },
+  "minutos_minimos": {
+   "rotulo": "Minutos mínimos por tarefa para se pagar em 36 meses",
+   "celula": "Resumo para slides!C26",
+   "origem": "Cenários!B36"
+  },
+  "custo_36m_stonefalcon": {
+   "rotulo": "Construir: custo em 36 meses",
+   "celula": "Resumo para slides!C27",
+   "origem": "Construir × comprar!B13"
+  },
+  "custo_36m_copilot": {
+   "rotulo": "Comprar (Copilot Studio): custo em 36 meses",
+   "celula": "Resumo para slides!C28",
+   "origem": "Construir × comprar!C13"
+  },
+  "empate_copilot_x": {
+   "rotulo": "Volume em que construir empata com o Copilot (× o Base)",
+   "celula": "Resumo para slides!C29",
+   "origem": "Construir × comprar!C17"
+  },
+  "cpe_copilot": {
+   "rotulo": "Copilot Studio: custo por execução",
+   "celula": "Resumo para slides!C30",
+   "origem": "Construir × comprar!C6"
+  },
+  "piloto_tranche1": {
+   "rotulo": "Pedido: tranche 1 (plataforma + 2 conectores + piloto)",
+   "celula": "Resumo para slides!C31",
+   "origem": "Investimento (CAPEX)!E32"
+  },
+  "piloto_meses": {
+   "rotulo": "Duração do piloto (meses)",
+   "celula": "Resumo para slides!C32",
+   "origem": "Premissas"
+  },
+  "escalada_demo": {
+   "rotulo": "Taxa de escalada para humano (histórico sintético)",
+   "celula": "Resumo para slides!C33",
+   "origem": "Premissas"
+  },
+  "minutos_demo": {
+   "rotulo": "Minutos à mão, média ponderada dos 3 agentes",
+   "celula": "Resumo para slides!C34",
+   "origem": "Benefícios!D12"
+  }
+ },
+ "g1": [
+  [
+   "Mês",
+   "Base",
+   "Conservador",
+   "Otimista",
+   "Base medido"
+  ],
+  [
+   0,
+   -990000,
+   -990000,
+   -990000,
+   -990000
+  ],
+  [
+   1,
+   -1004732.5,
+   -1010623,
+   -993298,
+   -1002612.7844327565
+  ],
+  [
+   2,
+   -1011297.5,
+   -1028969,
+   -976994,
+   -1004938.3532982694
+  ],
+  [
+   3,
+   -1009695,
+   -1045038,
+   -941088,
+   -996976.7065965389
+  ],
+  [
+   4,
+   -999925,
+   -1058830,
+   -885580,
+   -978727.8443275648
+  ],
+  [
+   5,
+   -981987.5,
+   -1070345,
+   -810470,
+   -950191.7664913472
+  ],
+  [
+   6,
+   -955882.5,
+   -1079583,
+   -715758,
+   -911368.4730878861
+  ],
+  [
+   7,
+   -921610,
+   -1086544,
+   -601444,
+   -862257.9641171816
+  ],
+  [
+   8,
+   -879170,
+   -1091228,
+   -467528,
+   -802860.2395792336
+  ],
+  [
+   9,
+   -828562.5,
+   -1093635,
+   -314010,
+   -733175.299474042
+  ],
+  [
+   10,
+   -769787.5,
+   -1093765,
+   -140890,
+   -653203.143801607
+  ],
+  [
+   11,
+   -702845,
+   -1091618,
+   51832,
+   -562943.7725619284
+  ],
+  [
+   12,
+   -627735,
+   -1087194,
+   264156,
+   -462397.18575500627
+  ],
+  [
+   13,
+   -552625,
+   -1080493,
+   476480,
+   -361850.59894808417
+  ],
+  [
+   14,
+   -477515,
+   -1071515,
+   688804,
+   -261304.01214116206
+  ],
+  [
+   15,
+   -402405,
+   -1060260,
+   901128,
+   -160757.42533423996
+  ],
+  [
+   16,
+   -327295,
+   -1046728,
+   1113452,
+   -60210.83852731786
+  ],
+  [
+   17,
+   -252185,
+   -1030919,
+   1325776,
+   40335.748279604246
+  ],
+  [
+   18,
+   -177075,
+   -1012833,
+   1538100,
+   140882.33508652635
+  ],
+  [
+   19,
+   -101965,
+   -994747,
+   1750424,
+   241428.92189344845
+  ],
+  [
+   20,
+   -26855,
+   -976661,
+   1962748,
+   341975.50870037056
+  ],
+  [
+   21,
+   48255,
+   -958575,
+   2175072,
+   442522.09550729266
+  ],
+  [
+   22,
+   123365,
+   -940489,
+   2387396,
+   543068.6823142148
+  ],
+  [
+   23,
+   198475,
+   -922403,
+   2599720,
+   643615.2691211369
+  ],
+  [
+   24,
+   273585,
+   -904317,
+   2812044,
+   744161.855928059
+  ],
+  [
+   25,
+   348695,
+   -886231,
+   3024368,
+   844708.4427349811
+  ],
+  [
+   26,
+   423805,
+   -868145,
+   3236692,
+   945255.0295419032
+  ],
+  [
+   27,
+   498915,
+   -850059,
+   3449016,
+   1045801.6163488253
+  ],
+  [
+   28,
+   574025,
+   -831973,
+   3661340,
+   1146348.2031557474
+  ],
+  [
+   29,
+   649135,
+   -813887,
+   3873664,
+   1246894.7899626694
+  ],
+  [
+   30,
+   724245,
+   -795801,
+   4085988,
+   1347441.3767695916
+  ],
+  [
+   31,
+   799355,
+   -777715,
+   4298312,
+   1447987.9635765138
+  ],
+  [
+   32,
+   874465,
+   -759629,
+   4510636,
+   1548534.550383436
+  ],
+  [
+   33,
+   949575,
+   -741543,
+   4722960,
+   1649081.1371903582
+  ],
+  [
+   34,
+   1024685,
+   -723457,
+   4935284,
+   1749627.7239972805
+  ],
+  [
+   35,
+   1099795,
+   -705371,
+   5147608,
+   1850174.3108042027
+  ],
+  [
+   36,
+   1174905,
+   -687285,
+   5359932,
+   1950720.897611125
+  ]
+ ],
+ "g2": [
+  [
+   "Componente",
+   "Base",
+   "Conservador",
+   "Otimista",
+   "Base medido"
+  ],
+  [
+   "Investimento",
+   990000,
+   990000,
+   990000,
+   990000
+  ],
+  [
+   "Operação",
+   824400,
+   824400,
+   824400,
+   824400
+  ],
+  [
+   "Tokens",
+   30195,
+   16335,
+   72468,
+   17185.421919159453
+  ]
+ ],
+ "g3": [
+  [
+   "Premissa",
+   "Δ VPL (−)",
+   "Δ VPL (+)"
+  ],
+  [
+   "Minutos por tarefa à mão",
+   -621066.6392085603,
+   621066.6392085608
+  ],
+  [
+   "Aproveitamento do tempo liberado",
+   -496853.3113668477,
+   496853.31136684865
+  ],
+  [
+   "Custo da hora de trabalho",
+   -496853.31136684795,
+   496853.31136684865
+  ],
+  [
+   "Colaboradores com acesso",
+   -491884.77825318,
+   491884.77825318
+  ],
+  [
+   "Execuções por usuário por dia",
+   -491884.77825318,
+   491884.77825318
+  ],
+  [
+   "Adoção-alvo",
+   -491884.77825318,
+   491884.77825318
+  ],
+  [
+   "Investimento total",
+   198000,
+   -198000
+  ],
+  [
+   "Custo fixo mensal",
+   139116.37382279895,
+   -139116.3738227985
+  ],
+  [
+   "Minutos de conferência humana",
+   124213.32784171286,
+   -124213.32784171216
+  ],
+  [
+   "Meses de rampa",
+   108793.15675069694,
+   -108992.4507991753
+  ],
+  [
+   "Taxa de desconto",
+   69552.41142034391,
+   -65144.5120935794
+  ],
+  [
+   "Custo de tokens por execução",
+   4968.53311366844,
+   -4968.533113668207
+  ]
+ ],
+ "g4": [
+  [
+   "Agente",
+   "Com roteador",
+   "Tudo no Sonnet"
+  ],
+  [
+   "Triagem de chargebacks",
+   0.07639127999999999,
+   0.13711679999999998
+  ],
+  [
+   "Resposta a dúvidas de lojistas",
+   0.0018768,
+   0.03753599999999999
+  ],
+  [
+   "Orientação de férias",
+   0.0018768,
+   0.03753599999999999
+  ],
+  [
+   "Média ponderada pelo volume",
+   0.017074438071693447,
+   0.0578460519159456
+  ]
+ ],
+ "premissas": [
+  {
+   "descricao": "Desenvolvimento + implantação, com contingência",
+   "nome": "investimento_inicial",
+   "valor": 690000,
+   "unidade": "R$",
+   "status": "Documento da equipe",
+   "fonte": "Aba Investimento (CAPEX)",
+   "linha": 9
+  },
+  {
+   "descricao": "Pacote de módulos de integração (conectores do catálogo)",
+   "nome": "modulos_integracao",
+   "valor": 300000,
+   "unidade": "R$",
+   "status": "Documento da equipe",
+   "fonte": "Aba Investimento (CAPEX)",
+   "linha": 10
+  },
+  {
+   "descricao": "Incluir os módulos de integração? (1 = sim, 0 = não)",
+   "nome": "incluir_modulos",
+   "valor": 1,
+   "unidade": "1/0",
+   "status": "Documento da equipe",
+   "fonte": "docs/custos-estimados.txt (documento de custos da equipe)",
+   "linha": 11
+  },
+  {
+   "descricao": "Hospedagem + domínio + n8n (teto da faixa R$ 2,8 a 6,9 mil)",
+   "nome": "hospedagem_mensal",
+   "valor": 6900,
+   "unidade": "R$/mês",
+   "status": "Documento da equipe",
+   "fonte": "docs/custos-estimados.txt (documento de custos da equipe). Estimativa de mercado; usamos o teto para não favorecer o resultado",
+   "linha": 14
+  },
+  {
+   "descricao": "Time de sustentação",
+   "nome": "sustentacao_mensal",
+   "valor": 16000,
+   "unidade": "R$/mês",
+   "status": "Documento da equipe",
+   "fonte": "docs/custos-estimados.txt (documento de custos da equipe)",
+   "linha": 15
+  },
+  {
+   "descricao": "Colaboradores com acesso",
+   "nome": "usuarios",
+   "valor": 6000,
+   "unidade": "pessoas",
+   "status": "Documento da equipe",
+   "fonte": "docs/custos-estimados.txt (documento de custos da equipe) (6.000 usuários)",
+   "linha": 18
+  },
+  {
+   "descricao": "Fração que usa agentes ao fim da rampa",
+   "nome": "adocao_alvo",
+   "valor": 0.25,
+   "unidade": "%",
+   "status": "Premissa a validar",
+   "fonte": "Premissa da equipe; o piloto mede. Decide o resultado (ver Sensibilidade)",
+   "linha": 19
+  },
+  {
+   "descricao": "Meses até atingir a adoção-alvo",
+   "nome": "meses_rampa",
+   "valor": 12,
+   "unidade": "meses",
+   "status": "Premissa a validar",
+   "fonte": "Premissa da equipe",
+   "linha": 20
+  },
+  {
+   "descricao": "Execuções de agente por usuário ativo por dia útil",
+   "nome": "tarefas_por_usuario_dia",
+   "valor": 1,
+   "unidade": "exec/dia",
+   "status": "Premissa a validar",
+   "fonte": "Premissa da equipe",
+   "linha": 21
+  },
+  {
+   "descricao": "Dias úteis por mês",
+   "nome": "dias_uteis",
+   "valor": 22,
+   "unidade": "dias",
+   "status": "Documento da equipe",
+   "fonte": "docs/custos-estimados.txt (documento de custos da equipe)",
+   "linha": 22
+  },
+  {
+   "descricao": "Tempo da tarefa feita à mão (média)",
+   "nome": "minutos_por_tarefa",
+   "valor": 10,
+   "unidade": "min",
+   "status": "Premissa a validar",
+   "fonte": "Base: premissa da equipe. Base medido: média ponderada dos 3 agentes da demo (aba Benefícios)",
+   "linha": 25
+  },
+  {
+   "descricao": "Tempo que a pessoa ainda gasta conferindo o resultado",
+   "nome": "minutos_revisao_humana",
+   "valor": 2,
+   "unidade": "min",
+   "status": "Premissa a validar",
+   "fonte": "Premissa da equipe",
+   "linha": 26
+  },
+  {
+   "descricao": "Custo da hora de trabalho (salário + encargos, média)",
+   "nome": "custo_hora",
+   "valor": 45,
+   "unidade": "R$/h",
+   "status": "Premissa a validar",
+   "fonte": "Premissa da equipe",
+   "linha": 27
+  },
+  {
+   "descricao": "Fração do tempo liberado que vira ganho real",
+   "nome": "aproveitamento",
+   "valor": 0.5,
+   "unidade": "%",
+   "status": "Premissa a validar",
+   "fonte": "Premissa da equipe (metade do tempo liberado vira trabalho de valor)",
+   "linha": 28
+  },
+  {
+   "descricao": "Custo de tokens por execução de agente",
+   "nome": "custo_por_execucao",
+   "valor": 0.03,
+   "unidade": "R$/exec",
+   "status": "Premissa a validar",
+   "fonte": "Base: premissa conservadora da equipe. Base medido: modelo de agentes da aba Tokens",
+   "linha": 29
+  },
+  {
+   "descricao": "Horizonte da análise (até 60)",
+   "nome": "meses",
+   "valor": 36,
+   "unidade": "meses",
+   "status": "Premissa da análise",
+   "fonte": "premissas.py",
+   "linha": 32
+  },
+  {
+   "descricao": "Taxa de desconto (custo de capital)",
+   "nome": "taxa_desconto_anual",
+   "valor": 0.12,
+   "unidade": "% a.a.",
+   "status": "Premissa a validar",
+   "fonte": "premissas.py; validar com Finanças da Stone",
+   "linha": 33
+  },
+  {
+   "descricao": "Retrabalho no processo manual",
+   "nome": "taxa_erro_manual",
+   "valor": 0.08,
+   "unidade": "%",
+   "status": "Premissa a validar",
+   "fonte": "premissas.py; usado só no indicador de erros (não entra no fluxo)",
+   "linha": 34
+  },
+  {
+   "descricao": "Dólar usado no modelo (igual ao protótipo)",
+   "nome": "cotacao_dolar",
+   "valor": 5.52,
+   "unidade": "R$/US$",
+   "status": "Documento da equipe",
+   "fonte": "docs/custos-estimados.txt (documento de custos da equipe); backend/app/core/config.py COTACAO_DOLAR",
+   "linha": 43
+  },
+  {
+   "descricao": "Euro",
+   "nome": "cotacao_euro",
+   "valor": 6.12,
+   "unidade": "R$/€",
+   "status": "Documento da equipe",
+   "fonte": "docs/custos-estimados.txt (documento de custos da equipe)",
+   "linha": 44
+  },
+  {
+   "descricao": "PTAX de venda em 13/11/2026 (referência, não usada nas contas)",
+   "nome": "—",
+   "valor": 5.6518,
+   "unidade": "R$/US$",
+   "status": "Referência",
+   "fonte": "Banco Central (ptax.bcb.gov.br), fechamento de 13/11/2026; tokens são ~1% a 4% do custo, o efeito é pequeno",
+   "linha": 45
+  },
+  {
+   "descricao": "Claude Haiku 5.5: entrada (prompt até 100 mil tokens)",
+   "nome": "—",
+   "valor": 0.1,
+   "unidade": "US$/MTok",
+   "status": "Tabela oficial",
+   "fonte": "Tabela oficial da Anthropic (platform.claude.com/docs/en/about-claude/pricing), conferida em 15/11/2026",
+   "linha": 48
+  },
+  {
+   "descricao": "Claude Haiku 5.5: saída",
+   "nome": "—",
+   "valor": 0.5,
+   "unidade": "US$/MTok",
+   "status": "Tabela oficial",
+   "fonte": "Tabela oficial da Anthropic (platform.claude.com/docs/en/about-claude/pricing), conferida em 15/11/2026",
+   "linha": 49
+  },
+  {
+   "descricao": "Claude Haiku 5.5: leitura de cache",
+   "nome": "—",
+   "valor": 0.01,
+   "unidade": "US$/MTok",
+   "status": "Premissa a validar",
+   "fonte": "Estimativa: 10% do preço de entrada (padrão da tabela); conferir",
+   "linha": 50
+  },
+  {
+   "descricao": "Claude Sonnet 5.5: entrada",
+   "nome": "—",
+   "valor": 2,
+   "unidade": "US$/MTok",
+   "status": "Tabela oficial",
+   "fonte": "Tabela oficial da Anthropic (platform.claude.com/docs/en/about-claude/pricing), conferida em 15/11/2026",
+   "linha": 51
+  },
+  {
+   "descricao": "Claude Sonnet 5.5: saída",
+   "nome": "—",
+   "valor": 10,
+   "unidade": "US$/MTok",
+   "status": "Tabela oficial",
+   "fonte": "Tabela oficial da Anthropic (platform.claude.com/docs/en/about-claude/pricing), conferida em 15/11/2026",
+   "linha": 52
+  },
+  {
+   "descricao": "Claude Sonnet 5.5: leitura de cache",
+   "nome": "—",
+   "valor": 0.1,
+   "unidade": "US$/MTok",
+   "status": "Tabela oficial",
+   "fonte": "Tabela oficial da Anthropic (platform.claude.com/docs/en/about-claude/pricing), conferida em 15/11/2026",
+   "linha": 53
+  },
+  {
+   "descricao": "Horas por pessoa por mês",
+   "nome": "—",
+   "valor": 160,
+   "unidade": "h",
+   "status": "Documento da equipe",
+   "fonte": "R$ 750/h × ~800 h = R$ 600 mil",
+   "linha": 56
+  },
+  {
+   "descricao": "Duração do desenvolvimento + implantação",
+   "nome": "—",
+   "valor": 5,
+   "unidade": "meses",
+   "status": "Documento da equipe",
+   "fonte": "docs/custos-estimados.txt (documento de custos da equipe)",
+   "linha": 57
+  },
+  {
+   "descricao": "Desenvolvedores",
+   "nome": "—",
+   "valor": 3,
+   "unidade": "pessoas",
+   "status": "Documento da equipe",
+   "fonte": "docs/custos-estimados.txt (documento de custos da equipe)",
+   "linha": 58
+  },
+  {
+   "descricao": "Custo/hora do desenvolvedor (pleno de fintech)",
+   "nome": "—",
+   "valor": 150,
+   "unidade": "R$/h",
+   "status": "Documento da equipe",
+   "fonte": "docs/custos-estimados.txt (documento de custos da equipe)",
+   "linha": 59
+  },
+  {
+   "descricao": "Gerente de projeto",
+   "nome": "—",
+   "valor": 1,
+   "unidade": "pessoas",
+   "status": "Documento da equipe",
+   "fonte": "docs/custos-estimados.txt (documento de custos da equipe)",
+   "linha": 60
+  },
+  {
+   "descricao": "Custo/hora do GP",
+   "nome": "—",
+   "valor": 180,
+   "unidade": "R$/h",
+   "status": "Documento da equipe",
+   "fonte": "docs/custos-estimados.txt (documento de custos da equipe)",
+   "linha": 61
+  },
+  {
+   "descricao": "Analista de qualidade (QA)",
+   "nome": "—",
+   "valor": 1,
+   "unidade": "pessoas",
+   "status": "Documento da equipe",
+   "fonte": "docs/custos-estimados.txt (documento de custos da equipe)",
+   "linha": 62
+  },
+  {
+   "descricao": "Custo/hora do QA",
+   "nome": "—",
+   "valor": 120,
+   "unidade": "R$/h",
+   "status": "Documento da equipe",
+   "fonte": "docs/custos-estimados.txt (documento de custos da equipe)",
+   "linha": 63
+  },
+  {
+   "descricao": "Contingência sobre o desenvolvimento",
+   "nome": "—",
+   "valor": 0.15,
+   "unidade": "%",
+   "status": "Documento da equipe",
+   "fonte": "docs/custos-estimados.txt (documento de custos da equipe)",
+   "linha": 64
+  },
+  {
+   "descricao": "Módulos de integração no pacote",
+   "nome": "—",
+   "valor": 4,
+   "unidade": "módulos",
+   "status": "Documento da equipe",
+   "fonte": "docs/custos-estimados.txt (documento de custos da equipe)",
+   "linha": 65
+  },
+  {
+   "descricao": "Custo de um módulo: mínimo da faixa",
+   "nome": "—",
+   "valor": 50000,
+   "unidade": "R$",
+   "status": "Documento da equipe",
+   "fonte": "docs/custos-estimados.txt (documento de custos da equipe)",
+   "linha": 66
+  },
+  {
+   "descricao": "Custo de um módulo: máximo da faixa",
+   "nome": "—",
+   "valor": 100000,
+   "unidade": "R$",
+   "status": "Documento da equipe",
+   "fonte": "docs/custos-estimados.txt (documento de custos da equipe)",
+   "linha": 67
+  },
+  {
+   "descricao": "Custo de um módulo usado no modelo (meio da faixa)",
+   "nome": "—",
+   "valor": 75000,
+   "unidade": "R$",
+   "status": "Documento da equipe",
+   "fonte": "docs/custos-estimados.txt (documento de custos da equipe) (pacote com 4 ≈ R$ 300 mil)",
+   "linha": 68
+  },
+  {
+   "descricao": "Módulos entregues antes do piloto (Atendimento e Risco)",
+   "nome": "—",
+   "valor": 2,
+   "unidade": "módulos",
+   "status": "Premissa a validar",
+   "fonte": "Proposta de faseamento da equipe",
+   "linha": 69
+  },
+  {
+   "descricao": "Duração do piloto em 2 áreas",
+   "nome": "—",
+   "valor": 3,
+   "unidade": "meses",
+   "status": "Premissa a validar",
+   "fonte": "Proposta de go-to-market",
+   "linha": 70
+  },
+  {
+   "descricao": "Colaboradores das 2 áreas no piloto",
+   "nome": "—",
+   "valor": 400,
+   "unidade": "pessoas",
+   "status": "Premissa a validar",
+   "fonte": "Ordem de grandeza; confirmar com Atendimento e Risco",
+   "linha": 71
+  },
+  {
+   "descricao": "Hospedagem + domínio + n8n: piso da faixa",
+   "nome": "—",
+   "valor": 2800,
+   "unidade": "R$/mês",
+   "status": "Documento da equipe",
+   "fonte": "docs/custos-estimados.txt (documento de custos da equipe)",
+   "linha": 74
+  },
+  {
+   "descricao": "Observabilidade externa (APM/logs) além da nativa",
+   "nome": "—",
+   "valor": 0,
+   "unidade": "R$/mês",
+   "status": "Premissa a validar",
+   "fonte": "No protótipo, Saúde e Alertas são nativos. Ferramenta externa seria custo adicional (não incluído)",
+   "linha": 75
+  },
+  {
+   "descricao": "Perguntas por usuário por dia útil",
+   "nome": "—",
+   "valor": 5,
+   "unidade": "perg/dia",
+   "status": "Documento da equipe",
+   "fonte": "docs/custos-estimados.txt (documento de custos da equipe)",
+   "linha": 78
+  },
+  {
+   "descricao": "Respondidas pela base aprovada (sem modelo)",
+   "nome": "—",
+   "valor": 0.4,
+   "unidade": "%",
+   "status": "Documento da equipe",
+   "fonte": "docs/custos-estimados.txt (documento de custos da equipe)",
+   "linha": 79
+  },
+  {
+   "descricao": "Respondidas pelo Haiku",
+   "nome": "—",
+   "valor": 0.48,
+   "unidade": "%",
+   "status": "Documento da equipe",
+   "fonte": "docs/custos-estimados.txt (documento de custos da equipe)",
+   "linha": 80
+  },
+  {
+   "descricao": "Respondidas pelo Sonnet",
+   "nome": "—",
+   "valor": 0.12,
+   "unidade": "%",
+   "status": "Documento da equipe",
+   "fonte": "docs/custos-estimados.txt (documento de custos da equipe)",
+   "linha": 81
+  },
+  {
+   "descricao": "Tokens de entrada por pergunta no Haiku",
+   "nome": "—",
+   "valor": 1500,
+   "unidade": "tokens",
+   "status": "Premissa da equipe",
+   "fonte": "Simulador do v3 (v3-extensao/funil/config.py)",
+   "linha": 82
+  },
+  {
+   "descricao": "Tokens de saída por pergunta no Haiku",
+   "nome": "—",
+   "valor": 500,
+   "unidade": "tokens",
+   "status": "Premissa da equipe",
+   "fonte": "Simulador do v3",
+   "linha": 83
+  },
+  {
+   "descricao": "Tokens de entrada por pergunta no Sonnet",
+   "nome": "—",
+   "valor": 3000,
+   "unidade": "tokens",
+   "status": "Premissa da equipe",
+   "fonte": "Simulador do v3",
+   "linha": 84
+  },
+  {
+   "descricao": "Tokens de saída por pergunta no Sonnet",
+   "nome": "—",
+   "valor": 1000,
+   "unidade": "tokens",
+   "status": "Premissa da equipe",
+   "fonte": "Simulador do v3",
+   "linha": 85
+  },
+  {
+   "descricao": "Custo mensal de tokens declarado no documento",
+   "nome": "—",
+   "valor": 8500,
+   "unidade": "R$/mês",
+   "status": "Documento da equipe",
+   "fonte": "docs/custos-estimados.txt (documento de custos da equipe)",
+   "linha": 86
+  },
+  {
+   "descricao": "Faixa do documento: mínimo",
+   "nome": "—",
+   "valor": 4300,
+   "unidade": "R$/mês",
+   "status": "Documento da equipe",
+   "fonte": "docs/custos-estimados.txt (documento de custos da equipe)",
+   "linha": 87
+  },
+  {
+   "descricao": "Faixa do documento: máximo",
+   "nome": "—",
+   "valor": 21000,
+   "unidade": "R$/mês",
+   "status": "Documento da equipe",
+   "fonte": "docs/custos-estimados.txt (documento de custos da equipe)",
+   "linha": 88
+  },
+  {
+   "descricao": "Tokens de instruções do sistema por chamada",
+   "nome": "—",
+   "valor": 450,
+   "unidade": "tokens",
+   "status": "Protótipo (estimativa)",
+   "fonte": "Protótipo v4: backend/app/agents/governanca.py (estimar_custo) e roteador",
+   "linha": 91
+  },
+  {
+   "descricao": "Tokens de contexto por passo anterior usado",
+   "nome": "—",
+   "valor": 600,
+   "unidade": "tokens",
+   "status": "Protótipo (estimativa)",
+   "fonte": "Protótipo v4: backend/app/agents/governanca.py (estimar_custo) e roteador",
+   "linha": 92
+  },
+  {
+   "descricao": "Tokens por definição de ferramenta",
+   "nome": "—",
+   "valor": 180,
+   "unidade": "tokens",
+   "status": "Protótipo (estimativa)",
+   "fonte": "Protótipo v4: backend/app/agents/governanca.py (estimar_custo) e roteador",
+   "linha": 93
+  },
+  {
+   "descricao": "Tokens do resultado de uma ferramenta",
+   "nome": "—",
+   "valor": 500,
+   "unidade": "tokens",
+   "status": "Protótipo (estimativa)",
+   "fonte": "Protótipo v4: backend/app/agents/governanca.py (estimar_custo) e roteador",
+   "linha": 94
+  },
+  {
+   "descricao": "Tokens de saída ao pedir uma ferramenta",
+   "nome": "—",
+   "valor": 120,
+   "unidade": "tokens",
+   "status": "Protótipo (estimativa)",
+   "fonte": "Protótipo v4: backend/app/agents/governanca.py (estimar_custo) e roteador",
+   "linha": 95
+  },
+  {
+   "descricao": "Tokens da resposta final do passo",
+   "nome": "—",
+   "valor": 350,
+   "unidade": "tokens",
+   "status": "Protótipo (estimativa)",
+   "fonte": "Protótipo v4: backend/app/agents/governanca.py (estimar_custo) e roteador",
+   "linha": 96
+  },
+  {
+   "descricao": "Fração do prompt fixo lida do cache (cenário com cache de prompt)",
+   "nome": "—",
+   "valor": 0.8,
+   "unidade": "%",
+   "status": "Premissa a validar",
+   "fonte": "Ilustrativo: o cliente do protótipo marca o prompt fixo para cache; medir com a chave real",
+   "linha": 97
+  },
+  {
+   "descricao": "Execuções concluídas: Triagem de chargebacks (30 dias)",
+   "nome": "—",
+   "valor": 165,
+   "unidade": "exec",
+   "status": "Histórico sintético da demo",
+   "fonte": "Protótipo v4: histórico de 30 dias da demo (SINTÉTICO, gerado por app/seed/historico.py)",
+   "linha": 98
+  },
+  {
+   "descricao": "Execuções concluídas: Resposta a dúvidas de lojistas (30 dias)",
+   "nome": "—",
+   "valor": 420,
+   "unidade": "exec",
+   "status": "Histórico sintético da demo",
+   "fonte": "Protótipo v4: histórico de 30 dias da demo (SINTÉTICO, gerado por app/seed/historico.py)",
+   "linha": 99
+  },
+  {
+   "descricao": "Execuções concluídas: Orientação de férias (30 dias)",
+   "nome": "—",
+   "valor": 224,
+   "unidade": "exec",
+   "status": "Histórico sintético da demo",
+   "fonte": "Protótipo v4: histórico de 30 dias da demo (SINTÉTICO, gerado por app/seed/historico.py)",
+   "linha": 100
+  },
+  {
+   "descricao": "Minutos à mão: Triagem de chargebacks",
+   "nome": "—",
+   "valor": 25,
+   "unidade": "min",
+   "status": "Premissa a validar",
+   "fonte": "Declarado no blueprint do agente (Estúdio); o piloto mede",
+   "linha": 103
+  },
+  {
+   "descricao": "Minutos à mão: Resposta a dúvidas de lojistas",
+   "nome": "—",
+   "valor": 8,
+   "unidade": "min",
+   "status": "Premissa a validar",
+   "fonte": "Blueprint do agente",
+   "linha": 104
+  },
+  {
+   "descricao": "Minutos à mão: Orientação de férias",
+   "nome": "—",
+   "valor": 10,
+   "unidade": "min",
+   "status": "Premissa a validar",
+   "fonte": "Blueprint do agente",
+   "linha": 105
+  },
+  {
+   "descricao": "Execuções que escalaram para humano (agente)",
+   "nome": "—",
+   "valor": 0.0593,
+   "unidade": "%",
+   "status": "Histórico sintético da demo",
+   "fonte": "Protótipo v4: histórico de 30 dias da demo (SINTÉTICO, gerado por app/seed/historico.py): 51 de 860",
+   "linha": 106
+  },
+  {
+   "descricao": "Custo/hora de um AI Engineer",
+   "nome": "—",
+   "valor": 180,
+   "unidade": "R$/h",
+   "status": "Premissa a validar",
+   "fonte": "Ordem de grandeza (sênior de fintech); validar com Pessoas",
+   "linha": 107
+  },
+  {
+   "descricao": "Horas de AI Engineer por agente sob medida",
+   "nome": "—",
+   "valor": 160,
+   "unidade": "h",
+   "status": "Premissa a validar",
+   "fonte": "Premissa: ~1 mês de um engenheiro por agente",
+   "linha": 108
+  },
+  {
+   "descricao": "Agentes novos por ano que iriam para a fila da Engenharia",
+   "nome": "—",
+   "valor": 24,
+   "unidade": "agentes",
+   "status": "Premissa a validar",
+   "fonte": "Premissa: 2 por mês na empresa toda",
+   "linha": 109
+  },
+  {
+   "descricao": "Copilot Studio: US$ por crédito (pacote de US$ 200 = 25 mil créditos)",
+   "nome": "—",
+   "valor": 0.008,
+   "unidade": "US$",
+   "status": "Pesquisa de preço público",
+   "fonte": "microsoft.com/en-us/microsoft-365-copilot/pricing/copilot-studio, consultado em 15/11/2026",
+   "linha": 112
+  },
+  {
+   "descricao": "Copilot Studio: créditos por execução de agente",
+   "nome": "—",
+   "valor": 12,
+   "unidade": "créditos",
+   "status": "Premissa a validar",
+   "fonte": "2 respostas generativas (2 cada) + 2 ações de agente (5 cada) por execução média; tabela em learn.microsoft.com (requirements-messages-management), consultada em 15/11/2026",
+   "linha": 113
+  },
+  {
+   "descricao": "Zapier Agents: US$ por atividade (Pro: ~US$ 33,33/mês por 1.500)",
+   "nome": "—",
+   "valor": 0.0222,
+   "unidade": "US$",
+   "status": "Pesquisa de preço público",
+   "fonte": "zapier.com/pricing (seção Agents), consultado em 15/11/2026. Enterprise sob consulta: extrapolação",
+   "linha": 114
+  },
+  {
+   "descricao": "Zapier Agents: atividades por execução",
+   "nome": "—",
+   "valor": 4,
+   "unidade": "atividades",
+   "status": "Premissa a validar",
+   "fonte": "Gatilho + 2 ações + 1 resposta",
+   "linha": 115
+  },
+  {
+   "descricao": "n8n Business (self-hosted, anual): € por mês",
+   "nome": "—",
+   "valor": 667,
+   "unidade": "€/mês",
+   "status": "Pesquisa de preço público",
+   "fonte": "n8n.io/pricing, consultado em 15/11/2026",
+   "linha": 116
+  },
+  {
+   "descricao": "n8n Business: execuções incluídas por mês",
+   "nome": "—",
+   "valor": 40000,
+   "unidade": "exec",
+   "status": "Pesquisa de preço público",
+   "fonte": "n8n.io/pricing, consultado em 15/11/2026",
+   "linha": 117
+  },
+  {
+   "descricao": "n8n: € por bloco extra de execuções",
+   "nome": "—",
+   "valor": 4000,
+   "unidade": "€",
+   "status": "Pesquisa de preço público",
+   "fonte": "Reportado por terceiros (cloudzero.com/blog/n8n-pricing, consultado em 15/11/2026); conferir com a n8n",
+   "linha": 118
+  },
+  {
+   "descricao": "n8n: execuções por bloco extra",
+   "nome": "—",
+   "valor": 300000,
+   "unidade": "exec",
+   "status": "Pesquisa de preço público",
+   "fonte": "Idem",
+   "linha": 119
+  },
+  {
+   "descricao": "Comprar SaaS (Copilot, Zapier): configuração, governança e treinamento (fora a integração)",
+   "nome": "—",
+   "valor": 200000,
+   "unidade": "R$",
+   "status": "Premissa a validar",
+   "fonte": "Premissa: SSO, ambientes, políticas de DLP e trilha de auditoria sobre a ferramenta comprada",
+   "linha": 120
+  },
+  {
+   "descricao": "n8n: fração do desenvolvimento do StoneFalcon que ainda seria preciso construir",
+   "nome": "—",
+   "valor": 0.7,
+   "unidade": "%",
+   "status": "Premissa a validar",
+   "fonte": "O n8n dá o motor de fluxos; Estúdio no-code, catálogo com permissões, guardrails e auditoria teriam de ser feitos",
+   "linha": 121
+  }
+ ]
+}

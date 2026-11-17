@@ -91,3 +91,23 @@ def estimar_custo(bp: Blueprint) -> Estimativa:
         chamadas += voltas
         por_passo[p.id] = {"modelo": decisao.nome_modelo, "custo_brl": round(precos.usd_para_brl(custo), 5)}
     return Estimativa(round(precos.usd_para_brl(total_usd), 5), chamadas, por_passo)
+
+
+# ---------- duração estimada (caminho crítico) ----------
+_VELOCIDADE = {"rapido": (180, 400), "forte": (70, 900)}   # tokens de saída/s, latência fixa ms (como o runtime)
+
+
+def estimar_duracao_ms(bp: Blueprint) -> int:
+    """Tempo do caminho crítico: passos da mesma camada rodam juntos, então cada camada custa o mais lento."""
+    def duracao(p) -> int:
+        if p.tipo == "ferramenta":
+            return CATALOGO[p.ferramenta].latencia_ms
+        if p.tipo == "aprovacao":
+            return 0
+        entrada = _SISTEMA + len(p.depende_de) * _CONTEXTO_POR_DEPENDENCIA + len(p.ferramentas) * _POR_FERRAMENTA_DEFINIDA
+        chave = roteador.decidir(p.modelo, p.instrucao, entrada).chave_modelo
+        vel, lat = _VELOCIDADE[chave]
+        voltas = 2 if p.ferramentas else 1
+        total = voltas * lat + int((_SAIDA + (120 if voltas == 2 else 0)) / vel * 1000)
+        return total + max((CATALOGO[f].latencia_ms for f in p.ferramentas), default=0)
+    return sum(max(duracao(bp.passo(pid)) for pid in camada) for camada in bp.niveis())

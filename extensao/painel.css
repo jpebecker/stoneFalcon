@@ -1,16 +1,40 @@
+/* Mesma identidade da plataforma (pedra/falcão), em tema escuro. */
+:root {
+  --papel: #0E1814; --folha: #17251F; --linha: #2D3F37; --tinta: #E8EEEB; --tinta-2: #B2BEB8; --tinta-3: #86968E;
+  --pedra: #1FB37A; --pedra-forte: #4AD6A0; --erro: #F88076; --falcao: #E0428F;
+  color-scheme: dark;
+}
 html, body { height: 100%; margin: 0; }
-body { font: 15px/1.5 "Segoe UI", system-ui, sans-serif; color: #10201A; background: #F6F5F1; }
-iframe { width: 100%; height: 100%; border: 0; display: block; }
-iframe[hidden] { display: none; }
+body { font: 15px/1.5 "Segoe UI", system-ui, sans-serif; color: var(--tinta); background: var(--papel); }
+iframe { width: 100%; height: 100%; border: 0; display: block; background: var(--papel); }
+iframe[hidden], .estado[hidden] { display: none; }
+
 .estado { padding: 28px 22px; }
-.estado h1 { font-size: 19px; margin: 0 0 8px; }
-.estado p { margin: 0 0 12px; color: #46564F; }
-.estado code { background: #E4E4DC; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
-.estado button, .cartao button { background: #10201A; color: #fff; border: 0; border-radius: 8px; padding: 9px 16px; font: inherit; font-weight: 600; cursor: pointer; margin-right: 6px; }
-.estado button.claro, .cartao button.claro { background: #fff; color: #10201A; border: 1px solid #D3D3C8; font-weight: 500; }
-.cartao { max-width: 560px; margin: 40px auto; background: #fff; border: 1px solid #E4E4DC; border-radius: 10px; padding: 26px; }
+.estado h1 { font-size: 20px; margin: 0 0 10px; letter-spacing: -.01em; }
+.estado p { margin: 0 0 12px; color: var(--tinta-2); }
+.estado .erro { color: var(--erro); font-weight: 600; }
+.estado .nota { font-size: 13px; color: var(--tinta-3); }
+.estado code, .cartao code { background: var(--folha); border: 1px solid var(--linha); padding: 2px 6px; border-radius: 6px; font-size: 13px; color: var(--tinta); word-break: break-all; }
+.marca { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; font-size: 18px; }
+.selo-marca { display: inline-flex; width: 30px; height: 30px; border-radius: 8px; background: var(--folha); border: 1px solid var(--linha); color: var(--pedra-forte); align-items: center; justify-content: center; font-weight: 700; font-size: 13px; }
+.passos { margin: 0 0 16px; padding: 0; list-style: none; counter-reset: p; }
+.passos li { counter-increment: p; display: flex; gap: 10px; padding: 9px 0; color: var(--tinta-2); border-bottom: 1px solid var(--linha); }
+.passos li::before { content: counter(p); flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--pedra); color: #04150d; font-weight: 700; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+.carregando { height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--folha), var(--pedra), var(--folha)); background-size: 200% 100%; animation: corre 1.2s linear infinite; }
+@keyframes corre { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .carregando { animation: none; } }
+
+button { background: var(--pedra); color: #04150d; border: 0; border-radius: 8px; padding: 9px 16px; font: inherit; font-weight: 600; cursor: pointer; margin: 0 6px 6px 0; }
+button:hover { background: var(--pedra-forte); }
+button.claro { background: var(--folha); color: var(--tinta); border: 1px solid var(--linha); font-weight: 500; }
+button.claro:hover { background: #1E3029; }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--pedra); outline-offset: 2px; }
+
+.cartao { max-width: 560px; margin: 40px auto; background: var(--folha); border: 1px solid var(--linha); border-radius: 12px; padding: 26px; }
 .cartao h1 { font-size: 20px; margin: 0 0 6px; }
 .cartao label { display: block; font-weight: 600; margin: 16px 0 6px; }
-.cartao input { width: 100%; box-sizing: border-box; padding: 9px 12px; border: 1px solid #D3D3C8; border-radius: 8px; font: inherit; }
-.cartao p { color: #46564F; margin: 0 0 10px; }
+.cartao input { width: 100%; box-sizing: border-box; padding: 9px 12px; border: 1px solid var(--linha); border-radius: 8px; font: inherit; background: var(--papel); color: var(--tinta); }
+.cartao p { color: var(--tinta-2); margin: 0 0 10px; }
 #resultado { margin-top: 14px; font-weight: 600; }
+#resultado.ok { color: var(--pedra-forte); }
+#resultado.erro { color: var(--erro); }

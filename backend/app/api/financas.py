@@ -70,20 +70,8 @@ def demo_historico(pessoa: Persona = Depends(usuario_atual), s: Session = Depend
 def demo_reiniciar(pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
     """Volta a plataforma ao estado inicial da demonstração (antes de gravar ou apresentar)."""
     exigir(pessoa, GESTOR_IA)
-    from sqlmodel import SQLModel
-
-    from ..core import db
-    from ..seed.demo import semear
-    from ..tools import dados_ficticios, executor
-    s.close()
-    with db.trava:
-        SQLModel.metadata.drop_all(db.motor())
-        db.criar_tabelas()
-    dados_ficticios.zerar()
-    executor.zerar_limites()
-    with Session(db.motor()) as nova:
-        semear(nova)
-    return {"ok": True}
+    from ..roteiros.reinicio import reiniciar
+    return reiniciar(s)
 
 
 @rotas.delete("/demo/historico")

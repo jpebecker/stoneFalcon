@@ -2,7 +2,7 @@
 from typing import Any
 
 _CAMPOS_TOPO = {"nome": "nome", "objetivo": "objetivo", "instrucoes": "regras da área",
-                "campos_entrada": "campos de entrada", "minutos_manual": "tempo manual de referência",
+                "campos": "campos de entrada", "minutos_manual": "tempo manual de referência",
                 "limites": "limites de custo"}
 _CAMPOS_PASSO = {"titulo": "título", "instrucao": "instrução", "ferramentas": "ferramentas", "modelo": "modelo",
                  "depende_de": "dependências", "ferramenta": "ferramenta", "entrada": "entrada", "tipo": "tipo",
@@ -11,6 +11,14 @@ _CAMPOS_PASSO = {"titulo": "título", "instrucao": "instrução", "ferramentas":
 
 def comparar(antes: dict[str, Any] | None, depois: dict[str, Any]) -> list[dict]:
     """Lista de mudanças: {tipo: adicionado|removido|alterado, alvo, campo, antes, depois}."""
+    def _norm(bp):
+        from .blueprint import Blueprint   # versões antigas trazem campos_entrada: normaliza antes de comparar
+        try:
+            return Blueprint.model_validate(bp).model_dump()
+        except Exception:
+            return bp
+    antes = _norm(antes) if antes else antes
+    depois = _norm(depois)
     if not antes:
         return [{"tipo": "adicionado", "alvo": "agente", "campo": None, "antes": None, "depois": depois.get("nome")}]
     mudancas = []

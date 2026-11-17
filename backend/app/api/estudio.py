@@ -70,7 +70,7 @@ def testar(pedido: PedidoTeste, pessoa: Persona = Depends(usuario_atual), s: Ses
     """Sandbox: roda o rascunho com as permissões de quem está criando."""
     exigir(pessoa, CRIADOR)
     bp = pedido.blueprint.model_copy(update={"area": pessoa.area})
-    faltando = [c for c in bp.campos_entrada if pedido.entrada.get(c) in (None, "")]
+    faltando = [c for c in bp.ids_campos() if pedido.entrada.get(c) in (None, "")]
     if faltando:
         raise HTTPException(status_code=422, detail="Preencha: %s." % ", ".join(faltando))
     exe, mapa = motor.executar(s, pessoa, bp, pedido.entrada, agente_id="sandbox")

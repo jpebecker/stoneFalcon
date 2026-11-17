@@ -1,13 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, type ItemRevisao } from "../api/cliente";
 import ListaMudancas from "../components/ListaMudancas";
+import { usePreenche } from "../roteiro/estado";
 import { COR_RISCO, NOME_RISCO, quando } from "../components/formato";
 
 function Cartao({ item }: { item: ItemRevisao }) {
   const qc = useQueryClient();
   const [parecer, setParecer] = useState("");
+  const pre = usePreenche("revisao");
+  useEffect(() => { if (pre?.parecer) setParecer(pre.parecer); }, [pre?.parecer]);
   const decidir = useMutation({
     mutationFn: (aprovar: boolean) => api(`/agentes/${item.agente.id}/revisao`, { aprovar, parecer }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["revisoes"] }); qc.invalidateQueries({ queryKey: ["agentes"] }); },

@@ -47,7 +47,16 @@ export async function api<T>(rota: string, corpo?: unknown, metodo?: string): Pr
 // ---------- tipos (espelham o backend) ----------
 export type Persona = {
   id: string; nome: string; area: string; area_nome: string; cargo: string; nivel: string; papeis: string[];
+  matricula: string; cor: string; descricao: string; roteiro_id: string | null; iniciais: string;
 };
+
+export type Campo = {
+  id: string; rotulo: string; tipo: "texto" | "texto_longo" | "lojista" | "colaborador" | "opcao";
+  exemplo: string; ajuda: string; opcoes: string[];
+};
+
+export type Lojista = { id: string; nome: string; cidade: string; segmento: string; plano: string };
+export type Colaborador = { id: string; nome: string; area: string; eu: boolean };
 
 export type Passo = {
   id: string; titulo: string; tipo: "ferramenta" | "agente" | "aprovacao"; depende_de: string[];
@@ -56,7 +65,7 @@ export type Passo = {
 };
 
 export type Blueprint = {
-  nome: string; objetivo: string; area: string; instrucoes: string; campos_entrada: string[];
+  nome: string; objetivo: string; area: string; instrucoes: string; campos: Campo[];
   passos: Passo[]; limites: { max_custo_brl: number; max_chamadas_modelo: number }; minutos_manual: number;
 };
 
@@ -84,7 +93,7 @@ export type UsoFerramenta = { conector: string; ok: boolean; erro: string | null
 
 export type RegistroPasso = {
   id: string; titulo: string; tipo: string; status: string; saida: unknown; motivo: string | null; modelo: string | null;
-  motivos_modelo: string[]; ferramentas: UsoFerramenta[]; iteracoes: number; custo_usd: number;
+  motivos_modelo: string[]; reserva?: string; ferramentas: UsoFerramenta[]; iteracoes: number; custo_usd: number;
   duracao_ms: number; duracao_estimada_ms: number;
   pendencia: Pendencia | null;
 };
@@ -175,4 +184,56 @@ export type Indicadores = {
   taxa_erros: { agente: number | null; manual_premissa: number; escaladas_ou_falhas: number; acessos_bloqueados: number; dados_mascarados: number };
   roi: { periodo_ganho_brl: number; periodo_custo_brl: number; periodo_roi_variavel: number | null; projecao_payback_mes: number | null; projecao_vpl: number; projecao_roi: number | null; projecao_tir_anual: number | null };
   premissas_usadas: Record<string, number>;
+};
+
+
+// ---------- roteiros e banca ----------
+export type PassoRoteiro = {
+  id: string; titulo: string; perfil: string; rota: string; acao: string; fala: string;
+  preenche: { descricao?: string; entrada?: Record<string, string>; parecer?: string }; externa: boolean;
+};
+
+export type AsIs = { minutos: number; hipotese: boolean; dor: string; passos: string[]; erros: string[] };
+export type ToBe = { conferencia_min: number; passos: string[]; nota: string };
+
+export type Roteiro = {
+  id: string; persona: string; titulo: string; processo: string; resumo: string; duracao_min: number;
+  as_is: AsIs; to_be: ToBe; valor: string[]; agente_nome: string | null; passos: PassoRoteiro[]; persona_dados: Persona;
+};
+
+export type ResumoRoteiro = { id: string; persona: string; titulo: string; processo: string; resumo: string; duracao_min: number; passos: number };
+
+export type LinhaResultado = {
+  criterio: string; unidade: string; as_is: number | null; to_be: number | null; delta_pct: number | null;
+  origem_as_is: string; origem_to_be: string; melhor: "menor" | "maior";
+};
+
+export type ResultadoRoteiro = {
+  roteiro: string; titulo: string; processo: string; agente: { id: string; nome: string; estado: string } | null;
+  execucao: { id: string; status: string; custo_brl: number; duracao_min: number; simulado: boolean } | null;
+  origem: "medido" | "estimado"; linhas: LinhaResultado[]; ganho_por_tarefa_brl: number; aviso: string | null;
+  indicadores: { nome: string; valor: number | null; unidade: string; origem: string; detalhe: string }[];
+};
+
+export type Consolidado = {
+  processos: {
+    roteiro: string; persona: string; processo: string; as_is_min: number; to_be_min: number; reducao_pct: number | null;
+    custo_tokens_brl: number; ganho_por_tarefa_brl: number; origem_to_be: string; origem_as_is: string;
+    calculadora: { minutos_por_tarefa: number; minutos_revisao_humana: number; custo_por_execucao: number };
+  }[];
+  totais: { as_is_min: number; to_be_min: number; reducao_pct: number | null; ganho_por_rodada_brl: number };
+  premissas: { custo_hora: number; aproveitamento: number; taxa_erro_manual: number };
+};
+
+export type PerguntaBanca = {
+  id: string; persona: string; tema: string; pergunta: string; resposta: string;
+  prova: { perfil: string; rota: string; rotulo: string; roteiro: string; passo: string | null };
+};
+
+export type AnaliseTrecho = {
+  agentes: {
+    id: string; nome: string; objetivo: string; risco: string; pontuacao: number; campos: Campo[];
+    preenchido: Record<string, string>; detectado: string[];
+  }[];
+  sugerido: string | null; lojista: { id: string; nome: string } | null; colaborador: { id: string; nome: string } | null;
 };

@@ -2,18 +2,21 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
+<meta name="color-scheme" content="dark">
 <title>StoneFalcon · configurações</title>
 <link rel="stylesheet" href="painel.css">
 </head>
 <body>
 <form class="cartao" id="form">
   <h1>Onde está o StoneFalcon</h1>
-  <p>A extensão mostra os agentes da plataforma. Diga o endereço dela.</p>
+  <p>A extensão mostra o copiloto da plataforma. Diga o endereço dela e confira a conexão.</p>
   <label for="servidor">Endereço da plataforma</label>
   <input id="servidor" type="url" placeholder="http://localhost:8765" autocomplete="off" spellcheck="false">
   <p style="margin-top:8px;font-size:13px">No seu computador: <code>http://localhost:8765</code>. Hospedada: o endereço público do projeto.</p>
   <p style="margin-top:16px"><button>Salvar e testar</button><button type="button" class="claro" id="local">Usar o do meu computador</button></p>
   <p id="resultado" role="status"></p>
+  <p id="dica"></p>
+  <p id="perfil" style="margin-top:18px;font-size:13px"></p>
 </form>
 <script src="comum.js"></script>
 <script src="opcoes.js"></script>

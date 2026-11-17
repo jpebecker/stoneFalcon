@@ -36,6 +36,35 @@ class Passo(BaseModel):
     entrada: dict[str, Any] = Field(default_factory=dict)
 
 
+class CampoEntrada(BaseModel):
+    """Um campo que a pessoa preenche para rodar o agente. Em linguagem de usuário:
+    ninguém digita `lojista_id`; o tipo diz como a tela pergunta (busca por nome, "eu mesmo"...)."""
+    id: str = Field(pattern=r"^[a-z0-9_]{1,40}$")
+    rotulo: str = Field(min_length=1, max_length=80)
+    tipo: Literal["texto", "texto_longo", "lojista", "colaborador", "opcao"] = "texto"
+    exemplo: str = Field(default="", max_length=300)
+    ajuda: str = Field(default="", max_length=300)
+    opcoes: list[str] = Field(default_factory=list)   # só para tipo "opcao"
+
+
+_TEXTOS_LONGOS = {"pergunta", "relato", "tema", "consulta", "descricao", "texto", "mensagem"}
+_ROTULOS = {
+    "lojista_id": ("Lojista", "lojista", "", "Escolha o lojista pelo nome."),
+    "colaborador_id": ("Colaborador", "colaborador", "", "Você mesmo, ou outra pessoa se o seu perfil permitir."),
+    "pergunta": ("Pergunta", "texto_longo", "Qual o prazo de estorno de uma venda no débito?", ""),
+    "relato": ("Relato do caso", "texto_longo", "A maquininha parou de ligar ontem.", ""),
+    "tema": ("Tema", "texto", "Prazo de estorno", ""),
+    "destino": ("Destino do aviso", "texto", "#time-atendimento", "Canal (#nome) ou e-mail."),
+}
+
+
+def campo_a_partir_do_id(cid: str) -> "CampoEntrada":
+    """Converte um nome técnico antigo (`lojista_id`) num campo com rótulo e tipo."""
+    rotulo, tipo, exemplo, ajuda = _ROTULOS.get(
+        cid, (cid.replace("_", " ").capitalize(), "texto_longo" if cid in _TEXTOS_LONGOS else "texto", "", ""))
+    return CampoEntrada(id=cid, rotulo=rotulo, tipo=tipo, exemplo=exemplo, ajuda=ajuda)
+
+
 class Limites(BaseModel):
     max_custo_brl: float = Field(default=2.0, gt=0)     # por execução
     max_chamadas_modelo: int = Field(default=20, ge=1, le=100)
@@ -46,13 +75,27 @@ class Blueprint(BaseModel):
     objetivo: str = Field(min_length=3, max_length=600)
     area: str
     instrucoes: str = ""                     # tom, regras de negócio da área, o que nunca fazer
-    campos_entrada: list[str] = Field(default_factory=list)
+    campos: list[CampoEntrada] = Field(default_factory=list)
     passos: list[Passo] = Field(min_length=1, max_length=20)
     limites: Limites = Field(default_factory=Limites)
     minutos_manual: float = Field(default=10, ge=0)   # tempo da tarefa feita à mão (linha de base do ROI)
 
+    @model_validator(mode="before")
+    @classmethod
+    def _aceita_formato_antigo(cls, dados):
+        """Versões já gravadas (e blueprints de modelos) trazem `campos_entrada: [ids]`: viram `campos`."""
+        if isinstance(dados, dict) and "campos_entrada" in dados:
+            dados = dict(dados)
+            antigos = dados.pop("campos_entrada") or []
+            if not dados.get("campos"):
+                dados["campos"] = [campo_a_partir_do_id(c) if isinstance(c, str) else c for c in antigos]
+        return dados
+
     @model_validator(mode="after")
     def _valida_grafo(self):
+        ids_campos = [c.id for c in self.campos]
+        if len(set(ids_campos)) != len(ids_campos):
+            raise ValueError("Há campos de entrada com o mesmo id.")
         ids = [p.id for p in self.passos]
         if len(set(ids)) != len(ids):
             raise ValueError("Há passos com o mesmo id.")
@@ -71,6 +114,9 @@ class Blueprint(BaseModel):
                         raise ValueError("O passo %s usa uma ferramenta fora do catálogo: %s." % (p.id, f))
         self.niveis()   # dispara erro se houver ciclo
         return self
+
+    def ids_campos(self) -> list[str]:
+        return [c.id for c in self.campos]
 
     def passo(self, passo_id: str) -> Passo:
         return next(p for p in self.passos if p.id == passo_id)

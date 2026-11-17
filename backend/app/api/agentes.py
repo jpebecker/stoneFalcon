@@ -189,7 +189,7 @@ def executar(agente_id: str, pedido: PedidoExecutar, pessoa: Persona = Depends(u
         a, bp = ciclo.checar_execucao(s, pessoa, agente_id)
     except ciclo.ErroCiclo as e:
         _erro(e)
-    faltando = [c for c in bp.campos_entrada if pedido.entrada.get(c) in (None, "")]
+    faltando = [c for c in bp.ids_campos() if pedido.entrada.get(c) in (None, "")]
     if faltando:
         raise HTTPException(status_code=422, detail="Preencha: %s." % ", ".join(faltando))
     exe, mapa = motor.executar(s, pessoa, bp, pedido.entrada, agente_id=a.id, versao=a.versao_publicada)

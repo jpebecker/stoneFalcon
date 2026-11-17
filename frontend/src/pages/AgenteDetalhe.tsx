@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api, type AgenteDetalhe as Detalhe, type Execucao, type Mudanca, type Persona, type Saude } from "../api/cliente";
+import CampoEntrada from "../components/CampoEntrada";
 import LinhaDoTempo from "../components/LinhaDoTempo";
+import { usePreenche } from "../roteiro/estado";
 import ListaMudancas from "../components/ListaMudancas";
 import { COR_ESTADO, COR_RISCO, NOME_ESTADO, NOME_EVENTO, NOME_RISCO, quando, reais } from "../components/formato";
 
@@ -14,6 +16,9 @@ export default function AgenteDetalhe({ pessoa }: { pessoa: Persona }) {
   const [entrada, setEntrada] = useState<Record<string, string>>({});
   const [exe, setExe] = useState<Execucao | null>(null);
   const [diff, setDiff] = useState<{ numero: number; mudancas: Mudanca[] } | null>(null);
+  const pre = usePreenche("usar");
+  useEffect(() => { setExe(null); setEntrada({}); }, [id]);   // outro agente: começa limpo
+  useEffect(() => { if (pre?.entrada) { setEntrada(pre.entrada); setExe(null); } }, [pre?.passoId, id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const recarregar = () => { qc.invalidateQueries({ queryKey: ["agente", id] }); qc.invalidateQueries({ queryKey: ["agentes"] }); };
   const acao = useMutation({
@@ -37,7 +42,7 @@ export default function AgenteDetalhe({ pessoa }: { pessoa: Persona }) {
   const editor = pessoa.id === a.dono || (pessoa.papeis.includes("criador") && pessoa.area === a.area);
   const operador = editor || pessoa.papeis.includes("gestor_ia") || pessoa.papeis.includes("revisor_seguranca");
   const podeDepreciar = pessoa.id === a.dono || pessoa.papeis.includes("gestor_ia");
-  const campos = publicada?.blueprint.campos_entrada ?? [];
+  const campos = publicada?.blueprint.campos ?? [];
 
   return (
     <div className="space-y-6">
@@ -76,12 +81,10 @@ export default function AgenteDetalhe({ pessoa }: { pessoa: Persona }) {
               <h2 className="text-lg">Executar v{publicada.numero}</h2>
               <div className="mt-3 flex flex-wrap items-end gap-3">
                 {campos.map((c) => (
-                  <label key={c} className="min-w-[180px] flex-1">
-                    <span className="rotulo">{c.replace(/_/g, " ")}</span>
-                    <input className="campo" value={entrada[c] ?? ""} onChange={(e) => setEntrada({ ...entrada, [c]: e.target.value })} />
-                  </label>
+                  <CampoEntrada key={c.id} campo={c} pessoa={pessoa} valor={entrada[c.id] ?? ""}
+                    aoMudar={(v) => setEntrada((e) => ({ ...e, [c.id]: v }))} />
                 ))}
-                <button className="botao-pedra" disabled={executar.isPending || campos.some((c) => !entrada[c])} onClick={() => executar.mutate()}>
+                <button className="botao-pedra" disabled={executar.isPending || campos.some((c) => !entrada[c.id])} onClick={() => executar.mutate()}>
                   {executar.isPending ? "Executando…" : "Executar"}
                 </button>
               </div>

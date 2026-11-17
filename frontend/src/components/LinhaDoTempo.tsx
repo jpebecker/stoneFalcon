@@ -20,6 +20,7 @@ function CartaoPasso({ r, cotacao }: { r: RegistroPasso; cotacao: number }) {
         <span className="w-20 text-right text-xs text-tinta-3">{ms(r.duracao_estimada_ms)}</span>
       </button>
       {r.motivo && <p className="mt-2 text-sm text-falcao">{r.motivo}</p>}
+      {r.reserva && <p className="mt-2 rounded-lg bg-alerta-fundo p-2 text-sm text-alerta">⚠ Resposta de reserva: {r.reserva}</p>}
       {r.ferramentas.length > 0 && (
         <ul className="mt-2 flex flex-wrap gap-1.5">
           {r.ferramentas.map((f, i) => (
@@ -64,6 +65,9 @@ export default function LinhaDoTempo({ exe, pessoa, cotacao, aoMudar }: {
         <span className={"selo text-sm " + COR_STATUS[exe.status]}>{NOME_STATUS[exe.status] ?? exe.status}</span>
         <span className="text-sm text-tinta-2">{reais(exe.custo_brl)} · {exe.chamadas_modelo} chamada(s) de modelo · {ms(exe.duracao_estimada_ms)}</span>
         {exe.simulado && <span className="selo bg-alerta-fundo text-alerta">simulado</span>}
+        {Object.values(passos).some((r) => r.reserva) && (
+          <span className="selo bg-alerta-fundo text-alerta" title="O modelo falhou e o passo usou a resposta pré-determinada">com resposta de reserva</span>
+        )}
       </div>
 
       {exe.status === "aguardando_aprovacao" && exe.pendencia && (
