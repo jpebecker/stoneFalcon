@@ -56,7 +56,7 @@ def executar(pedido: PedidoExecucao, pessoa: Persona = Depends(usuario_atual), s
     if bp is None:
         raise HTTPException(status_code=422, detail="Envie um blueprint ou o nome de um agente de exemplo.")
     bp = bp.model_copy(update={"area": pessoa.area})
-    faltando = [c for c in bp.campos_entrada if pedido.entrada.get(c) in (None, "")]
+    faltando = [c for c in bp.ids_campos() if pedido.entrada.get(c) in (None, "")]
     if faltando:
         raise HTTPException(status_code=422, detail="Preencha: %s." % ", ".join(faltando))
     exe, mapa = motor.executar(s, pessoa, bp, pedido.entrada, agente_id="sandbox")

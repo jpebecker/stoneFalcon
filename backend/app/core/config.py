@@ -59,3 +59,12 @@ MODELOS = {
 
 # ---------- Roteador ----------
 COMPLEXIDADE_FORTE = 0.60   # a partir daqui um passo "auto" vai ao modelo forte
+
+
+# No modo real, se o modelo falhar (rede, limite, chave), o passo usa a resposta pré-determinada
+# do roteiro em vez de escalar. Desligue com STONEFALCON_RESERVA=0.
+RESERVA_SIMULADA = os.environ.get("STONEFALCON_RESERVA", "1") != "0"
+
+# Modo demonstração: qualquer perfil pode reiniciar a plataforma por um roteiro (isso APAGA o banco, inclusive a
+# trilha de auditoria). Em qualquer ambiente que não seja de apresentação, defina STONEFALCON_DEMO=0: só o CoE reinicia.
+MODO_DEMO = os.environ.get("STONEFALCON_DEMO", "1") != "0"

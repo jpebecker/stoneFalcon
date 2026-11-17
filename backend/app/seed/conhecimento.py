@@ -108,4 +108,21 @@ BASE_INICIAL = {
             "resposta": "Escale quando o valor envolvido passar do limite da sua alçada, quando houver suspeita de envolvimento interno ou quando o caso tiver ligação com outras contas já investigadas.",
         },
     ],
+    "logistica": [
+        {
+            "pergunta": "Qual a regra para trocar a maquininha com defeito?",
+            "variacoes": ["Como é a troca de maquininha quebrada?", "Quando posso trocar o equipamento do lojista?"],
+            "resposta": "A troca por defeito é gratuita até 12 meses depois da entrega do equipamento, com o cadastro do lojista ativo. Abra o chamado na fila logistica com o modelo e o relato do defeito; o envio sai do centro de distribuição mais próximo.",
+        },
+        {
+            "pergunta": "Em quanto tempo a maquininha nova chega?",
+            "variacoes": ["Qual o prazo de entrega da troca?", "Quanto tempo leva para enviar o equipamento novo?"],
+            "resposta": "O envio sai em até 3 dias úteis, conforme o estoque do modelo no centro de distribuição. O lojista recebe o código de rastreio por mensagem e devolve o equipamento antigo na mesma embalagem.",
+        },
+        {
+            "pergunta": "O que fazer quando o modelo não tem estoque?",
+            "variacoes": ["Sem estoque da maquininha, como proceder?", "Falta equipamento do modelo pedido"],
+            "resposta": "Se o modelo estiver abaixo de 10 unidades, ofereça um modelo equivalente com o consentimento do lojista e registre no chamado. Sem alternativa, o chamado fica na fila de reposição.",
+        },
+    ],
 }

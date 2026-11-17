@@ -28,6 +28,7 @@ USUARIO = "usuario"                    # executa agentes publicados a que tem ac
 CURADOR = "curador"                    # aprova respostas para a base de conhecimento da área
 REVISOR_SEGURANCA = "revisor_seguranca"  # aprova publicação de agentes de risco alto
 ENGENHARIA_PLATAFORMA = "engenharia"   # registra conectores no catálogo
+CONSULTA_COLABORADORES = "consulta_colaboradores"   # busca outros colaboradores por nome (RH)
 GESTOR_IA = "gestor_ia"                # vê custos, ROI, saúde e auditoria de toda a empresa
 
 
@@ -40,6 +41,10 @@ class Persona:
     cargo: str
     nivel: Classificacao
     papeis: frozenset = field(default_factory=frozenset)
+    matricula: str = ""            # a pessoa também é colaboradora: "Eu mesmo" nos campos de colaborador
+    cor: str = "#1FB37A"           # avatar
+    descricao: str = ""            # o que a pessoa faz na plataforma (tela "Quem é você hoje?")
+    roteiro_id: str | None = None  # roteiro de demonstração dela
 
     def tem(self, papel: str) -> bool:
         return papel in self.papeis
@@ -48,25 +53,36 @@ class Persona:
         return {
             "id": self.id, "nome": self.nome, "area": self.area, "area_nome": self.area_nome,
             "cargo": self.cargo, "nivel": self.nivel.name.lower(), "papeis": sorted(self.papeis),
+            "matricula": self.matricula, "cor": self.cor, "descricao": self.descricao, "roteiro_id": self.roteiro_id,
+            "iniciais": "".join(x[0] for x in self.nome.split()[:2]).upper(),
         }
 
 
-def _p(id, nome, area, area_nome, cargo, nivel, *papeis):
-    return Persona(id, nome, area, area_nome, cargo, nivel, frozenset((USUARIO,) + papeis))
+def _p(id, nome, area, area_nome, cargo, nivel, *papeis, matricula="", cor="#1FB37A", descricao="", roteiro=None):
+    return Persona(id, nome, area, area_nome, cargo, nivel, frozenset((USUARIO,) + papeis),
+                   matricula, cor, descricao, roteiro)
 
 
 # Pessoas e áreas FICTÍCIAS (as mesmas do v3, com papéis novos).
 PERSONAS = {p.id: p for p in [
     _p("marina", "Marina Duarte", "atendimento", "Atendimento", "Analista de atendimento",
-       Classificacao.INTERNA, CRIADOR, CURADOR),
+       Classificacao.INTERNA, CRIADOR, CURADOR, matricula="C601", cor="#1FB37A", roteiro="marina",
+       descricao="Responde dúvidas de lojistas e cria o próprio agente, sem código."),
     _p("rafael", "Rafael Lima", "risco", "Prevenção a Fraudes", "Analista de risco",
-       Classificacao.RESTRITA, CRIADOR, CURADOR),
+       Classificacao.RESTRITA, CRIADOR, CURADOR, matricula="C602", cor="#E0428F", roteiro="rafael",
+       descricao="Tria chargebacks e decide ações sensíveis, sempre com confirmação."),
     _p("carla", "Carla Nogueira", "pessoas", "Pessoas (RH)", "Business partner de RH",
-       Classificacao.CONFIDENCIAL, CRIADOR, CURADOR),
+       Classificacao.CONFIDENCIAL, CRIADOR, CURADOR, CONSULTA_COLABORADORES, matricula="C603", cor="#4A7BD0", roteiro="carla",
+       descricao="Orienta férias e benefícios com dado confidencial protegido."),
+    _p("thiago", "Thiago Moreira", "logistica", "Logística", "Analista de operações",
+       Classificacao.INTERNA, CRIADOR, CURADOR, matricula="C604", cor="#E08A2E", roteiro="thiago",
+       descricao="Troca de maquininha: cadastro, regra e estoque em paralelo."),
     _p("lucas", "Lucas Prado", "engenharia", "Engenharia de Plataforma", "Engenheiro de segurança",
-       Classificacao.CONFIDENCIAL, REVISOR_SEGURANCA, ENGENHARIA_PLATAFORMA),
+       Classificacao.CONFIDENCIAL, REVISOR_SEGURANCA, ENGENHARIA_PLATAFORMA, matricula="C605", cor="#6B5BD0",
+       roteiro="lucas", descricao="Governa o catálogo e revisa só os agentes de risco alto."),
     _p("helena", "Helena Castro", "gestao", "CoE de IA", "Gestora do CoE de IA",
-       Classificacao.INTERNA, GESTOR_IA),
+       Classificacao.INTERNA, GESTOR_IA, matricula="C606", cor="#10201A", roteiro="helena",
+       descricao="Prova o retorno e controla o custo da IA na empresa."),
 ]}
 
 

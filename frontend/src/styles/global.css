@@ -53,3 +53,18 @@ h1, h2, h3 { @apply font-titulo font-semibold tracking-tight; }
 /* React Flow: integra o canvas à paleta */
 .react-flow__attribution { display: none; }
 .react-flow__edge-path { stroke: rgb(var(--tinta-3)); stroke-width: 1.5; }
+
+/* Painel da extensão: mesmo sistema de cores, em tema escuro. Redefine as variáveis, então todas as
+   classes (caixa, campo, selo, botões) acompanham sem código extra. */
+.ext-tema {
+  --tinta: 232 238 235; --tinta-2: 178 190 184; --tinta-3: 134 150 142;
+  --papel: 14 24 20; --folha: 23 37 31; --linha: 45 63 55;
+  --pedra: 31 179 122; --pedra-forte: 74 214 160; --pedra-fundo: 18 58 43;
+  --falcao: 240 110 170; --falcao-fundo: 62 24 44;
+  --alerta: 240 184 90; --alerta-fundo: 58 44 18;
+  --erro: 248 128 118; --erro-fundo: 62 28 26;
+  --info: 130 170 250; --info-fundo: 24 40 72;
+  color-scheme: dark;
+}
+.ext-tema .botao-pedra { color: #04150d; }
+@media (prefers-reduced-motion: reduce) { .animate-pulse { animation: none; } }

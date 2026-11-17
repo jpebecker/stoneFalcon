@@ -25,11 +25,16 @@ Nunca coloque a chave no código, na extensão ou no Git (`.env` está no `.giti
 ```bash
 cd backend && uv sync && uv run uvicorn app.main:app --reload --port 8765
 cd frontend && npm install && npm run dev        # http://localhost:5173 (repassa /api ao backend)
-cd backend && uv run pytest -q                   # 154 testes, sem chave nem internet
+cd backend && uv run pytest -q                   # 180 testes, sem chave nem internet
 ```
 
-### Extensão (Chrome/Edge)
-`chrome://extensions` → Modo do desenvolvedor → **Carregar sem compactação** → pasta `extensao`. Aparece um botão no canto das páginas: ele abre os agentes da plataforma no painel lateral levando o texto selecionado. O botão direito sobre um texto faz o mesmo. A extensão não tem lógica nem chave: roda tudo na plataforma, com as permissões de quem está logado.
+### Extensão copiloto (Chrome/Edge)
+`chrome://extensions` → Modo do desenvolvedor → **Carregar sem compactação** → pasta `extensao`. Na primeira vez abre uma tela de boas-vindas e testa a conexão com a plataforma (com diagnóstico: servidor desligado, endereço errado, demora). Depois:
+
+- **Botão flutuante** “Perguntar ao StoneFalcon”: aparece só quando há texto selecionado.
+- **Botão direito** sobre um texto: “StoneFalcon → Responder com: *agente*”, com os agentes que o seu perfil pode usar.
+- **Painel lateral** em tema escuro: sugere o agente pelo trecho, preenche os campos que detectou (lojista citado, “eu mesmo” para colaborador), mostra os passos, pede a confirmação de ações sensíveis ali mesmo e guarda o histórico da sessão.
+- A extensão não tem lógica nem chave: roda tudo na plataforma, com as permissões de quem está logado. Para ensaiar sem a extensão, abra `http://localhost:8765/demo/helpdesk`: um helpdesk fictício que abre o mesmo painel dentro da própria página.
 
 ## O que o desafio pede e onde está
 
@@ -44,19 +49,26 @@ cd backend && uv run pytest -q                   # 154 testes, sem chave nem int
 | Agente: decisão, ferramentas, sequência/paralelo, raciocínio | Grafo de passos (paralelos rodam juntos), loop pensar → agir → observar com tool use, limites de passos e de custo, escalada segura para humano | `app/runtime` |
 | Critérios de avaliação (tempo, custo, produtividade, erros, ROI) | Painel executivo com os 5, medidos nas execuções | Painel executivo |
 
-## Roteiro de demonstração (≈ 4 minutos)
+## Roteiros guiados (v5)
 
-**Antes de gravar:** entre como **Helena** → Início → **Reiniciar a demo**. Isso deixa 3 agentes publicados e 30 dias de histórico gerado (sinalizado nas telas como cenário, não medição).
+A demonstração deixou de depender de quem apresenta saber onde clicar. Cada persona tem um **roteiro**: a mesma jornada, do mesmo jeito sempre, com entradas pré-determinadas e sem chave da API.
 
-1. **Criar sem código (Marina, 50 s).** Estúdio → exemplo *Pedido de troca de maquininha* → **Montar meu agente**. Mostre o canvas (dois passos na mesma coluna rodam em paralelo), o risco médio e o custo por execução. Em *Testar no sandbox*, use `L1001` e um relato → linha do tempo com os dados mascarados. **Publicar**.
-2. **Permissão por papel (Marina, 15 s).** Recomeçar e descrever *"toda manhã confiro os lojistas com chargeback e decido se bloqueio o repasse"* → o Estúdio avisa que tirou as ferramentas confidenciais e restritas, com o motivo.
-3. **Agente com ação sensível (Rafael, 40 s).** Agentes → *Triagem de chargebacks* → executar com `L1003`. Os dois primeiros passos rodam juntos; a análise sobe para o modelo forte (abra o passo: *por que este modelo*). O agente abre o chamado e **para pedindo confirmação** para reter repasses → **Confirmar ação**. Com `L1001` (sem risco) ele nem propõe a retenção.
-4. **Saúde e alerta (Lucas e Marina, 40 s).** Lucas → Ferramentas → *Consultar cadastro do lojista* → simular **fora do ar**. Marina → executa *Resposta a dúvidas de lojistas* → a execução **escala para humano** com o motivo; o **sino** acende com alerta crítico; Saúde mostra a nota caindo. Lucas normaliza → o alerta fecha sozinho.
-5. **Governança (Lucas, 25 s).** Auditoria: selo **cadeia íntegra**, filtros por ciclo de vida, execuções e ferramentas; abra um evento para ver que só há marcadores no lugar dos dados pessoais.
-6. **Gestão (Helena, 50 s).** Painel executivo: os 5 critérios da banca. Finanças: **economia do roteador** (~79%) e o gráfico por modelo; o Sonnet é a maior parte do custo. Calculadora: mude a adoção e veja payback, VPL e TIR.
-7. **Extensão (10 s).** Em qualquer site, selecione um parágrafo → botão flutuante → o painel lateral abre com o trecho no agente.
+Na tela inicial (“Quem é você hoje?”) escolha **Iniciar roteiro**. A barra na base mostra “Passo 3 de 8 · Testar no sandbox”, a ação esperada e a fala sugerida; **Avançar** troca de perfil sozinho e abre a tela do passo. **Reiniciar** devolve a plataforma ao estado exato do início do roteiro.
 
-Perfis (login simulado): **Marina** (Atendimento, cria agentes), **Rafael** (Prevenção a Fraudes, acesso restrito), **Carla** (Pessoas), **Lucas** (Engenharia: revisa segurança e mantém o catálogo), **Helena** (CoE de IA: vê custos, painel e auditoria de tudo).
+| Persona | Processo (AS IS → TO BE) | O que o roteiro prova |
+|---|---|---|
+| **Marina Duarte** (Atendimento) | Resposta a dúvidas de lojistas: 8 min (hipótese) → agente | Criação sem código, publicação sem fila, uso na plataforma e na extensão |
+| **Rafael Lima** (Prevenção a Fraudes) | Triagem de chargebacks: 25 min (hipótese) → agente | Passos paralelos, roteador explicando o Sonnet, **pausa para confirmação humana**, revisão de segurança e auditoria |
+| **Carla Nogueira** (Pessoas) | Férias e benefícios: 10 min (hipótese) → agente | CPF e e-mail da ficha viram marcadores antes do modelo; nada no log |
+| **Thiago Moreira** (Logística) | Troca de maquininha: 12 min (hipótese) → agente | Cadastro, regra e estoque em paralelo; nova ferramenta de estoque; chamado e aviso |
+| **Lucas Prado** (Engenharia) | Governança sem headcount | Revisão só do risco alto, sistema fora do ar → alerta → pausa de emergência → normalização |
+| **Helena Castro** (CoE de IA) | Gestão do retorno e do custo | AS IS × TO BE consolidado, 5 critérios da banca, economia do roteador, calculadora partindo dos processos |
+
+Cada roteiro termina num cartão **AS IS × TO BE** nos 5 critérios (tempo, custo, produtividade, erros, ROI). **Cada número diz de onde vem**: *medido* (tempo do agente e custo em tokens da execução do roteiro), *estimado* (sem execução, pelo desenho do agente), *premissa* (R$ 45/h, aproveitamento, conferência humana) ou *hipótese* (o AS IS, até validarmos com a área).
+
+**Perguntas da banca:** tela própria (menu, ou **Alt + B** de qualquer lugar) com 3 a 5 perguntas por persona e por tema (segurança, custo, escala, por que não um low-code genérico), cada uma com a resposta curta e o botão **Mostrar na tela**.
+
+**Roteiro do pitch de 8 a 10 minutos e checklist:** [ENSAIO-GERAL.md](ENSAIO-GERAL.md). **Perfis (login simulado):** as seis personas acima; nos campos do agente ninguém digita código: lojista se escolhe pelo nome, colaborador vem como “Eu mesmo” (e o RH busca outros por nome).
 
 ## Arquitetura
 
@@ -84,6 +96,9 @@ Perfis (login simulado): **Marina** (Atendimento, cria agentes), **Rafael** (Pre
 | `backend/app/observability` | métricas, alertas, nota de saúde |
 | `backend/app/finance` | premissas, resumo, ROI, calculadora, indicadores da banca |
 | `backend/app/seed` | agentes de exemplo, demo inicial, histórico sintético |
+| `backend/app/roteiros` | roteiros por persona, valor medido (AS IS × TO BE), perguntas da banca, reinício por roteiro |
+| `backend/app/runtime/respostas.py` | respostas pré-determinadas dos agentes (modo simulado e reserva do modo real) |
+| `backend/app/static/helpdesk.html` | helpdesk fictício para ensaiar a extensão |
 | `frontend/src/pages` | uma tela por arquivo |
 
 ## Números e de onde vêm
@@ -96,9 +111,9 @@ Perfis (login simulado): **Marina** (Atendimento, cria agentes), **Rafael** (Pre
 
 ## O que foi testado e o que não foi
 
-- **154 testes automáticos** (`uv run pytest -q`): semelhança de texto e guardrails portados do v3, catálogo e permissões, runtime (paralelismo real, aprovação, retomada com o dado real, limites, escalada), Estúdio, ciclo de vida e revisão, alertas, finanças e as rotas da API.
-- **Testado no navegador:** todas as telas, o fluxo da Marina no Estúdio, publicar/versionar/diff, a demo de falha com alerta, finanças, calculadora e painel.
-- **Não testado:** chamadas à API real da Anthropic (não havia chave neste ambiente; o formato segue o SDK oficial `anthropic` 2.8), a extensão nesta versão (portada do v3, que foi testada no Chrome), `iniciar.bat` numa máquina limpa e o Edge.
+- **180 testes automáticos** (`uv run pytest -q`): semelhança de texto e guardrails portados do v3, catálogo e permissões, runtime (paralelismo real, aprovação, retomada com o dado real, limites, escalada), Estúdio, ciclo de vida e revisão, alertas, finanças e as rotas da API. O **ensaio geral** (`tests/test_roteiros.py`) percorre os seis roteiros do início ao fim pela API.
+- **Testado no navegador:** as telas da v4 e, na v5, os roteiros da Marina (até o helpdesk com o painel do copiloto), do Rafael (criação, revisão do Lucas, execução com confirmação e cartão AS IS × TO BE) e do Lucas (até o catálogo), o consolidado da Helena e as perguntas da banca.
+- **Não testado:** chamadas à API real da Anthropic (não havia chave neste ambiente; o formato segue o SDK oficial `anthropic` 2.8), a **extensão carregada no Chrome** (os arquivos foram checados e o painel foi testado dentro do helpdesk fictício, mas o botão flutuante, o menu do botão direito e o painel lateral nativo não foram exercitados), os roteiros de Carla, Thiago e o restante do Lucas e da Helena na interface (cobertos só pelo ensaio via API), `iniciar.bat` numa máquina limpa e o Edge. Os tempos AS IS dos roteiros são hipóteses.
 
 ## Protótipo x produção
 

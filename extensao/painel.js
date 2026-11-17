@@ -1,48 +1,105 @@
-// StoneFalcon · painel lateral. Mostra a tela de agentes da plataforma (rota /extensao).
+// StoneFalcon · painel lateral. Mostra o copiloto da plataforma (rota /extensao) numa moldura.
 // A extensão não tem lógica nem chave: tudo roda na plataforma, com as permissões de quem está logado.
 const quadro = document.getElementById('quadro');
 const estado = document.getElementById('estado');
-let endereco = null, pronto = false;
+let endereco = null, pronto = false, origem = null, pendente = null;   // pendente: trecho esperando a tela ficar pronta
+
+function limpar(no) { while (no.firstChild) no.removeChild(no.firstChild); }
+function el(tag, props, filhos) {
+  const n = document.createElement(tag);
+  Object.assign(n, props || {});
+  (filhos || []).forEach((f) => n.appendChild(typeof f === 'string' ? document.createTextNode(f) : f));
+  return n;
+}
+
+function mostrarEstado(...nos) {
+  quadro.hidden = true;
+  estado.hidden = false;
+  limpar(estado);
+  nos.forEach((n) => estado.appendChild(n));
+}
+
+// ---------------------------------------------------------------- primeira execução
+function boasVindas() {
+  const botao = el('button', { textContent: 'Conectar à plataforma' });
+  botao.onclick = async () => {
+    await chrome.storage.local.set({ visto: true });
+    abrir();
+  };
+  const opcoes = el('button', { className: 'claro', textContent: 'Trocar o endereço' });
+  opcoes.onclick = () => chrome.runtime.openOptionsPage();
+  mostrarEstado(
+    el('div', { className: 'marca' }, [el('span', { className: 'selo-marca', textContent: 'SF' }), el('b', { textContent: 'StoneFalcon' })]),
+    el('h1', { textContent: 'Seu copiloto, em qualquer página' }),
+    el('ul', { className: 'passos' }, [
+      el('li', { textContent: 'Selecione um texto na página.' }),
+      el('li', { textContent: 'Clique em “Perguntar ao StoneFalcon”.' }),
+      el('li', { textContent: 'O agente certo é sugerido e os campos já vêm preenchidos.' }),
+    ]),
+    el('p', { className: 'nota', textContent: 'Dados pessoais são mascarados antes de qualquer modelo ver. Tudo roda na plataforma, com as permissões do seu perfil.' }),
+    el('p', {}, [botao, opcoes]),
+  );
+}
+
+// ---------------------------------------------------------------- sem conexão
+function semConexao(r) {
+  const tentar = el('button', { textContent: 'Tentar de novo' });
+  tentar.onclick = abrir;
+  const opcoes = el('button', { className: 'claro', textContent: 'Trocar o endereço' });
+  opcoes.onclick = () => chrome.runtime.openOptionsPage();
+  const endereco_ = el('code', { textContent: endereco });
+  mostrarEstado(
+    el('h1', { textContent: 'Não consegui conectar' }),
+    el('p', { className: 'erro', textContent: r.mensagem }),
+    el('p', { textContent: r.dica }),
+    el('p', {}, ['Endereço configurado: ', endereco_]),
+    el('p', {}, [tentar, opcoes]),
+  );
+}
 
 async function abrir() {
+  pronto = false;
+  mostrarEstado(el('h1', { textContent: 'Conectando ao StoneFalcon…' }), el('div', { className: 'carregando', ariaHidden: 'true' }));
+  const guardado = await chrome.storage.local.get(['visto']);
   endereco = await sfEndereco();
-  const saude = await sfTestar(endereco);
-  if (!saude) {
-    pronto = false;
-    quadro.hidden = true;
-    estado.hidden = false;
-    const local = endereco.indexOf('localhost') >= 0 || endereco.indexOf('127.0.0.1') >= 0;
-    estado.innerHTML = '<h1>A plataforma StoneFalcon não respondeu</h1>' +
-      '<p>Endereço configurado: <code></code></p>' +
-      (local ? '<p>Ligue a plataforma no computador: na pasta do projeto, rode <code>iniciar.bat</code> (Windows) ou <code>sh iniciar.sh</code>.</p>'
-             : '<p>Confira se o endereço está certo e se o projeto está no ar.</p>') +
-      '<p><button id="tentar">Tentar de novo</button><button id="opcoes" class="claro">Trocar o endereço</button></p>';
-    estado.querySelector('code').textContent = endereco;
-    document.getElementById('tentar').onclick = abrir;
-    document.getElementById('opcoes').onclick = () => chrome.runtime.openOptionsPage();
-    return;
-  }
+  if (!guardado.visto) { boasVindas(); return; }
+  const r = await sfTestar(endereco);
+  if (!r.ok) { semConexao(r); return; }
+  origem = new URL(endereco).origin;
   const dados = await chrome.storage.session.get('trecho');
-  const trecho = dados.trecho && Date.now() - dados.trecho.quando < 15000 ? dados.trecho.texto : '';
+  const trecho = dados.trecho && Date.now() - dados.trecho.quando < 15000 ? dados.trecho : null;
   if (trecho) chrome.storage.session.remove('trecho');
-  quadro.src = endereco + '/extensao' + (trecho ? '?trecho=' + encodeURIComponent(trecho.slice(0, 1500)) : '');
-  quadro.onload = () => {
-    pronto = true;
-    if (trecho.length > 1500) enviarTrecho(trecho);   // trechos longos vão por mensagem, não pelo endereço
-  };
+  const perfil = await sfPerfil();
+  // o texto selecionado NUNCA vai no endereço (apareceria nos logs do servidor, sem máscara): vai por mensagem
+  pendente = trecho && trecho.texto ? trecho : null;
+  quadro.src = endereco + '/extensao' + (perfil ? '?perfil=' + encodeURIComponent(perfil) : '');
   estado.hidden = true;
   quadro.hidden = false;
 }
 
-function enviarTrecho(texto) {
-  quadro.contentWindow.postMessage({ origem: 'stonefalcon-extensao', trecho: texto }, new URL(endereco).origin);
+function enviar(trecho) {
+  quadro.contentWindow.postMessage({ origem: 'stonefalcon-extensao', trecho: trecho.texto, agente: trecho.agente || '' }, origem);
 }
 
 // novo trecho selecionado com o painel já aberto
 chrome.storage.session.onChanged.addListener((mudancas) => {
   const novo = mudancas.trecho && mudancas.trecho.newValue;
   if (!novo || !novo.texto) return;
-  if (pronto) { enviarTrecho(novo.texto); chrome.storage.session.remove('trecho'); }
+  if (pronto) { enviar(novo); chrome.storage.session.remove('trecho'); }
+  else pendente = novo;
+});
+
+// a plataforma avisa quem está logado (para o menu de agentes do botão direito)
+window.addEventListener('message', (ev) => {
+  if (!origem || ev.origin !== origem || ev.source !== quadro.contentWindow) return;
+  const d = ev.data;
+  if (d && d.origem === 'stonefalcon-plataforma' && d.tipo === 'pronto') {   // a tela registrou o ouvinte de mensagens
+    pronto = true;
+    if (pendente) { enviar(pendente); pendente = null; }
+  }
+  if (d && d.origem === 'stonefalcon-plataforma' && d.tipo === 'perfil' && typeof d.perfil === 'string' && /^[a-z]{3,20}$/.test(d.perfil)) {
+    chrome.storage.local.set({ perfil: d.perfil });
+  }
 });
 
 // o endereço foi trocado nas opções

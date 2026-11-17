@@ -29,7 +29,7 @@ from .. import guardrails
 from ..agents.blueprint import Blueprint, Passo
 from ..agents.modelos import PUBLICADO, Agente
 from ..audit import trilha
-from ..core import db
+from ..core import config, db
 from ..core.identidade import CURADOR, PERSONAS, Persona
 from ..core.relogio import agora
 from ..guardrails import injecao
@@ -245,8 +245,12 @@ def _passo_agente(s: Session, amb: _Ambiente, passo: Passo) -> dict:
         try:
             r = amb.cliente.gerar(decisao.chave_modelo, sistema, msgs, ferramentas or None)
         except ErroModelo as e:
-            return _registro(passo, "escalado", motivo=str(e), iteracoes=it, ferramentas=usadas,
-                             custo_usd=custo, duracao_estimada_ms=estimado, **base)
+            if not (config.RESERVA_SIMULADA and not amb.simulado) or e.fatal:
+                return _registro(passo, "escalado", motivo=str(e), iteracoes=it, ferramentas=usadas,
+                                 custo_usd=custo, duracao_estimada_ms=estimado, **base)
+            # modo real, modelo fora do ar: a resposta pré-determinada do roteiro entra como reserva
+            r = obter_cliente(True).gerar(decisao.chave_modelo, sistema, msgs, ferramentas or None)
+            base["reserva"] = "Modelo indisponível (%s); usei a resposta de reserva." % e
         custo += amb.orc.somar(r)
         vel, lat = _VELOCIDADE[decisao.chave_modelo]
         estimado += lat + int(r.tokens_saida / vel * 1000)
@@ -414,6 +418,11 @@ class ErroRetomada(Exception):
 # Se o servidor reiniciar, a ação segue com os marcadores e o sistema recusa o dado.
 _MAPAS_PENDENTES: dict[str, tuple[dict[str, str], dict[str, int]]] = {}
 _LIMITE_MAPAS = 500
+
+
+def zerar_pendentes() -> None:
+    """Esquece os marcadores das execuções pausadas (usado ao reiniciar a demonstração)."""
+    _MAPAS_PENDENTES.clear()
 
 
 def _guardar_mapa(execucao_id: str, mapa: dict[str, str], origens: dict[str, int]) -> None:

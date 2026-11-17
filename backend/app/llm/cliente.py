@@ -15,7 +15,12 @@ from ..texto.semelhanca import estimar_tokens
 
 
 class ErroModelo(Exception):
-    """Falha ao falar com o modelo, com mensagem pronta para a tela."""
+    """Falha ao falar com o modelo, com mensagem pronta para a tela.
+    `fatal`: configuração errada (chave, modelo); a resposta de reserva não pode mascarar isso."""
+
+    def __init__(self, mensagem: str, fatal: bool = False):
+        super().__init__(mensagem)
+        self.fatal = fatal
 
 
 @dataclass
@@ -76,9 +81,9 @@ class ClienteAnthropic:
             else:
                 r = self._cliente.messages.create(**pedido)
         except a.AuthenticationError:
-            raise ErroModelo("A chave da API foi recusada. Confira o arquivo backend/.env.")
+            raise ErroModelo("A chave da API foi recusada. Confira o arquivo backend/.env.", fatal=True)
         except a.NotFoundError:
-            raise ErroModelo("O modelo %s não foi encontrado. Confira app/core/config.py." % m["id"])
+            raise ErroModelo("O modelo %s não foi encontrado. Confira app/core/config.py." % m["id"], fatal=True)
         except a.RateLimitError:
             raise ErroModelo("Limite de uso da API atingido. Aguarde um pouco ou confira os créditos.")
         except a.APIStatusError as e:

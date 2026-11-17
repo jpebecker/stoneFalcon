@@ -26,7 +26,7 @@ TODAS = "*"
 
 MODULOS = {
     "lojistas": "Lojistas e transações",
-    "atendimento": "Chamados e atendimento",
+    "atendimento": "Atendimento e logística",
     "pessoas": "Pessoas (RH)",
     "comunicacao": "Comunicação e conhecimento",
 }
@@ -137,6 +137,13 @@ def _consultar_colaborador(e: dict, _c: Contexto) -> dict:
     return dict(col)
 
 
+def _consultar_estoque(e: dict, _c: Contexto) -> dict:
+    item = fx.ESTOQUE.get((e["modelo"] or "").strip())
+    if not item:
+        raise ErroFerramenta("Modelo %s não encontrado. Use: %s." % (e["modelo"], ", ".join(fx.ESTOQUE)))
+    return dict(item)
+
+
 def _enviar_notificacao(e: dict, c: Contexto) -> dict:
     n = {"id": fx.novo_id("NT", fx.NOTIFICACOES), "canal": e["canal"], "destino": e["destino"],
          "mensagem": e["mensagem"], "enviado_por": c.persona_id, "agente_id": c.agente_id}
@@ -160,7 +167,7 @@ CATALOGO: dict[str, Especificacao] = {e.id: e for e in [
         "consultar_lojista", "Consultar cadastro do lojista",
         "Busca o cadastro de um lojista: nome, CNPJ, cidade, plano, faturamento médio e titular. "
         "Use quando precisar identificar o cliente ou o porte do negócio.",
-        "lojistas", Classificacao.INTERNA, ("atendimento", "risco"), "leitura",
+        "lojistas", Classificacao.INTERNA, ("atendimento", "risco", "logistica"), "leitura",
         _LOJ, ("lojista_id",), _consultar_lojista),
     Especificacao(
         "listar_transacoes", "Listar transações do lojista",
@@ -184,7 +191,7 @@ CATALOGO: dict[str, Especificacao] = {e.id: e for e in [
         ("fila", "titulo", "descricao"), _abrir_chamado, limite_por_minuto=10),
     Especificacao(
         "buscar_politica", "Buscar política interna",
-        "Procura na base de políticas aprovadas de uma área (rh, ti, atendimento, risco) "
+        "Procura na base de políticas aprovadas de uma área (rh, ti, atendimento, risco, logistica) "
         "a orientação oficial mais próxima da consulta.",
         "comunicacao", Classificacao.INTERNA, (TODAS,), "leitura",
         {"area": {"type": "string", "enum": sorted(BASE_INICIAL)},
@@ -196,6 +203,13 @@ CATALOGO: dict[str, Especificacao] = {e.id: e for e in [
         "pessoas", Classificacao.CONFIDENCIAL, ("pessoas",), "leitura",
         {"colaborador_id": {"type": "string", "description": "Matrícula, por exemplo C501."}},
         ("colaborador_id",), _consultar_colaborador),
+    Especificacao(
+        "consultar_estoque", "Consultar estoque de maquininhas",
+        "Consulta no sistema de logística quantas maquininhas de um modelo estão disponíveis, em qual centro "
+        "de distribuição e em quantos dias o envio sai.",
+        "atendimento", Classificacao.INTERNA, ("logistica", "atendimento"), "leitura",
+        {"modelo": {"type": "string", "description": "Modelo da maquininha, por exemplo Maquininha Pro."}},
+        ("modelo",), _consultar_estoque, latencia_ms=210),
     Especificacao(
         "enviar_notificacao", "Enviar notificação",
         "Envia uma mensagem por e-mail ou Slack interno a uma pessoa ou canal.",

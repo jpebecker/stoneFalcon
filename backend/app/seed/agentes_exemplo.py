@@ -7,7 +7,8 @@ TRIAGEM_CHARGEBACK = Blueprint.model_validate({
     "area": "risco",
     "instrucoes": "Nunca decida sozinho sobre bloqueios: proponha e espere a confirmação do analista. "
                   "Cite os números que sustentam a conclusão.",
-    "campos_entrada": ["lojista_id"],
+    "campos": [
+        {"id": "lojista_id", "rotulo": "Lojista", "tipo": "lojista", "ajuda": "Escolha o lojista pelo nome."}],
     "minutos_manual": 25,
     "passos": [
         {"id": "cadastro", "titulo": "Consultar cadastro do lojista", "tipo": "ferramenta",
@@ -30,7 +31,11 @@ DUVIDA_LOJISTA = Blueprint.model_validate({
     "objetivo": "Montar uma resposta para a dúvida de um lojista, usando o cadastro dele e a política oficial.",
     "area": "atendimento",
     "instrucoes": "Tom cordial e direto. Não prometa prazos fora da política.",
-    "campos_entrada": ["lojista_id", "pergunta"],
+    "campos": [
+        {"id": "lojista_id", "rotulo": "Lojista", "tipo": "lojista", "ajuda": "Escolha o lojista pelo nome."},
+        {"id": "pergunta", "rotulo": "Dúvida do lojista", "tipo": "texto_longo",
+         "exemplo": "Em quanto tempo o estorno cai para o cliente?",
+         "ajuda": "Cole o texto do chamado ou selecione-o na página (extensão)."}],
     "minutos_manual": 8,
     "passos": [
         {"id": "cadastro", "titulo": "Consultar cadastro do lojista", "tipo": "ferramenta",

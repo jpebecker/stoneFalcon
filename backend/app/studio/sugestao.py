@@ -29,7 +29,7 @@ from ..tools.permissoes import avaliar
 from .modelos_prontos import PADROES
 
 LIMIAR_PADRAO = 0.25
-AREA_POLITICA = {"pessoas": "rh", "engenharia": "ti", "risco": "risco", "atendimento": "atendimento"}
+AREA_POLITICA = {"pessoas": "rh", "engenharia": "ti", "risco": "risco", "atendimento": "atendimento", "logistica": "logistica"}
 
 
 @dataclass
@@ -98,7 +98,8 @@ def _basico(pessoa: Persona) -> dict:
     return {
         "nome": "Assistente de %s" % pessoa.area_nome, "area": pessoa.area, "minutos_manual": 5,
         "objetivo": "Responder dúvidas da área %s com base na política oficial." % pessoa.area_nome,
-        "instrucoes": "", "campos_entrada": ["pergunta"],
+        "instrucoes": "", "campos": [
+            {"id": "pergunta", "rotulo": "Pergunta", "tipo": "texto_longo", "exemplo": "Qual o prazo de estorno?"}],
         "passos": [
             {"id": "politica", "titulo": "Buscar a política aplicável", "tipo": "ferramenta",
              "ferramenta": "buscar_politica", "entrada": {"area": area, "consulta": "{{entrada.pergunta}}"}},
@@ -155,8 +156,11 @@ def _por_padrao(pessoa: Persona, descricao: str) -> tuple[dict, str, list[str]]:
 # Modo real: o Sonnet propõe o blueprint
 # =============================================================
 _FORMATO = """Formato do agente (JSON):
-{"nome": str, "objetivo": str, "area": str, "instrucoes": str, "campos_entrada": [str],
+{"nome": str, "objetivo": str, "area": str, "instrucoes": str, "campos": [Campo],
  "minutos_manual": número, "passos": [Passo]}
+Campo (o que a pessoa preenche; NUNCA peça códigos técnicos):
+{"id": "snake_case", "rotulo": "texto claro", "tipo": "texto"|"texto_longo"|"lojista"|"colaborador"|"opcao",
+ "exemplo": str, "opcoes": [str]}   // use tipo "lojista" para escolher um lojista pelo nome
 Passo:
 {"id": "snake_case", "titulo": str, "tipo": "ferramenta"|"agente"|"aprovacao", "depende_de": [ids],
  // tipo "ferramenta": chamada direta, sem IA

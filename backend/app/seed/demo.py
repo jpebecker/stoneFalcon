@@ -14,22 +14,30 @@ from . import historico
 from .agentes_exemplo import DUVIDA_LOJISTA, TRIAGEM_CHARGEBACK
 
 
-def semear(s: Session) -> bool:
+def semear(s: Session, sem: frozenset[str] | set[str] = frozenset()) -> bool:
+    """Estado inicial da demo. `sem` tira agentes que um roteiro faz a persona criar ao vivo
+    ("duvida", "triagem", "ferias"), para o roteiro começar do zero daquele agente."""
     if s.exec(select(m.Agente).limit(1)).first():
         return False
     marina, rafael, carla, lucas = (PERSONAS[x] for x in ("marina", "rafael", "carla", "lucas"))
+    helena = PERSONAS["helena"]
+    criados = []
 
-    a = ciclo.criar(s, marina, DUVIDA_LOJISTA, "Primeira versão, a partir das perguntas mais comuns da fila.")
-    ciclo.publicar(s, marina, a.id)
-
-    t = ciclo.criar(s, rafael, TRIAGEM_CHARGEBACK, "Triagem diária de contestações.")
-    ciclo.publicar(s, rafael, t.id)   # risco alto: vai para revisão
-    ciclo.revisar(s, lucas, t.id, True, "Retenção de repasse protegida por confirmação humana; acesso restrito à área de risco. Aprovado.")
-
-    ferias = Blueprint.model_validate(por_id("ferias_colaborador")["blueprint"])
-    f = ciclo.criar(s, carla, ferias, "Dúvidas de férias e benefícios.")
-    ciclo.publicar(s, carla, f.id)
-    for agente, orcamento in ((a, 120.0), (t, 300.0), (f, 80.0)):
-        ciclo.definir_orcamento(s, PERSONAS["helena"], agente.id, orcamento)
+    if "duvida" not in sem:
+        a = ciclo.criar(s, marina, DUVIDA_LOJISTA, "Primeira versão, a partir das perguntas mais comuns da fila.")
+        ciclo.publicar(s, marina, a.id)
+        criados.append((a, 120.0))
+    if "triagem" not in sem:
+        t = ciclo.criar(s, rafael, TRIAGEM_CHARGEBACK, "Triagem diária de contestações.")
+        ciclo.publicar(s, rafael, t.id)   # risco alto: vai para revisão
+        ciclo.revisar(s, lucas, t.id, True, "Retenção de repasse protegida por confirmação humana; acesso restrito à área de risco. Aprovado.")
+        criados.append((t, 300.0))
+    if "ferias" not in sem:
+        ferias = Blueprint.model_validate(por_id("ferias_colaborador")["blueprint"])
+        f = ciclo.criar(s, carla, ferias, "Dúvidas de férias e benefícios.")
+        ciclo.publicar(s, carla, f.id)
+        criados.append((f, 80.0))
+    for agente, orcamento in criados:
+        ciclo.definir_orcamento(s, helena, agente.id, orcamento)
     historico.gerar(s)
     return True

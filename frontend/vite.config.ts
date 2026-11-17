@@ -6,6 +6,9 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
-    proxy: { "/api": process.env.STONEFALCON_API ?? "http://127.0.0.1:8765" },
+    proxy: {
+      "/api": process.env.STONEFALCON_API ?? "http://127.0.0.1:8765",
+      "/demo": process.env.STONEFALCON_API ?? "http://127.0.0.1:8765",
+    },
   },
 });

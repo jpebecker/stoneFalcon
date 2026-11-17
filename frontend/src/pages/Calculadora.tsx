@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { api, type Premissas, type Projecao } from "../api/cliente";
+import { api, type Consolidado, type Premissas, type Projecao } from "../api/cliente";
 import { LinhaAcumulada } from "../components/Graficos";
 import { num, pct, reais, reaisCurto } from "../components/formato";
 
@@ -37,6 +37,7 @@ function rotuloValor(c: Campo, v: number) {
 
 export default function Calculadora() {
   const base = useQuery({ queryKey: ["premissas"], queryFn: () => api<{ valores: Premissas; medidas: Premissas; medidas_demo: boolean }>("/financas/premissas") });
+  const cons = useQuery({ queryKey: ["consolidado"], queryFn: () => api<Consolidado>("/roteiros/consolidado") });
   const inicial = base.data ? { ...base.data.valores, ...base.data.medidas } : null;
   const [p, setP] = useState<Premissas | null>(null);
   const [proj, setProj] = useState<Projecao | null>(null);
@@ -61,6 +62,17 @@ export default function Calculadora() {
           </p>
         )}
       </div>
+
+      {cons.data && (
+        <div className="caixa flex flex-wrap items-center gap-2 p-4 text-sm">
+          <span className="font-semibold">Partir de um processo dos roteiros:</span>
+          {cons.data.processos.map((pr) => (
+            <button key={pr.roteiro} className="botao-claro py-1.5" onClick={() => setP({ ...p, ...pr.calculadora })}
+              title={`${pr.as_is_min} min à mão, ${pr.to_be_min} min com o agente (${pr.origem_to_be})`}>{pr.processo}</button>
+          ))}
+          <span className="text-xs text-tinta-3">Carrega o tempo da tarefa, a conferência humana e o custo de tokens daquele processo.</span>
+        </div>
+      )}
 
       <div className="grid gap-6 xl:grid-cols-[380px_1fr]">
         <aside className="space-y-5">

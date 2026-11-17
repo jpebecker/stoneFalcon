@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "StoneFalcon",
-  "version": "4.0.0",
-  "description": "Roda os agentes do StoneFalcon ao lado de qualquer página, com o texto selecionado. Protótipo acadêmico (UFSC).",
+  "version": "5.0.0",
+  "description": "Copiloto do StoneFalcon: selecione um texto em qualquer página e peça a um agente. Protótipo acadêmico (UFSC).",
   "minimum_chrome_version": "116",
   "icons": {
     "16": "icones/icone16.png",
@@ -11,7 +11,7 @@
     "128": "icones/icone128.png"
   },
   "action": {
-    "default_title": "Abrir os agentes do StoneFalcon",
+    "default_title": "Abrir o copiloto do StoneFalcon",
     "default_icon": {
       "16": "icones/icone16.png",
       "32": "icones/icone32.png"
@@ -29,6 +29,14 @@
     "contextMenus",
     "storage"
   ],
+  "host_permissions": [
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "optional_host_permissions": [
+    "https://*/*",
+    "http://*/*"
+  ],
   "content_scripts": [
     {
       "matches": [
@@ -37,9 +45,6 @@
       ],
       "js": [
         "botao.js"
-      ],
-      "css": [
-        "botao.css"
       ],
       "run_at": "document_idle"
     }

@@ -17,6 +17,7 @@ import uuid
 
 from ..llm.cliente import ChamadaFerramenta, RespostaLLM, simulador
 from ..tools.catalogo import CATALOGO
+from . import respostas
 
 _ENTRADA = re.compile(r"<entrada>(.*?)</entrada>", re.S)
 _PASSO = re.compile(r"<passo>(.*?)</passo>", re.S)
@@ -66,12 +67,16 @@ def _risco(texto: str) -> bool:
     return any(int(n) >= 5 for n in re.findall(r'"quantidade": (\d+)', texto)) and "contest" in texto
 
 
-def _preencher(conector: str, entrada: dict, titulo: str, texto: str, area: str | None) -> dict | None:
+def _preencher(conector: str, entrada: dict, titulo: str, texto: str, area: str | None,
+               ctx: "respostas.Contexto | None" = None) -> dict | None:
     esp = CATALOGO[conector]
     valores = {}
     for campo in esp.obrigatorios:
         regra = esp.parametros[campo]
-        if campo in entrada:
+        livre = respostas.campo_para_ferramenta(campo, conector, ctx, titulo) if ctx else None
+        if livre:
+            valores[campo] = livre
+        elif campo in entrada:
             valores[campo] = entrada[campo]
         elif "enum" in regra:
             valores[campo] = area if area in regra["enum"] else regra["enum"][0]
@@ -103,18 +108,23 @@ def roteiro(chave: str, sistema: str, mensagens: list[dict], ferramentas: list[d
     m_area = re.search(r"da área (\w+)", sistema)
     area = m_area.group(1) if m_area else None
 
+    ctx = respostas.montar(inicial, ja, entrada)
     if ferramentas and not ja:
         chamadas = []
         for f in ferramentas:
             nome = f["name"]
             if CATALOGO[nome].exige_aprovacao and not _risco(inicial):
                 continue
-            valores = _preencher(nome, entrada, titulo, inicial, area)
+            valores = _preencher(nome, entrada, titulo, inicial, area, ctx)
             if valores is not None:
                 chamadas.append(ChamadaFerramenta("sim_" + uuid.uuid4().hex[:8], nome, valores))
         if chamadas:
-            justificativa = "Proponho: %s." % ", ".join(CATALOGO[c.nome].nome.lower() for c in chamadas)
+            justificativa = "Com base nos dados consultados, vou %s." % " e ".join(CATALOGO[c.nome].nome.lower() for c in chamadas)
             return RespostaLLM(chave, justificativa, chamadas=chamadas)
+
+    composto = respostas.compor(ctx, titulo, [f["name"] for f in (ferramentas or [])], bool(ja))
+    if composto:
+        return RespostaLLM(chave, composto)
 
     fatos = []
     for r in ja:

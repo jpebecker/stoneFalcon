@@ -21,7 +21,7 @@ from ..core.relogio import agora
 from ..llm import precos
 from ..runtime import modelos as rm
 
-VOLUME_DIA = {"atendimento": 22, "risco": 9, "pessoas": 12}   # execuções por dia útil
+VOLUME_DIA = {"atendimento": 22, "risco": 9, "pessoas": 12, "logistica": 10}   # execuções por dia útil
 
 
 def gerar(s: Session, dias: int = 30, semente: int = 7) -> int:

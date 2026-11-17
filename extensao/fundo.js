@@ -1,14 +1,59 @@
 // StoneFalcon · serviço de fundo da extensão.
-// A extensão não tem lógica de IA: abre a tela de agentes da plataforma no painel
-// lateral e entrega o trecho selecionado na página.
+// A extensão não tem lógica de IA: abre o copiloto da plataforma no painel lateral e entrega o trecho
+// selecionado. O menu do botão direito lista os agentes que a pessoa logada pode usar.
+importScripts('comum.js');
+
+const MENU_RAIZ = 'sf-raiz';
+const MENU_GERAL = 'sf-geral';
+const PREFIXO_AGENTE = 'sf-agente:';
+
+// montarMenu pode ser pedido várias vezes ao mesmo tempo (instalação, perfil, endereço): uma por vez,
+// senão duas execuções criam o mesmo id e o Chrome recusa a segunda.
+let fila = Promise.resolve();
+function montarMenu() {
+  fila = fila.then(montar).catch((e) => console.warn('StoneFalcon: menu não montou:', e && e.message));
+  return fila;
+}
 
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.contextMenus.create({ id: 'sf-perguntar', title: 'Usar um agente do StoneFalcon com este trecho', contexts: ['selection'] });
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
+  montarMenu();
 });
+chrome.runtime.onStartup.addListener(montarMenu);
+// perfil ou endereço mudou: o menu de agentes precisa ser refeito
+chrome.storage.local.onChanged.addListener((mudancas) => { if (mudancas.perfil || mudancas.servidor) montarMenu(); });
 
-function guardarTrecho(texto) {
-  return chrome.storage.session.set({ trecho: { texto: (texto || '').slice(0, 8000), quando: Date.now() } });
+async function agentesDoPerfil() {
+  const perfil = await sfPerfil();
+  if (!perfil) return [];
+  try {
+    const endereco = await sfEndereco();
+    const resp = await fetch(endereco + '/api/v1/extensao/analisar', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Usuario': perfil }, body: JSON.stringify({ trecho: '' }),
+    });
+    if (!resp.ok) return [];
+    return ((await resp.json()).agentes || []).slice(0, 8);
+  } catch (e) {
+    return [];
+  }
+}
+
+function criar(item) {
+  chrome.contextMenus.create(item, () => void chrome.runtime.lastError);   // lê o erro para o Chrome não reclamar
+}
+
+async function montar() {
+  await chrome.contextMenus.removeAll();
+  criar({ id: MENU_RAIZ, title: 'StoneFalcon', contexts: ['selection'] });
+  criar({ id: MENU_GERAL, parentId: MENU_RAIZ, title: 'Perguntar ao StoneFalcon (sugerir o agente)', contexts: ['selection'] });
+  const agentes = await agentesDoPerfil();
+  for (const a of agentes) {
+    criar({ id: PREFIXO_AGENTE + a.id, parentId: MENU_RAIZ, title: 'Responder com: ' + a.nome, contexts: ['selection'] });
+  }
+}
+
+function guardarTrecho(texto, agente) {
+  return chrome.storage.session.set({ trecho: { texto: (texto || '').slice(0, 8000), agente: agente || '', quando: Date.now() } });
 }
 
 // Abrir o painel exige o gesto do usuário, então nada pode ser aguardado (await) antes.
@@ -22,14 +67,16 @@ function abrirPainel(tabId) {
 
 // clique com o botão direito em um texto selecionado
 chrome.contextMenus.onClicked.addListener((info, tab) => {
-  if (info.menuItemId !== 'sf-perguntar' || !tab) return;
-  guardarTrecho(info.selectionText);
+  if (!tab || typeof info.menuItemId !== 'string') return;
+  const id = info.menuItemId;
+  if (id !== MENU_GERAL && !id.startsWith(PREFIXO_AGENTE)) return;
+  guardarTrecho(info.selectionText, id.startsWith(PREFIXO_AGENTE) ? id.slice(PREFIXO_AGENTE.length) : '');
   abrirPainel(tab.id);
 });
 
 // clique no botão flutuante da página
 chrome.runtime.onMessage.addListener((msg, remetente) => {
   if (!msg || msg.tipo !== 'sf-abrir' || !remetente.tab) return;
-  guardarTrecho(msg.trecho);
+  guardarTrecho(msg.trecho, '');
   abrirPainel(remetente.tab.id);
 });

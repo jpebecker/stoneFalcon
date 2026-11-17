@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { api, type Execucao, type ItemRevisao, type Persona } from "../api/cliente";
 import { COR_STATUS, NOME_STATUS, quando, reais } from "../components/formato";
+import { useControle } from "../roteiro/Controle";
+import { useEstadoRoteiro } from "../roteiro/estado";
 
 export default function Inicio({ pessoa }: { pessoa: Persona }) {
   const execs = useQuery({ queryKey: ["execucoes"], queryFn: () => api<Execucao[]>("/execucoes?limite=8") });
@@ -10,6 +12,9 @@ export default function Inicio({ pessoa }: { pessoa: Persona }) {
   const gestor = pessoa.papeis.includes("gestor_ia");
   const revisor = pessoa.papeis.includes("revisor_seguranca");
   const qc = useQueryClient();
+  const { iniciar } = useControle();
+  const ativo = useEstadoRoteiro();
+  const comecar = useMutation({ mutationFn: () => iniciar(pessoa.roteiro_id!, pessoa.id) });
   const revisoes = useQuery({ queryKey: ["revisoes"], queryFn: () => api<ItemRevisao[]>("/revisoes"), enabled: revisor });
   const reiniciar = useMutation({ mutationFn: () => api("/demo/reiniciar", {}), onSuccess: () => qc.invalidateQueries() });
 
@@ -24,6 +29,24 @@ export default function Inicio({ pessoa }: { pessoa: Persona }) {
             : "Acompanhe os agentes da sua área."}
         </p>
       </div>
+
+      {pessoa.roteiro_id && (
+        <section className="caixa flex flex-wrap items-center justify-between gap-4 border-info/30 bg-info-fundo/40 p-5">
+          <div>
+            <h2 className="text-lg">Seu roteiro guiado</h2>
+            <p className="mt-1 text-sm text-tinta-2">
+              {ativo?.id === pessoa.roteiro_id ? "Em andamento: use a barra no rodapé para avançar, voltar ou reiniciar."
+                : "A jornada de " + pessoa.nome.split(" ")[0] + ", do processo de hoje ao valor medido, com entradas pré-determinadas."}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Link to={"/roteiro/" + pessoa.roteiro_id} className="botao-claro">AS IS × TO BE</Link>
+            <button className="botao-pedra" disabled={comecar.isPending} onClick={() => comecar.mutate()}>
+              {comecar.isPending ? "Preparando…" : ativo?.id === pessoa.roteiro_id ? "Recomeçar" : "Iniciar roteiro"}
+            </button>
+          </div>
+        </section>
+      )}
 
       {criador && (
         <Link to="/estudio" className="caixa flex items-center justify-between gap-6 border-pedra/30 bg-pedra-fundo/40 p-6 transition hover:border-pedra">
