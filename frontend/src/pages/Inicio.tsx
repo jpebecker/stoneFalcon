@@ -86,6 +86,14 @@ export default function Inicio({ pessoa }: { pessoa: Persona }) {
         </div>
       )}
 
+      <Link to="/plugins" className="caixa flex flex-wrap items-center justify-between gap-4 p-5 transition hover:border-pedra">
+        <div>
+          <h2 className="text-lg">Plugins homologados</h2>
+          <p className="mt-1 text-sm text-tinta-2">Integre ferramentas que a empresa já usa, como Zendesk e Slack: elas entram no Catálogo e viram passo no Estúdio.</p>
+        </div>
+        <span className="selo bg-papel text-tinta-2">simulado</span>
+      </Link>
+
       {pendentes.length > 0 && (
         <section className="caixa border-alerta/40 p-5">
           <h2 className="text-lg">Esperando a sua decisão</h2>

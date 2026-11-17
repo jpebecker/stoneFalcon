@@ -29,6 +29,7 @@ MODULOS = {
     "atendimento": "Atendimento e logística",
     "pessoas": "Pessoas (RH)",
     "comunicacao": "Comunicação e conhecimento",
+    "plugins": "Plugins integrados",
 }
 
 
@@ -51,6 +52,7 @@ class Especificacao:
     exige_aprovacao: bool = False      # escrita sensível: humano confirma antes
     limite_por_minuto: int = 30
     latencia_ms: int = 120             # latência típica do sistema (simulada)
+    plugin: str | None = None          # id do plugin que trouxe a ferramenta (só vale enquanto ele está integrado)
 
     def para_modelo(self) -> dict:
         """Definição no formato de ferramenta da API da Anthropic."""
@@ -226,6 +228,19 @@ CATALOGO: dict[str, Especificacao] = {e.id: e for e in [
         {**_LOJ, "motivo": {"type": "string", "description": "Justificativa do bloqueio."}},
         ("lojista_id", "motivo"), _bloquear_repasse, exige_aprovacao=True, limite_por_minuto=5),
 ]}
+
+
+# Ferramentas dos plugins: registradas sempre (para o grafo dos agentes continuar válido mesmo se o plugin for removido),
+# mas só estão disponíveis enquanto o plugin está integrado: `permissoes.avaliar` e a aba Ferramentas conferem.
+from ..plugins.definicoes import FERRAMENTAS as _FERRAMENTAS_PLUGINS  # noqa: E402
+
+CATALOGO.update({e.id: e for e in _FERRAMENTAS_PLUGINS})
+
+
+def disponiveis() -> dict[str, Especificacao]:
+    """O que aparece no Catálogo e na saúde: as ferramentas da plataforma e as dos plugins integrados."""
+    from ..plugins.estado import integrado
+    return {k: e for k, e in CATALOGO.items() if not e.plugin or integrado(e.plugin)}
 
 
 def obter(conector_id: str) -> Especificacao:

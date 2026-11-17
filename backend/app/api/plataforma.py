@@ -16,7 +16,7 @@ rotas = APIRouter(prefix="/api/v1")
 def saude():
     return {
         "ok": True,
-        "versao": "5.0.0",
+        "versao": "6.0.0",
         "modo": "real" if config.modo_real() else "simulado",
         "modelos": {k: m["nome"] for k, m in config.MODELOS.items()},
         "cotacao_dolar": config.COTACAO_DOLAR,

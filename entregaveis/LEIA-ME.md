@@ -5,7 +5,7 @@
 | `analise-financeira.xlsx` | **F8.** 12 abas com fórmulas vivas (Leia-me, Premissas, CAPEX, OPEX, Tokens, Benefícios, Fluxo de caixa, Cenários, Sensibilidade, Construir × comprar, Resumo para slides, Motor). Fonte única de premissas na aba Premissas. |
 | `apresentacao.pptx` | **F9.** 15 slides + 3 anexos, com notas do apresentador (texto falado e tempo). Gráficos nativos, números só da aba "Resumo para slides". |
 | `checagem-numeros.md` | Cada número do deck → célula de origem no Excel (gerado junto com o deck). |
-| `telas/` | Prints do protótipo seguindo o roteiro do LEIA-ME, depois de "Reiniciar a demo". |
+| `telas/` | Prints do protótipo (v6: com as fotos das personas, Roteiros, Perguntas da Ferramenta e Plugins) seguindo o roteiro do LEIA-ME, depois de "Reiniciar a demo". |
 | `gerador/` | Scripts que reproduzem tudo a partir das premissas. |
 
 ## Números principais (cenário base)

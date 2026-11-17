@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { api, definirPerfil, perfilAtual, type Persona, type Saude } from "./api/cliente";
 import Avatar from "./components/Avatar";
@@ -8,7 +8,6 @@ import AgenteDetalhe from "./pages/AgenteDetalhe";
 import Auditoria from "./pages/Auditoria";
 import Alertas from "./pages/Alertas";
 import Agentes from "./pages/Agentes";
-import Banca from "./pages/Banca";
 import Calculadora from "./pages/Calculadora";
 import Catalogo from "./pages/Catalogo";
 import Entrar from "./pages/Entrar";
@@ -19,6 +18,9 @@ import Extensao from "./pages/Extensao";
 import Financas from "./pages/Financas";
 import Inicio from "./pages/Inicio";
 import Painel from "./pages/Painel";
+import PluginPagina from "./pages/PluginPagina";
+import Plugins from "./pages/Plugins";
+import Perguntas from "./pages/Perguntas";
 import Revisoes from "./pages/Revisoes";
 import RoteiroPagina from "./pages/RoteiroPagina";
 import Roteiros from "./pages/Roteiros";
@@ -26,20 +28,27 @@ import PaginaSaude from "./pages/Saude";
 import { BarraRoteiro, ProvedorRoteiro } from "./roteiro/Controle";
 import { useEstadoRoteiro } from "./roteiro/estado";
 
-const NAV: { para: string; rotulo: string; papel?: string; papeis?: string[] }[] = [
-  { para: "/", rotulo: "Início" },
-  { para: "/roteiros", rotulo: "Roteiros" },
-  { para: "/painel", rotulo: "Painel executivo" },
-  { para: "/estudio", rotulo: "Estúdio", papel: "criador" },
-  { para: "/agentes", rotulo: "Agentes" },
-  { para: "/revisoes", rotulo: "Revisões", papel: "revisor_seguranca" },
-  { para: "/execucoes", rotulo: "Execuções" },
-  { para: "/saude", rotulo: "Saúde" },
-  { para: "/financas", rotulo: "Finanças" },
-  { para: "/ferramentas", rotulo: "Ferramentas" },
-  { para: "/auditoria", rotulo: "Auditoria", papeis: ["gestor_ia", "revisor_seguranca"] },
-  { para: "/banca", rotulo: "Perguntas da banca" },
+// O menu e as rotas só leem `pessoa.abas`, que vem do back (a fonte da verdade do acesso por perfil).
+const NAV: { aba: string; para: string; rotulo: string }[] = [
+  { aba: "inicio", para: "/", rotulo: "Início" },
+  { aba: "roteiros", para: "/roteiros", rotulo: "Roteiros" },
+  { aba: "painel", para: "/painel", rotulo: "Painel executivo" },
+  { aba: "estudio", para: "/estudio", rotulo: "Estúdio" },
+  { aba: "agentes", para: "/agentes", rotulo: "Agentes" },
+  { aba: "plugins", para: "/plugins", rotulo: "Plugins" },
+  { aba: "revisoes", para: "/revisoes", rotulo: "Revisões" },
+  { aba: "execucoes", para: "/execucoes", rotulo: "Execuções" },
+  { aba: "saude", para: "/saude", rotulo: "Saúde" },
+  { aba: "financas", para: "/financas", rotulo: "Finanças" },
+  { aba: "ferramentas", para: "/ferramentas", rotulo: "Ferramentas" },
+  { aba: "auditoria", para: "/auditoria", rotulo: "Auditoria" },
+  { aba: "perguntas", para: "/perguntas", rotulo: "Perguntas da Ferramenta" },
 ];
+
+/** Rota restrita: quem não tem a aba (ex.: endereço digitado) volta ao Início, sem tela quebrada. */
+function Guarda({ pessoa, aba, children }: { pessoa: Persona; aba: string; children: ReactNode }) {
+  return pessoa.abas.includes(aba) ? <>{children}</> : <Navigate to="/" replace />;
+}
 
 function MenuPessoa({ pessoa, aoTrocar, aoSair }: { pessoa: Persona; aoTrocar: (id: string) => void; aoSair: () => void }) {
   const [aberto, setAberto] = useState(false);
@@ -105,16 +114,19 @@ export default function App() {
     qc.clear();
   };
 
-  // atalho do modo apresentador: Alt+B abre as perguntas da banca de qualquer tela
+  const pessoa = eu.data;
+  const podePerguntas = !!pessoa?.abas.includes("perguntas");
+
+  // atalho do modo apresentador: Alt+B abre as Perguntas da Ferramenta de qualquer tela (só para quem tem a aba)
   useEffect(() => {
+    if (!podePerguntas) return;
     const tecla = (e: KeyboardEvent) => {
-      if (e.altKey && e.key.toLowerCase() === "b" && perfilAtual() && !location.pathname.startsWith("/extensao")) { e.preventDefault(); navegar("/banca"); }
+      if (e.altKey && e.key.toLowerCase() === "b" && perfilAtual() && !location.pathname.startsWith("/extensao")) { e.preventDefault(); navegar("/perguntas"); }
     };
     window.addEventListener("keydown", tecla);
     return () => window.removeEventListener("keydown", tecla);
-  }, [navegar]);
+  }, [navegar, podePerguntas]);
 
-  const pessoa = eu.data;
   if (location.pathname.startsWith("/extensao")) {
     if (perfil && eu.isPending) return <div className="ext-tema min-h-full bg-papel p-6 text-sm text-tinta-2" aria-busy="true">Conectando…</div>;
     return <Extensao pessoa={perfil && !eu.isError ? pessoa ?? null : null} aoEntrar={(id) => trocar(id)} aoSair={() => trocar(null)}
@@ -130,7 +142,7 @@ export default function App() {
         <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col gap-8 bg-tinta px-4 py-6 text-white">
           <Marca claro />
           <nav className="flex flex-col gap-1" aria-label="Seções">
-            {NAV.filter((n) => (!n.papel || pessoa?.papeis.includes(n.papel)) && (!n.papeis || n.papeis.some((x) => pessoa?.papeis.includes(x)))).map((n) => (
+            {NAV.filter((n) => pessoa?.abas.includes(n.aba)).map((n) => (
               <NavLink key={n.para} to={n.para} end={n.para === "/"}
                 className={({ isActive }) => "rounded-lg px-3 py-2 text-sm font-medium transition " +
                   (isActive ? "bg-white text-tinta" : "text-white/75 hover:bg-white/10 hover:text-white")}>
@@ -168,17 +180,19 @@ export default function App() {
             {pessoa && (
               <Routes>
                 <Route path="/" element={<Inicio pessoa={pessoa} />} />
-                <Route path="/roteiros" element={<Roteiros />} />
-                <Route path="/roteiro/:id" element={<RoteiroPagina />} />
-                <Route path="/banca" element={<Banca />} />
-                <Route path="/estudio" element={<Estudio pessoa={pessoa} />} />
+                <Route path="/roteiros" element={<Guarda pessoa={pessoa} aba="roteiros"><Roteiros /></Guarda>} />
+                <Route path="/roteiro/:id" element={<RoteiroPagina pessoa={pessoa} />} />
+                <Route path="/perguntas" element={<Guarda pessoa={pessoa} aba="perguntas"><Perguntas /></Guarda>} />
+                <Route path="/plugins" element={<Guarda pessoa={pessoa} aba="plugins"><Plugins /></Guarda>} />
+                <Route path="/plugins/:id" element={<Guarda pessoa={pessoa} aba="plugins"><PluginPagina pessoa={pessoa} /></Guarda>} />
+                <Route path="/estudio" element={<Guarda pessoa={pessoa} aba="estudio"><Estudio pessoa={pessoa} /></Guarda>} />
                 <Route path="/agentes" element={<Agentes pessoa={pessoa} />} />
                 <Route path="/agentes/:id" element={<AgenteDetalhe pessoa={pessoa} />} />
-                <Route path="/revisoes" element={<Revisoes />} />
+                <Route path="/revisoes" element={<Guarda pessoa={pessoa} aba="revisoes"><Revisoes /></Guarda>} />
                 <Route path="/saude" element={<PaginaSaude />} />
                 <Route path="/alertas" element={<Alertas />} />
-                <Route path="/painel" element={<Painel />} />
-                <Route path="/auditoria" element={<Auditoria />} />
+                <Route path="/painel" element={<Guarda pessoa={pessoa} aba="painel"><Painel /></Guarda>} />
+                <Route path="/auditoria" element={<Guarda pessoa={pessoa} aba="auditoria"><Auditoria /></Guarda>} />
                 <Route path="/financas" element={<Financas pessoa={pessoa} />} />
                 <Route path="/financas/calculadora" element={<Calculadora />} />
                 <Route path="/execucoes" element={<Execucoes />} />

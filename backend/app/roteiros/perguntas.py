@@ -1,4 +1,4 @@
-"""Perguntas prováveis da banca, por persona e por tema, com a resposta curta e a tela que serve de prova.
+"""Perguntas da Ferramenta (as prováveis da banca), por persona e por tema, com a resposta curta e a tela que serve de prova.
 
 `prova.perfil` é a pessoa com quem abrir a tela; `prova.rota` é a tela; `prova.roteiro`/`prova.passo` levam
 ao passo do roteiro em que a prova aparece. Respostas curtas, para falar em até 30 segundos.
@@ -87,6 +87,10 @@ PERGUNTAS = [
     _q("thiago-4", "thiago", "custo", "Isso fica caro com muitas trocas?",
        "O cadastro, a regra e o estoque são consultas diretas, sem IA e sem custo de modelo; só a redação do chamado e do aviso usa o Haiku.",
        "thiago", "/roteiro/thiago?etapa=resultado", "Custo por troca medido", passo="medir"),
+    _q("carla-5", "carla", "seguranca", "Se um plugin de RH é integrado, os dados ficam liberados para todos?",
+       "Não. Integrar só põe a ferramenta no Catálogo: ela continua exigindo a área e o nível de acesso de quem dispara. O SAP é confidencial, "
+       "então precisa da aprovação da Segurança para entrar, e depois só roda para Pessoas (RH) com nível confidencial: a Carla, sim; o Atendimento, não.",
+       "carla", "/plugins/sap", "Plugin sensível: integrar gera pedido para a Segurança", passo=None),
     # ---- Lucas
     _q("lucas-1", "lucas", "escala", "Como governar centenas de agentes sem aumentar o time?",
        "Engenharia governa o catálogo e as revisões de risco alto, não cada agente. Agente de risco baixo vai ao ar sozinho dentro dos guardrails.",
@@ -100,6 +104,17 @@ PERGUNTAS = [
     _q("lucas-4", "lucas", "diferencial", "Por que não deixar cada time usar um low-code genérico?",
        "Porque cada ferramenta paralela vira shadow IT sem permissão por classificação, sem mascaramento e sem trilha. Aqui isso é nativo e invisível.",
        "helena", "/auditoria", "Auditoria de todos os agentes", passo=None),
+    _q("thiago-5", "thiago", "escala", "Como a plataforma conversa com os sistemas que a empresa já usa, como o Slack?",
+       "Pelo marketplace de plugins homologados: o criador integra o Slack (interno) em um clique, as ferramentas entram no Catálogo com a "
+       "origem do plugin e viram passo no Estúdio. A página do plugin mostra quem usa, chamadas, custo e a mensagem que o agente publicou.",
+       # a prova começa no passo "integrar": não depende de o roteiro já ter rodado (o passo "canal" só tem mensagem depois
+       # de integrar o Slack e executar o agente; a partir daqui a barra do roteiro leva até lá)
+       "thiago", "/plugins/slack", "Plugin do Slack: integrar e, no fim do roteiro, o aviso no canal", roteiro="thiago",
+       passo="integrar"),
+    _q("lucas-5", "lucas", "escala", "Quem aprova a integração de um plugin com dado sensível?",
+       "Plugin confidencial ou restrito vira pedido na fila de Revisões da Segurança, com motivo, área e ferramentas; o Lucas aprova ou recusa com "
+       "parecer, ninguém aprova o próprio pedido (o pedido da própria Segurança é decidido pela Helena, do CoE de IA), e tudo fica na auditoria.",
+       "lucas", "/revisoes", "Fila de Revisões: agentes e pedidos de plugin"),
     # ---- Helena
     _q("helena-1", "helena", "custo", "Qual o retorno e em quanto tempo?",
        "O painel mostra ROI e payback; a calculadora deixa a banca mudar adoção e premissas. Os números de histórico são cenário e estão sinalizados.",

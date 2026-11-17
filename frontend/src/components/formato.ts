@@ -45,6 +45,9 @@ export const NOME_EVENTO: Record<string, string> = {
   ferramenta_erro: "Ferramenta com erro", ferramenta_aguardando_aprovacao: "Ferramenta pediu confirmação",
   alerta_aberto: "Alerta aberto", alerta_resolvido: "Alerta resolvido", conector_falha_injetada: "Falha simulada no sistema",
   conector_normalizado: "Sistema normalizado", orcamento_definido: "Orçamento definido", estudio_sugestao: "Agente sugerido no Estúdio",
+  plugin_integrado: "Plugin integrado", plugin_removido: "Plugin removido", plugin_pedido_criado: "Integração de plugin pedida à Segurança",
+  plugin_pedido_registrado: "Integração de plugin pedida (registrada)", plugin_pedido_aprovado: "Integração de plugin aprovada",
+  plugin_pedido_recusado: "Integração de plugin recusada",
   historico_demo_gerado: "Histórico de demonstração gerado", historico_demo_apagado: "Histórico de demonstração apagado",
 };
 

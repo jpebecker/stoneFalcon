@@ -10,14 +10,15 @@ from ..core.db import sessao
 from ..core.identidade import ENGENHARIA_PLATAFORMA, Persona, exigir, usuario_atual
 from ..observability import avaliar_seguro
 from ..tools import executor
-from ..tools.catalogo import CATALOGO, MODULOS, TODAS, Contexto
+from ..plugins.catalogo import PLUGINS
+from ..tools.catalogo import CATALOGO, MODULOS, TODAS, Contexto, disponiveis
 from ..tools.permissoes import avaliar
 
 rotas = APIRouter(prefix="/api/v1/ferramentas", tags=["ferramentas"])
 
 
 def _esp(conector_id: str):
-    esp = CATALOGO.get(conector_id)
+    esp = disponiveis().get(conector_id)   # ferramenta de plugin só existe no Catálogo enquanto o plugin está integrado
     if not esp:
         raise HTTPException(status_code=404, detail="Ferramenta não encontrada.")
     return esp
@@ -31,6 +32,7 @@ def _publico(esp, pessoa: Persona, s: Session) -> dict:
         "modulo": esp.modulo, "modulo_nome": MODULOS[esp.modulo],
         "classificacao": esp.classificacao.name.lower(),
         "areas": ["todas"] if TODAS in esp.areas else list(esp.areas),
+        "origem": ("plugin %s" % PLUGINS[esp.plugin].nome) if esp.plugin else "plataforma", "plugin": esp.plugin,
         "acao": esp.acao, "exige_aprovacao": esp.exige_aprovacao,
         "limite_por_minuto": esp.limite_por_minuto,
         "parametros": esp.parametros, "obrigatorios": list(esp.obrigatorios),
@@ -41,7 +43,7 @@ def _publico(esp, pessoa: Persona, s: Session) -> dict:
 
 @rotas.get("")
 def listar(pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
-    return {"modulos": MODULOS, "ferramentas": [_publico(e, pessoa, s) for e in CATALOGO.values()]}
+    return {"modulos": MODULOS, "ferramentas": [_publico(e, pessoa, s) for e in disponiveis().values()]}
 
 
 @rotas.get("/{conector_id}")

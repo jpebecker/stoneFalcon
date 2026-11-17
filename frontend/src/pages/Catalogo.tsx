@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { api, type Ferramenta, type Persona } from "../api/cliente";
 
 const COR_CLASSE: Record<string, string> = {
@@ -20,8 +21,9 @@ export default function Catalogo({ pessoa }: { pessoa: Persona }) {
       <div>
         <h1 className="text-3xl">Ferramentas</h1>
         <p className="mt-1 max-w-2xl text-tinta-2">
-          Conectores aprovados pela Engenharia de Plataforma. Um agente só usa o que está aqui, e cada chamada roda
-          com as permissões de quem disparou o agente.
+          Conectores aprovados pela Engenharia de Plataforma e ferramentas de plugins integrados. Um agente só usa o que está aqui,
+          e cada chamada roda com as permissões de quem disparou o agente. Para trazer uma ferramenta nova, veja a aba{" "}
+          <Link to="/plugins" className="font-semibold text-pedra-forte">Plugins</Link>.
         </p>
       </div>
       {q.data && Object.entries(q.data.modulos).map(([mod, nome]) => (
@@ -33,6 +35,7 @@ export default function Catalogo({ pessoa }: { pessoa: Persona }) {
                 <div className="flex items-start justify-between gap-3">
                   <h3 className="text-base">{f.nome}</h3>
                   <div className="flex shrink-0 gap-1.5">
+                    {f.plugin && <Link to={"/plugins/" + f.plugin} className="selo bg-info-fundo text-info hover:underline">{f.origem}</Link>}
                     <span className={"selo " + COR_CLASSE[f.classificacao]}>{f.classificacao}</span>
                     <span className="selo bg-papel text-tinta-2">{f.acao}</span>
                   </div>

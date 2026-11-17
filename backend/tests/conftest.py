@@ -16,11 +16,14 @@ from app.core import db  # noqa: E402
 
 @pytest.fixture()
 def motor():
+    from app.plugins import servico as plugins
     m = db.criar_motor("sqlite://")
     db.usar_motor(m)
     db.criar_tabelas()
+    plugins.zerar()          # plugins integrados e sistemas externos simulados começam do zero em cada teste
     yield m
     SQLModel.metadata.drop_all(m)
+    plugins.zerar()
 
 
 @pytest.fixture()

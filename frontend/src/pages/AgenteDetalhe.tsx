@@ -57,6 +57,13 @@ export default function AgenteDetalhe({ pessoa }: { pessoa: Persona }) {
           <p className="mt-1 text-tinta-2">{publicada?.blueprint.objetivo ?? ultima?.blueprint.objetivo}</p>
           <p className="mt-1 text-sm text-tinta-3">Área {a.area} · dono {a.dono} · {a.execucoes} execuções · {reais(a.custo_brl)} gastos</p>
           {a.motivo_estado && <p className="mt-2 text-sm text-alerta">Motivo: {a.motivo_estado}</p>}
+          {a.plugins_indisponiveis.length > 0 && (
+            <p className="mt-2 rounded-lg bg-alerta-fundo p-3 text-sm text-alerta" role="alert">
+              Este agente usa ferramentas de {a.plugins_indisponiveis.map((p, i) => (
+                <span key={p.id}>{i > 0 && ", "}<Link to={"/plugins/" + p.id} className="font-semibold underline">{p.nome}</Link></span>
+              ))}, plugin(s) que não estão integrados. Até serem integrados de novo, as execuções escalam para um humano com o motivo.
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
           {editor && a.estado !== "depreciado" && <Link to={"/estudio?agente=" + a.id} className="botao-claro">Editar no Estúdio</Link>}

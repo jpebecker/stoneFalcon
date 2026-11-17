@@ -67,7 +67,8 @@ def _texto_final(exe: dict, passo: str) -> str:
 
 
 def _fim(api, roteiro_id: str, agente_id: str | None = None):
-    """Passos 'medir' e 'banca': AS IS × TO BE com a origem dos números e de 3 a 5 perguntas."""
+    """Passo 'medir': AS IS × TO BE com a origem dos números. As perguntas ficam só na aba da Helena (cada persona
+    continua com 3 a 5 perguntas, filtráveis por persona)."""
     persona = ROTEIROS[roteiro_id].persona
     res = api.get(f"{V1}/roteiros/{roteiro_id}/resultado", params={"agente_id": agente_id} if agente_id else {},
                   headers=como(persona)).json()
@@ -78,7 +79,7 @@ def _fim(api, roteiro_id: str, agente_id: str | None = None):
     tempo = linhas["Tempo por tarefa"]
     assert tempo["to_be"] < tempo["as_is"]
     assert "medido" in tempo["origem_to_be"] and tempo["origem_as_is"] == "hipótese"
-    perguntas = api.get(f"{V1}/perguntas", params={"persona": persona}, headers=como(persona)).json()["perguntas"]
+    perguntas = api.get(f"{V1}/perguntas", params={"persona": persona}, headers=como("helena")).json()["perguntas"]
     assert 3 <= len(perguntas) <= 5
     assert all(q["resposta"] and q["prova"]["rota"] for q in perguntas)
     return res
@@ -171,10 +172,21 @@ def test_roteiro_carla(api):
 
 # ---------------------------------------------------------------- Thiago
 def test_roteiro_thiago(api):
+    from app.plugins import sistemas as sx
     _iniciar(api, "thiago")
+    # passo 'integrar': sem o plugin, o Estúdio orienta a integrar o Slack; integrar é direto (Slack é interno)
+    texto = _passo("thiago", "criar").preenche["descricao"]
+    antes = api.post(f"{V1}/estudio/sugerir", json={"descricao": texto}, headers=como("thiago")).json()
+    assert any("plugin do Slack" in a for a in antes["alertas"]) and "canal" not in [p["id"] for p in antes["blueprint"]["passos"]]
+    r = api.post(f"{V1}/plugins/slack/integrar", headers=como("thiago"))
+    assert r.status_code == 200 and r.json()["resultado"] == "integrado", r.text
+    cat = {f["id"]: f for f in api.get(f"{V1}/ferramentas", headers=como("thiago")).json()["ferramentas"]}
+    assert cat["slack_enviar_mensagem"]["origem"] == "plugin Slack"
+
     bp, sug = _criar(api, "thiago", "thiago", "troca_maquininha_estoque")
     assert sug["risco"]["nivel"] == "medio"
     assert sug["niveis"][0] == ["cadastro", "regra", "estoque"]         # três passos em paralelo
+    assert "canal" in [p["id"] for p in bp["passos"]]                   # depois do chamado, avisa o canal
     teste = _testar(api, "thiago", "thiago", bp)
     assert teste["status"] == "concluida"
 
@@ -185,10 +197,25 @@ def test_roteiro_thiago(api):
     assert "estoque baixo" in _texto_final(exe, "chamado") and "Maquininha Smart" in _texto_final(exe, "chamado")
     assert fx.CHAMADOS[-1]["fila"] == "logistica" and "Smart" in fx.CHAMADOS[-1]["titulo"]
     assert fx.NOTIFICACOES, "o aviso ao lojista foi enviado"
+    msg = sx.SLACK[-1]
+    assert msg["canal"] == "#logistica" and "Smart" in msg["mensagem"] and fx.CHAMADOS[-1]["id"] in msg["mensagem"]
+    assert "#logistica" in _texto_final(exe, "canal")
     inicios = [exe["passos"][p]["duracao_estimada_ms"] for p in ("cadastro", "regra", "estoque")]
-    assert exe["duracao_estimada_ms"] < sum(inicios) + exe["passos"]["chamado"]["duracao_estimada_ms"] + \
-        exe["passos"]["aviso"]["duracao_estimada_ms"]                    # paralelo: não soma os três
-    _fim(api, "thiago", aid)
+    assert exe["duracao_estimada_ms"] < sum(inicios) + exe["passos"]["chamado"]["duracao_estimada_ms"] +         exe["passos"]["aviso"]["duracao_estimada_ms"] + exe["passos"]["canal"]["duracao_estimada_ms"]   # paralelo: não soma
+
+    # passo 'canal': a página consolidada do Slack mostra a mensagem que o agente publicou
+    pg = api.get(f"{V1}/plugins/slack/consolidado", headers=como("thiago")).json()
+    canal = next(c for c in pg["janela"]["canais"] if c["canal"] == "#logistica")
+    assert any("Smart" in m["texto"] and "Troca de maquininha com estoque" in m["autor"] for m in canal["mensagens"])
+    assert pg["numeros"]["chamadas_mes"] >= 2 and [a["nome"] for a in pg["agentes"]] == ["Troca de maquininha com estoque"]
+    res = _fim(api, "thiago", aid)
+    assert any("Slack" in p for p in ROTEIROS["thiago"].to_be["passos"] + ROTEIROS["thiago"].as_is["passos"])   # o cartão considera o aviso ao canal
+    assert res["execucao"]["id"] == exe["id"]
+
+    # reiniciar o roteiro devolve o Slack a "disponível"
+    _iniciar(api, "thiago")
+    slack = api.get(f"{V1}/plugins/slack", headers=como("thiago")).json()
+    assert slack["estado"] == "disponivel" and not sx.SLACK
 
 
 # ---------------------------------------------------------------- Lucas
@@ -234,17 +261,21 @@ def test_roteiro_helena(api):
     assert calc.status_code == 200 and calc.json()["roi"] is not None
     res = api.get(f"{V1}/perguntas", params={"persona": "helena"}, headers=como("helena")).json()
     assert 3 <= len(res["perguntas"]) <= 5
+    assert [p.id for p in ROTEIROS["helena"].passos][-2:] == ["medir", "perguntas"]
 
 
 # ---------------------------------------------------------------- estrutura
 @pytest.mark.parametrize("rid", list(ROTEIROS))
 def test_estrutura_dos_roteiros(api, rid):
     r = ROTEIROS[rid]
-    assert r.passos[0].id == "contexto" and r.passos[-1].id == "banca" and r.passos[-2].id == "medir"
+    assert r.passos[0].id == "contexto"
+    # só o roteiro da Helena mostra as Perguntas da Ferramenta; os demais terminam no cartão AS IS × TO BE
+    assert r.passos[-1].id == ("perguntas" if rid == "helena" else "medir")
+    assert "medir" in [p.id for p in r.passos] and "banca" not in [p.id for p in r.passos]
     assert len({p.id for p in r.passos}) == len(r.passos)
     perguntas = [q for q in PERGUNTAS if q["persona"] == rid]
     assert 3 <= len(perguntas) <= 5
-    d = api.get(f"{V1}/roteiros/{rid}", headers=como("marina")).json()
+    d = api.get(f"{V1}/roteiros/{rid}", headers=como(r.persona)).json()
     assert d["persona_dados"]["id"] == r.persona
 
 

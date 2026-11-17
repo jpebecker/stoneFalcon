@@ -55,6 +55,8 @@ class Persona:
             "cargo": self.cargo, "nivel": self.nivel.name.lower(), "papeis": sorted(self.papeis),
             "matricula": self.matricula, "cor": self.cor, "descricao": self.descricao, "roteiro_id": self.roteiro_id,
             "iniciais": "".join(x[0] for x in self.nome.split()[:2]).upper(),
+            "foto": "/avatares/%s.png" % self.id,
+            "abas": abas_permitidas(self),
         }
 
 
@@ -101,3 +103,37 @@ def usuario_atual(x_usuario: str = Header(default="", alias="X-Usuario")) -> Per
 def exigir(persona: Persona, papel: str) -> None:
     if not persona.tem(papel):
         raise HTTPException(status_code=403, detail="Seu perfil não tem permissão para esta ação.")
+
+
+# ---------- acesso por aba (uma fonte de verdade só) ----------
+# O back diz quais abas cada pessoa pode ver; o menu e as rotas do front só leem esta lista, e a API
+# usa `exigir_aba` nos mesmos pontos. `None` = todos os perfis; senão, basta ter UM dos papéis.
+ABAS: dict[str, tuple[str, ...] | None] = {
+    "inicio": None,
+    "roteiros": (GESTOR_IA,),                       # todos os roteiros: só o CoE de IA
+    "painel": (GESTOR_IA,),
+    "perguntas": (GESTOR_IA,),                      # Perguntas da Ferramenta
+    "plugins": None,
+    "estudio": (CRIADOR,),
+    "agentes": None,
+    "revisoes": (REVISOR_SEGURANCA,),
+    "execucoes": None,
+    "saude": None,
+    "financas": None,
+    "ferramentas": None,
+    "auditoria": (GESTOR_IA, REVISOR_SEGURANCA),
+}
+
+
+def pode_ver_aba(persona: Persona, aba: str) -> bool:
+    papeis = ABAS.get(aba, ())
+    return papeis is None or any(persona.tem(p) for p in papeis)
+
+
+def abas_permitidas(persona: Persona) -> list[str]:
+    return [a for a in ABAS if pode_ver_aba(persona, a)]
+
+
+def exigir_aba(persona: Persona, aba: str) -> None:
+    if not pode_ver_aba(persona, aba):
+        raise HTTPException(status_code=403, detail="Esta área da plataforma não está disponível para o seu perfil.")

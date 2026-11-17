@@ -1,20 +1,20 @@
 # Ensaio geral e roteiro do pitch (8 a 10 minutos)
 
-Este arquivo é o ticket 16 do [PLANO-V5](PLANO-V5.md): o que conferir antes de apresentar, como ensaiar e o que falar.
+Este arquivo é o ticket 10 do [PLANO-V6](PLANO-V6.md) (antes, o ticket 16 da v5): o que conferir antes de apresentar, como ensaiar e o que falar. **Na v6, quem apresenta Roteiros, Painel executivo e Perguntas da Ferramenta é a Helena**: as outras personas só iniciam o próprio roteiro pelo Início.
 
 ## 1. Teste automático dos seis roteiros
 
 ```bash
-cd backend && uv run pytest -q tests/test_roteiros.py
+cd backend && uv run pytest -q tests/test_roteiros.py tests/test_acesso.py tests/test_plugins.py
 ```
 
-O teste percorre Marina, Rafael, Carla, Thiago, Lucas e Helena do início ao fim **pela API**, com as mesmas entradas que o roteiro mostra na tela, sem chave da API e sem internet. Para cada roteiro ele confere o agente montado, o teste no sandbox, a publicação (direta ou com revisão), a execução, o cartão AS IS × TO BE (cada número com a origem: medido, estimado, premissa ou hipótese) e de 3 a 5 perguntas da banca. Também confere o reinício por roteiro, a busca por nome (lojista e colaborador), a sugestão da extensão e o helpdesk fictício. O conjunto todo: `uv run pytest -q` (180 testes).
+O teste percorre Marina, Rafael, Carla, Thiago, Lucas e Helena do início ao fim **pela API**, com as mesmas entradas que o roteiro mostra na tela, sem chave da API e sem internet. Para cada roteiro ele confere o agente montado, o teste no sandbox, a publicação (direta ou com revisão), a execução, o cartão AS IS × TO BE (cada número com a origem: medido, estimado, premissa ou hipótese) e de 3 a 5 Perguntas da Ferramenta por persona (só a Helena as lê). `test_acesso.py` confere a matriz de acesso para os seis perfis e `test_plugins.py` o marketplace. Também confere o reinício por roteiro, a busca por nome (lojista e colaborador), a sugestão da extensão e o helpdesk fictício. O conjunto todo: `uv run pytest -q` (315 testes).
 
 ## 2. Checklist antes de apresentar
 
 **Na véspera**
 - [ ] Preços e dólar conferidos (`COTACAO_DOLAR` em `backend/app/core/config.py` e a tabela de preços em `backend/app/llm/precos.py`). O LEIA-ME diz a data da última conferência.
-- [ ] `uv run pytest -q` passando (180 testes) e `npm run build` feito em `frontend` (o servidor serve `frontend/dist`).
+- [ ] `uv run pytest -q` passando (315 testes) e `npm run build` feito em `frontend` (o servidor serve `frontend/dist`).
 - [ ] Decidir o modo: **simulado** (sem chave, resultado idêntico sempre, recomendado para o palco) ou **modelos reais** (chave em `backend/.env`, limite de gasto mensal definido). No modo real, se o serviço do modelo falhar (rede, limite), o passo usa a resposta pré-determinada e a tela mostra **“resposta de reserva”** (desligue com `STONEFALCON_RESERVA=0`); erro de chave ou de modelo escala em vez de fingir.
 - [ ] Extensão carregada no Chrome (`chrome://extensions` → Modo do desenvolvedor → Carregar sem compactação → `extensao`) e conexão testada nas opções. Sem a extensão, a página `/demo/helpdesk` abre o mesmo painel sozinha (plano B).
 
@@ -24,7 +24,7 @@ O teste percorre Marina, Rafael, Carla, Thiago, Lucas e Helena do início ao fim
 - [ ] **Reiniciar apaga o banco, inclusive a auditoria.** No modo demonstração (padrão) qualquer perfil reinicia pelo roteiro; fora do palco, defina `STONEFALCON_DEMO=0` e só o CoE reinicia.
 - [ ] Não precisa “reiniciar a demo”: **cada roteiro reinicia a plataforma no estado exato dele** ao ser iniciado (e o botão “Reiniciar” da barra faz isso de novo no meio). “Reiniciar a demo” (Início da Helena) volta ao estado geral.
 - [ ] Rodar o roteiro da Marina uma vez inteiro antes de entrar, e reiniciar.
-- [ ] Alt + B abre as perguntas da banca de qualquer tela.
+- [ ] **Apresente como Helena** (ela vê todos os roteiros): Alt + B abre as Perguntas da Ferramenta de qualquer tela, só para ela. Iniciar o roteiro de uma persona pela aba Roteiros troca para essa persona sozinho.
 
 ## 3. Roteiro do pitch (9 a 10 minutos)
 
@@ -37,11 +37,12 @@ Cada linha é um roteiro iniciado pela tela “Quem é você hoje?” (botão **
 | 3:00 | **Rafael** (3:00) | Teste sem risco → “Enviar para revisão” → Lucas aprova (troca de perfil sozinha) → execução com o lojista suspeito: passos paralelos, Sonnet explicado, **pausa pedindo confirmação** → auditoria | Ação sensível nunca é automática; quem confirmou e quando fica na trilha encadeada. |
 | 6:00 | **Lucas** (1:30) | Sistema fora do ar → execução escala com motivo → alerta no sino → **Pausar** → normalizar e o alerta fecha | Governança sem headcount por time: catálogo uma vez, revisão só do risco alto. |
 | 7:30 | **Helena** (2:00) | AS IS × TO BE consolidado → painel dos 5 critérios → economia do roteador → calculadora partindo de um processo | Retorno, custo e payback com premissas à vista. |
-| 9:30 | Fechamento | Alt + B → duas perguntas da banca com “Mostrar na tela” | Cada resposta tem a tela de prova. |
+| 9:30 | **Plugins** (1:00, opcional) | Thiago: aba Plugins → integrar o Slack (interno, direto) → agente avisa o #logistica → página do Slack com a mensagem. Carla: SAP vira pedido para o Lucas | Marketplace é a aquisição, Catálogo é a governança: sensível passa pelos quatro olhos. |
+| 10:30 | Fechamento | Alt + B (Helena) → duas Perguntas da Ferramenta com “Mostrar na tela” | Cada resposta tem a tela de prova. |
 
-**Carla e Thiago** entram como cartão AS IS × TO BE (30 s cada, `/roteiro/carla` e `/roteiro/thiago`) e ficam disponíveis para perguntas: Carla prova que o CPF não chega ao modelo; Thiago mostra três consultas em paralelo e o estoque baixo no chamado. Se sobrar tempo, rode o roteiro completo de um deles no lugar do Lucas.
+**Carla e Thiago** entram como cartão AS IS × TO BE (30 s cada, `/roteiro/carla` e `/roteiro/thiago`, abertos pela Helena) e ficam disponíveis para perguntas: Carla prova que o CPF não chega ao modelo; Thiago mostra três consultas em paralelo e o estoque baixo no chamado. Se sobrar tempo, rode o roteiro completo de um deles no lugar do Lucas.
 
-Se a duração do pitch for menor, corte nesta ordem: Lucas, Helena (fica só o painel), Rafael (fica até a pausa para confirmação). A Marina é a bala traçante e não sai.
+Se a duração do pitch for menor, corte nesta ordem: Plugins, Lucas, Helena (fica só o painel), Rafael (fica até a pausa para confirmação). A Marina é a bala traçante e não sai.
 
 ## 4. Plano B
 
@@ -51,9 +52,11 @@ Se a duração do pitch for menor, corte nesta ordem: Lucas, Helena (fica só o 
 | A API da Anthropic falhou (modo real) | O passo usa a resposta de reserva e mostra o aviso; ou volte ao modo simulado removendo a chave do `.env`. |
 | O roteiro ficou num estado estranho | **Reiniciar** na barra (apaga o que foi criado no roteiro e volta ao passo 1). |
 | O servidor não responde | `iniciar.bat` de novo; o banco recria o estado inicial sozinho. |
-| Pergunta fora do roteiro | Alt + B, filtre por persona ou tema. |
+| Pergunta fora do roteiro | Alt + B (como Helena), filtre por persona ou tema. |
 
 ## 5. O que o ensaio não cobre
+
+- Com a v6 o pitch passa de 10 min com a demonstração de plugins: o tempo de cada bloco ainda não foi cronometrado ao vivo (pendência 3 do plano da v6).
 
 - A extensão no Chrome e no Edge **não foi exercitada nesta máquina por teste automático**: os arquivos foram checados (sintaxe e manifesto), e o painel foi testado no helpdesk fictício. Carregue-a uma vez antes de apresentar.
 - Chamadas à API real da Anthropic (não havia chave).

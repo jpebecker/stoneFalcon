@@ -1,11 +1,11 @@
-// Modo apresentador: perguntas prováveis da banca, por persona e por tema, com a tela que serve de prova.
+// Perguntas da Ferramenta (modo apresentador, só da Helena): perguntas prováveis, por persona e por tema, com a tela que serve de prova.
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { api, type PerguntaBanca, type Persona } from "../api/cliente";
+import { api, type PerguntaFerramenta, type Persona } from "../api/cliente";
 import { useControle } from "../roteiro/Controle";
 
-export default function Banca() {
+export default function Perguntas() {
   const [params, setParams] = useSearchParams();
   const persona = params.get("persona") ?? "";
   const tema = params.get("tema") ?? "";
@@ -15,10 +15,10 @@ export default function Banca() {
   const perfis = useQuery({ queryKey: ["perfis"], queryFn: () => api<Persona[]>("/perfis") });
   const q = useQuery({
     queryKey: ["perguntas", persona, tema],
-    queryFn: () => api<{ temas: Record<string, string>; perguntas: PerguntaBanca[] }>(
+    queryFn: () => api<{ temas: Record<string, string>; perguntas: PerguntaFerramenta[] }>(
       "/perguntas?" + new URLSearchParams({ ...(persona ? { persona } : {}), ...(tema ? { tema } : {}) })),
   });
-  const temas = useQuery({ queryKey: ["perguntas", "", ""], queryFn: () => api<{ temas: Record<string, string>; perguntas: PerguntaBanca[] }>("/perguntas") });
+  const temas = useQuery({ queryKey: ["perguntas", "", ""], queryFn: () => api<{ temas: Record<string, string>; perguntas: PerguntaFerramenta[] }>("/perguntas") });
   const mudar = (k: string, v: string) => { const p = new URLSearchParams(params); if (v) p.set(k, v); else p.delete(k); setParams(p, { replace: true }); };
   const nomeTema = temas.data?.temas ?? {};
 
@@ -26,7 +26,7 @@ export default function Banca() {
     <div className="space-y-6 pb-24">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-3xl">Perguntas da banca</h1>
+          <h1 className="text-3xl">Perguntas da Ferramenta</h1>
           <p className="mt-1 max-w-3xl text-tinta-2">
             Perguntas prováveis, com a resposta curta (até 30 s) e a tela que serve de prova. “Mostrar na tela” troca de perfil e abre a tela; use <kbd className="rounded border border-linha bg-folha px-1.5 text-xs">Alt</kbd>+<kbd className="rounded border border-linha bg-folha px-1.5 text-xs">B</kbd> de qualquer lugar.
           </p>

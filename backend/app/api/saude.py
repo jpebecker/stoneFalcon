@@ -12,7 +12,7 @@ from ..core.db import sessao
 from ..core.identidade import Persona, usuario_atual
 from ..observability import alertas, metricas
 from ..tools import executor
-from ..tools.catalogo import CATALOGO
+from ..tools.catalogo import CATALOGO, disponiveis
 
 rotas = APIRouter(prefix="/api/v1", tags=["saude"])
 
@@ -59,7 +59,7 @@ def conectores(_p: Persona = Depends(usuario_atual), s: Session = Depends(sessao
     abertos = {al.conector: al for al in s.exec(select(alertas.Alerta).where(alertas.Alerta.resolvido_em.is_(None)))
                if al.conector}
     saida = []
-    for cid, esp in CATALOGO.items():
+    for cid, esp in disponiveis().items():
         al = abertos.get(cid)
         status = "fora" if al and al.regra == "conector_fora" else "lento" if al else "ok"
         saida.append({"id": cid, "nome": esp.nome, "modulo": esp.modulo, "status": status,

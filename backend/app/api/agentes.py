@@ -13,6 +13,7 @@ from ..audit import trilha
 from ..core.db import sessao
 from ..core.identidade import GESTOR_IA, REVISOR_SEGURANCA, Persona, usuario_atual
 from ..observability import avaliar_seguro
+from ..plugins import servico as plugins
 from ..runtime import motor
 from ..runtime.modelos import Execucao
 from .execucoes import _publico as execucao_publica
@@ -39,6 +40,7 @@ def _resumo(a: m.Agente, s: Session) -> dict:
     d["execucoes"] = len(execs)
     d["escaladas"] = sum(1 for e in execs if e.status == "escalada")
     d["custo_brl"] = round(sum(e.custo_usd for e in execs) * motor.precos.usd_para_brl(1.0), 4)
+    d["plugins_indisponiveis"] = plugins.plugins_indisponiveis(s, a)   # depende de plugin removido: sinalizado, não silencioso
     return d
 
 

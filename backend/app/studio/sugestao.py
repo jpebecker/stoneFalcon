@@ -93,6 +93,25 @@ def _filtrar_permissoes(pessoa: Persona, dados: dict) -> tuple[dict, dict[str, s
     return dados, removidas
 
 
+_MENCAO_CANAL = re.compile(r"\bslack\b|#[\w-]+", re.I)   # "canal" sozinho ("canal de vendas") não é Slack
+
+
+def _com_plugins(pessoa: Persona, dados: dict, descricao: str, origem: str) -> list[str]:
+    """Se a descrição fala de avisar um canal e o plugin do Slack está integrado, o agente ganha o passo de avisar o canal
+    (depois do chamado). Sem o plugin, a pessoa é orientada a integrá-lo na aba Plugins. Devolve avisos."""
+    if origem != "padrao:troca_maquininha_estoque" or not _MENCAO_CANAL.search(descricao):
+        return []
+    esp = CATALOGO["slack_enviar_mensagem"]
+    if not avaliar(pessoa, esp).permitido:
+        return ["Você falou em avisar um canal do Slack, mas o plugin do Slack ainda não está integrado. "
+                "Integre-o na aba Plugins e descreva o processo de novo."]
+    dados["passos"].append({
+        "id": "canal", "titulo": "Avisar o canal da logística", "tipo": "agente", "modelo": "rapido",
+        "depende_de": ["chamado", "cadastro", "estoque"], "ferramentas": ["slack_enviar_mensagem"],
+        "instrucao": "Publique no canal #logistica um aviso curto com o modelo, o protocolo do chamado e a situação do estoque."})
+    return []
+
+
 def _basico(pessoa: Persona) -> dict:
     area = AREA_POLITICA.get(pessoa.area, "atendimento")
     return {
@@ -233,6 +252,7 @@ def sugerir(pessoa: Persona, descricao: str, simulado: bool | None = None) -> Su
         alertas += avisos
 
     dados["area"] = pessoa.area
+    alertas += _com_plugins(pessoa, dados, descricao_masc, origem)
     minutos = extrair_minutos(descricao)
     if minutos:
         dados["minutos_manual"] = minutos

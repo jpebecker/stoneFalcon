@@ -1,4 +1,6 @@
-"""F9.1: captura as telas do protótipo seguindo o roteiro do LEIA-ME (depois de "Reiniciar a demo").
+"""F9.1 (v6): captura as telas do protótipo seguindo o roteiro do LEIA-ME (depois de "Reiniciar a demo").
+
+Na v6 as telas mostram as fotos das personas e as abas novas: Roteiros e Perguntas da Ferramenta (só da Helena) e Plugins.
 
 Pré-requisito: o app rodando em http://localhost:8765 (iniciar.bat). Modo simulado: sem chave nem internet.
 Uso:  .venv/Scripts/python.exe capturar_telas.py
@@ -6,6 +8,7 @@ Saída: entregaveis/telas/*.png (1600×900). No fim, reinicia a demo de novo par
 """
 from __future__ import annotations
 
+import os
 import time
 from pathlib import Path
 
@@ -15,7 +18,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
-BASE = "http://localhost:8765"
+BASE = os.environ.get("STONEFALCON_URL", "http://localhost:8765").rstrip("/")   # outro endereço: STONEFALCON_URL=...
 API = BASE + "/api/v1"
 PASTA = Path(__file__).resolve().parents[1] / "telas"
 PASTA.mkdir(exist_ok=True)
@@ -110,6 +113,26 @@ try:
     foto("08-calculadora")
     abrir("/ferramentas", "lucas", "Reter repasses", pausa=2)
     foto("09-catalogo")
+
+    # 6. v6: acesso por perfil e marketplace de plugins
+    abrir("/roteiros", "helena", "Roteiros guiados", pausa=2)
+    foto("10-roteiros-helena")
+    abrir("/perguntas", "helena", "Perguntas da Ferramenta", pausa=2)
+    foto("11-perguntas-da-ferramenta")
+    abrir("/plugins", "marina", "Plugins", pausa=2)
+    foto("12-plugins-vitrine")
+    # Thiago integra o Slack, cria o agente da troca de maquininha (que avisa o canal) e o usa: a página do Slack mostra a mensagem
+    api("POST", "/roteiros/thiago/reiniciar", "thiago")
+    api("POST", "/plugins/slack/integrar", "thiago")
+    descricao = ("Quando o lojista pede troca de maquininha eu confiro o cadastro, a regra de troca e o estoque do modelo ao mesmo tempo, "
+                 "abro o chamado na logística, aviso o lojista e aviso o canal da logística no Slack. Levo uns 12 minutos.")
+    bp = api("POST", "/estudio/sugerir", "thiago", {"descricao": descricao})["blueprint"]
+    ag = api("POST", "/agentes", "thiago", {"blueprint": bp, "nota": "captura"})["id"]
+    api("POST", "/agentes/%s/publicar" % ag, "thiago")
+    api("POST", "/agentes/%s/executar" % ag, "thiago", {"entrada": {"lojista_id": "L1003", "modelo": "Maquininha Smart",
+                                                                   "relato": "A tela ficou preta e a maquininha não liga mais."}})
+    abrir("/plugins/slack", "thiago", "Visão consolidada", pausa=3)
+    foto("13-plugin-slack-consolidado")
 finally:
     nav.quit()
     try:

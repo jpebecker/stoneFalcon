@@ -9,6 +9,7 @@ export default defineConfig({
     proxy: {
       "/api": process.env.STONEFALCON_API ?? "http://127.0.0.1:8765",
       "/demo": process.env.STONEFALCON_API ?? "http://127.0.0.1:8765",
+      "/avatares": process.env.STONEFALCON_API ?? "http://127.0.0.1:8765",
     },
   },
 });

@@ -1,9 +1,10 @@
 // Controle do roteiro guiado: iniciar, avançar, voltar, reiniciar e a barra fixa com o passo atual.
 // Trocar de passo troca o perfil sozinho e leva para a tela do passo.
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { api, perfilAtual, type Roteiro } from "../api/cliente";
+import { api, perfilAtual, type Persona, type Roteiro } from "../api/cliente";
+import Avatar from "../components/Avatar";
 import { definirRoteiro, estadoAtual, resolverRota, useRoteiro } from "./estado";
 
 type Controle = {
@@ -56,7 +57,7 @@ export function ProvedorRoteiro({ trocar, children }: { trocar: (id: string | nu
 
   const sair = useCallback(() => definirRoteiro(null), []);
 
-  // "Mostrar na tela" das perguntas da banca: abre a tela de prova com o perfil certo e,
+  // "Mostrar na tela" das Perguntas da Ferramenta: abre a tela de prova com o perfil certo e,
   // se a prova é um passo de roteiro, posiciona o roteiro nesse passo.
   const mostrarProva = useCallback(async (p: { perfil: string; rota: string; roteiro: string; passo: string | null }) => {
     if (p.rota.startsWith("/demo/")) window.open(p.rota, "_blank", "noopener");   // antes de qualquer await
@@ -83,6 +84,7 @@ export function BarraRoteiro() {
   const c = useControle();
   const [fala, setFala] = useState(false);
   const [ocupado, setOcupado] = useState(false);
+  const perfis = useQuery({ queryKey: ["perfis"], queryFn: () => api<Persona[]>("/perfis"), staleTime: Infinity });
   if (!estado || !roteiro || !passo) return null;
   const total = roteiro.passos.length;
   const i = Math.min(estado.passo, total - 1);
@@ -96,6 +98,7 @@ export function BarraRoteiro() {
         </div>
       )}
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-6 py-3">
+        {perfis.data?.find((p) => p.id === passo.perfil) && <Avatar pessoa={perfis.data.find((p) => p.id === passo.perfil)!} tamanho={36} />}
         <div className="min-w-0">
           <div className="text-xs uppercase tracking-wide text-white/50">Roteiro · {roteiro.persona_dados.nome.split(" ")[0]} · {roteiro.processo}</div>
           <div className="truncate font-titulo text-base font-semibold">Passo {i + 1} de {total} · {passo.titulo}</div>

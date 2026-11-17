@@ -48,6 +48,7 @@ export async function api<T>(rota: string, corpo?: unknown, metodo?: string): Pr
 export type Persona = {
   id: string; nome: string; area: string; area_nome: string; cargo: string; nivel: string; papeis: string[];
   matricula: string; cor: string; descricao: string; roteiro_id: string | null; iniciais: string;
+  foto: string; abas: string[];
 };
 
 export type Campo = {
@@ -85,7 +86,7 @@ export type Validacao =
 export type Ferramenta = {
   id: string; nome: string; descricao: string; modulo: string; modulo_nome: string; classificacao: string;
   areas: string[]; acao: string; exige_aprovacao: boolean; limite_por_minuto: number; ativo: boolean;
-  falha: string | null; disponivel_para_mim: boolean; motivo: string;
+  falha: string | null; disponivel_para_mim: boolean; motivo: string; origem: string; plugin: string | null;
   parametros: Record<string, { type: string; description?: string; enum?: string[] }>; obrigatorios: string[];
 };
 
@@ -115,7 +116,7 @@ export type Agente = {
   id: string; nome: string; area: string; dono: string; estado: "rascunho" | "em_revisao" | "publicado" | "pausado" | "depreciado";
   versao_publicada: number | null; ultima_versao: number; risco: "baixo" | "medio" | "alto"; compartilhado_com: string[];
   motivo_estado: string | null; criado_em: string; atualizado_em: string;
-  execucoes: number; escaladas: number; custo_brl: number;
+  execucoes: number; escaladas: number; custo_brl: number; plugins_indisponiveis: { id: string; nome: string }[];
 };
 
 export type VersaoAgente = {
@@ -187,7 +188,7 @@ export type Indicadores = {
 };
 
 
-// ---------- roteiros e banca ----------
+// ---------- roteiros e Perguntas da Ferramenta ----------
 export type PassoRoteiro = {
   id: string; titulo: string; perfil: string; rota: string; acao: string; fala: string;
   preenche: { descricao?: string; entrada?: Record<string, string>; parecer?: string }; externa: boolean;
@@ -225,7 +226,7 @@ export type Consolidado = {
   premissas: { custo_hora: number; aproveitamento: number; taxa_erro_manual: number };
 };
 
-export type PerguntaBanca = {
+export type PerguntaFerramenta = {
   id: string; persona: string; tema: string; pergunta: string; resposta: string;
   prova: { perfil: string; rota: string; rotulo: string; roteiro: string; passo: string | null };
 };
@@ -236,4 +237,47 @@ export type AnaliseTrecho = {
     preenchido: Record<string, string>; detectado: string[];
   }[];
   sugerido: string | null; lojista: { id: string; nome: string } | null; colaborador: { id: string; nome: string } | null;
+};
+
+
+// ---------- marketplace de plugins (simulado) ----------
+export type FerramentaPlugin = {
+  id: string; nome: string; descricao: string; acao: "leitura" | "escrita"; classificacao: string; exige_aprovacao: boolean;
+  nivel_suficiente: boolean; disponivel_para_mim: boolean;
+};
+
+export type PedidoMeu = { id: string; estado: "pendente" | "aprovado" | "recusado" | "registrado"; parecer: string | null; revisor: string | null };
+
+export type Plugin = {
+  id: string; nome: string; categoria: string; categoria_nome: string; descricao: string; simulado: true; janela: boolean;
+  classificacao: string; sensivel: boolean; areas: string[]; areas_nomes: string[];
+  estado: "disponivel" | "integrado" | "aguardando_aprovacao"; vale_para_minha_area: boolean;
+  ferramentas: FerramentaPlugin[]; exige_aprovacao_para_integrar: boolean; integrado_por: string | null; integrado_em: string | null;
+  pode_integrar: boolean; pode_pedir: boolean; pode_remover: boolean;
+  pedido_pendente: { id: string; solicitante: string; meu: boolean; pode_decidir: boolean } | null; meu_pedido: PedidoMeu | null;
+};
+
+export type PedidoPlugin = {
+  id: string; plugin_id: string; plugin_nome: string; categoria_nome: string; classificacao: string;
+  ferramentas: { id: string; nome: string; acao: string }[]; solicitante: string; solicitante_nome: string; area_nome: string;
+  motivo: string; estado: string; parecer: string | null; revisor_nome: string | null; criado_em: string; e_meu: boolean;
+  pode_decidir: boolean;
+};
+
+export type JanelaPlugin =
+  | { tipo: "fila"; titulo: string; itens: { id: string; assunto: string; solicitante: string; prioridade: string; status: string; mensagem: string; respostas: { autor: string; texto: string }[] }[] }
+  | { tipo: "canais"; titulo: string; canais: { canal: string; mensagens: { id: string; texto: string; autor: string }[] }[] }
+  | { tipo: "quadro"; titulo: string; colunas: { nome: string; itens: { id: string; titulo: string; projeto: string }[] }[] }
+  | { tipo: "vazio"; titulo: string };
+
+export type ConsolidadoPlugin = {
+  plugin: Plugin; simulado: true; nivel_suficiente: boolean; area_permitida: boolean;
+  numeros: { agentes: number; chamadas_mes: number; erros: number; custo_brl: number; execucoes: number; latencia_p95_ms: number };
+  saude: {
+    status: "ok" | "lento" | "fora";
+    alertas: { id: string; regra: string; severidade: string; titulo: string; detalhe: string; conector: string }[];
+    por_ferramenta: { id: string; nome: string; acao: string; chamadas: number; erros: number; taxa_erro: number; latencia_tipica_ms: number; latencia_p95_ms: number; falha: string | null }[];
+  };
+  agentes: { id: string; nome: string; area: string; estado: string; chamadas: number }[]; agentes_ocultos: number;
+  janela: JanelaPlugin | null;
 };
