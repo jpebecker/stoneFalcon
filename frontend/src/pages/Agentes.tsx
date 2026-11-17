@@ -26,6 +26,7 @@ export default function Agentes({ pessoa }: { pessoa: Persona }) {
               <span className={"selo " + COR_RISCO[a.risco]}>{NOME_RISCO[a.risco]}</span>
               <span className="text-tinta-2">{a.execucoes} execuções</span>
               {a.escaladas > 0 && <span className="text-falcao">{a.escaladas} escaladas</span>}
+              {a.plugins_indisponiveis.length > 0 && <span className="selo bg-alerta-fundo text-alerta" title="Depende de plugin que não está integrado">plugin removido</span>}
               <span className="ml-auto text-tinta-3">{reais(a.custo_brl)}</span>
             </div>
           </Link>

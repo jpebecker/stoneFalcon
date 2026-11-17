@@ -26,7 +26,7 @@ from ..core.identidade import ENGENHARIA_PLATAFORMA, GESTOR_IA, PERSONAS, Person
 from ..core.relogio import agora
 from ..runtime import modelos as rm
 from ..tools import executor
-from ..tools.catalogo import CATALOGO
+from ..tools.catalogo import disponiveis
 from . import metricas
 
 # ---------- limiares (premissas da plataforma, ajustáveis pelo CoE) ----------
@@ -113,7 +113,7 @@ def _condicoes_agente(s: Session, a: am.Agente) -> list[dict]:
 def _condicoes_conectores(s: Session) -> dict[str, dict]:
     uso = metricas.chamadas_ferramentas(s, horas=JANELA_CONECTOR_H)
     achados = {}
-    for cid, esp in CATALOGO.items():
+    for cid, esp in disponiveis().items():
         est = executor.estado(s, cid)
         u = uso.get(cid, {})
         if est.falha in ("erro", "fora_do_ar") or (u.get("chamadas", 0) >= 3 and u.get("taxa_erro", 0) >= ERRO_CONECTOR):
@@ -161,7 +161,8 @@ def _abrir_ou_atualizar(s: Session, abertos: dict[str, Alerta], chave: str, dado
 def avaliar(s: Session) -> dict:
     """Roda todas as regras. Devolve {abertos, resolvidos} desta rodada."""
     with trava:
-        abertos = {a.chave: a for a in s.exec(select(Alerta).where(Alerta.resolvido_em.is_(None)))}
+        abertos = {a.chave: a for a in s.exec(select(Alerta).where(Alerta.resolvido_em.is_(None)))
+                   if not a.regra.startswith("plugin_")}   # alertas do marketplace têm ciclo próprio
         antes = set(abertos)
         vistos: set[str] = set()
         ativos = _agentes_ativos(s)

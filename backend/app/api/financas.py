@@ -5,7 +5,7 @@ from sqlmodel import Session
 
 from ..agents import ciclo
 from ..core.db import sessao
-from ..core.identidade import GESTOR_IA, Persona, exigir, usuario_atual
+from ..core.identidade import GESTOR_IA, Persona, exigir, exigir_aba, usuario_atual
 from ..finance import calculadora, resumo
 from ..finance.premissas import Premissas
 from ..observability import avaliar_seguro
@@ -21,6 +21,8 @@ def financas_resumo(dias: int = 30, pessoa: Persona = Depends(usuario_atual), s:
 
 @rotas.get("/financas/indicadores")
 def financas_indicadores(dias: int = 30, pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
+    """Os 5 indicadores do Painel executivo: só o CoE de IA (Finanças e a Calculadora usam resumo e premissas)."""
+    exigir_aba(pessoa, "painel")
     return resumo.indicadores(s, pessoa, min(max(dias, 1), 365))
 
 

@@ -1,4 +1,4 @@
-"""StoneFalcon v4: plataforma agêntica institucional (protótipo acadêmico UFSC / StoneLab).
+"""StoneFalcon v6: plataforma agêntica institucional (protótipo acadêmico UFSC / StoneLab).
 
     uv run uvicorn app.main:app --reload --port 8765
 Se frontend/dist existir (npm run build), o app inteiro abre em http://localhost:8765.
@@ -22,6 +22,7 @@ from .api.execucoes import rotas as rotas_execucoes
 from .api.ferramentas import rotas as rotas_ferramentas
 from .api.financas import rotas as rotas_financas
 from .api.plataforma import rotas as rotas_plataforma
+from .api.plugins import rotas as rotas_plugins
 from .api.roteiros import rotas as rotas_roteiros
 from .api.saude import rotas as rotas_saude
 from .core import config
@@ -32,6 +33,11 @@ from .core.db import criar_tabelas
 @asynccontextmanager
 async def ciclo(_app: FastAPI):
     criar_tabelas()
+    from sqlmodel import Session as _Sessao
+
+    from .plugins import servico as _plugins
+    with _Sessao(db.motor()) as _s:
+        _plugins.sincronizar(_s)   # plugins integrados que ficaram gravados no banco voltam ao catálogo
     if os.environ.get("STONEFALCON_SEMEAR", "1") != "0":
         from sqlmodel import Session
 
@@ -60,7 +66,7 @@ async def _vigiar():
 
 app = FastAPI(
     title="StoneFalcon",
-    version="5.0.0",
+    version="6.0.0",
     description="Fábrica governada de agentes de IA. Protótipo acadêmico; não é um produto oficial da Stone.",
     lifespan=ciclo,
 )
@@ -80,6 +86,7 @@ app.include_router(rotas_agentes)
 app.include_router(rotas_saude)
 app.include_router(rotas_financas)
 app.include_router(rotas_roteiros)
+app.include_router(rotas_plugins)
 
 
 # ---------- página de demonstração para a extensão (helpdesk fictício) ----------
@@ -89,6 +96,10 @@ _ESTATICO = Path(__file__).resolve().parent / "static"
 @app.get("/demo/helpdesk", include_in_schema=False)
 def helpdesk():
     return FileResponse(_ESTATICO / "helpdesk.html")
+
+
+# ---------- fotos das personas (avatares), servidas pela própria plataforma ----------
+app.mount("/avatares", StaticFiles(directory=_ESTATICO / "avatares"), name="avatares")
 
 
 # ---------- front compilado (frontend/dist), servido pelo mesmo endereço ----------

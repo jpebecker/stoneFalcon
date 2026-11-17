@@ -1,7 +1,8 @@
 """Roteiros de demonstração: uma jornada pré-determinada por persona.
 
 Cada roteiro conta a mesma história, do mesmo jeito sempre:
-  persona e processo AS IS -> processo TO BE -> criar/testar/publicar/usar -> valor medido -> perguntas da banca.
+  persona e processo AS IS -> processo TO BE -> criar/testar/publicar/usar -> valor medido.
+(O roteiro da Helena termina nas Perguntas da Ferramenta, que só a aba dela mostra.)
 
 Os tempos AS IS partem do `minutos_manual` dos agentes de exemplo e são HIPÓTESES até um piloto
 com a área (cada um está marcado). O que é medido na execução (tempo do agente e custo em tokens)
@@ -69,9 +70,9 @@ def _medir(persona: str, fala: str) -> Passo:
                  "Abra o cartão com o tempo e o custo da execução real e o ganho projetado.", fala)
 
 
-def _banca(persona: str) -> Passo:
-    return Passo("banca", "Perguntas da banca", persona, "/banca?persona=" + persona,
-                 "Mostre as perguntas prováveis desta persona e a tela que serve de prova.",
+def _perguntas(persona: str) -> Passo:
+    return Passo("perguntas", "Perguntas da Ferramenta", persona, "/perguntas?persona=" + persona,
+                 "Mostre as perguntas prováveis sobre a ferramenta e a tela que serve de prova.",
                  "Estas são as perguntas que mais esperamos; cada resposta tem a tela de prova ao lado.")
 
 
@@ -113,7 +114,6 @@ MARINA = Roteiro(
               "No helpdesk, selecione o texto do chamado e clique em “Perguntar ao StoneFalcon”.",
               "O mesmo agente, agora dentro da ferramenta onde ela já trabalha.", externa=True),
         _medir("marina", "O tempo e o custo desta execução são medidos; o AS IS é hipótese, e dizemos qual é qual."),
-        _banca("marina"),
     ), duracao_min=5)
 
 RAFAEL = Roteiro(
@@ -160,7 +160,6 @@ RAFAEL = Roteiro(
               "Mostre o selo de cadeia íntegra e abra a confirmação da retenção.",
               "Quem confirmou, quando e com que dado: tudo na trilha encadeada por hash."),
         _medir("rafael", "Tempo, custo e a confirmação humana aparecem medidos."),
-        _banca("rafael"),
     ), duracao_min=7)
 
 CARLA = Roteiro(
@@ -197,29 +196,34 @@ CARLA = Roteiro(
               "Abra o evento da ferramenta de RH: só há marcadores no lugar do CPF e do e-mail.",
               "A auditoria registra o que foi mascarado, nunca o dado em si."),
         _medir("carla", "O ganho vem sem abrir mão da privacidade."),
-        _banca("carla"),
     ), duracao_min=4)
 
 THIAGO = Roteiro(
     id="thiago", persona="thiago", titulo="Thiago troca maquininhas com cadastro, regra e estoque em paralelo",
     processo="Troca de maquininha", agente_nome="Troca de maquininha com estoque", sem=frozenset(),
-    resumo="Passos em paralelo, uma nova ferramenta de estoque no catálogo, chamado e aviso ao lojista.",
+    resumo="Passos em paralelo, uma nova ferramenta de estoque no catálogo, o plugin do Slack integrado, chamado e aviso ao lojista e ao canal.",
     as_is={"minutos": 12, "hipotese": True,
            "dor": "A troca exige cadastro, estoque e chamado em sistemas diferentes.",
            "passos": ["Confere o cadastro", "Confere a regra de troca", "Verifica o estoque", "Abre o chamado na logística",
-                      "Avisa o lojista"],
+                      "Avisa o lojista", "Avisa o canal da logística no Slack"],
            "erros": ["Troca fora da regra", "Modelo sem estoque descoberto tarde"]},
     to_be={"conferencia_min": 1.9,
-           "passos": ["Cadastro, regra e estoque rodam juntos", "Chamado aberto na logística", "Aviso pronto ao lojista"],
+           "passos": ["Cadastro, regra e estoque rodam juntos", "Chamado aberto na logística", "Aviso pronto ao lojista",
+                      "Aviso publicado no canal #logistica (plugin do Slack)"],
            "nota": "Conferência humana de ≈ %s min (hipótese)." % _min(1.9)},
     valor=["Tempo por troca", "Trocas processadas por dia", "Erros de troca fora da regra"],
     passos=(
         _ctx("thiago", "", "O Thiago faz a ponte entre atendimento e logística; a troca de uma maquininha passa por três sistemas."),
+        Passo("integrar", "Integrar o plugin do Slack", "thiago", "/plugins/slack",
+              "Abra o plugin do Slack e clique em “Integrar”: risco baixo, entra na hora.",
+              "Marketplace é a aquisição, Catálogo é a governança: o Slack é interno, então o criador integra sozinho e a "
+              "ferramenta passa a aparecer no Catálogo, com a origem “plugin Slack”."),
         Passo("criar", "Criar o agente descrevendo o processo", "thiago", "/estudio",
               "Clique em “Montar meu agente”: o texto do processo já está preenchido.",
-              "A ferramenta de estoque entrou no catálogo uma vez; o Thiago só a usa.",
+              "A ferramenta de estoque entrou no catálogo uma vez; o Slack acabou de entrar pelo marketplace. O Thiago só descreve.",
               {"descricao": "Quando o lojista pede troca de maquininha eu confiro o cadastro, a regra de troca e o estoque do modelo "
-                            "ao mesmo tempo, abro o chamado na logística e aviso o lojista. Levo uns 12 minutos."}),
+                            "ao mesmo tempo, abro o chamado na logística, aviso o lojista e aviso o canal da logística no Slack. "
+                            "Levo uns 12 minutos."}),
         Passo("testar", "Testar no sandbox", "thiago", "/estudio",
               "Escolha o lojista e o modelo e rode o teste: os três primeiros passos rodam juntos.",
               "Três passos na mesma coluna rodam ao mesmo tempo: o tempo é o do mais lento, não a soma.",
@@ -231,8 +235,11 @@ THIAGO = Roteiro(
               "Execute com o modelo de estoque baixo: o chamado já sai avisando.",
               "O estoque do modelo Smart está baixo e o agente diz isso no chamado.",
               {"entrada": {"lojista_id": "L1003", "modelo": "Maquininha Smart", "relato": "A tela ficou preta e a maquininha não liga mais."}}),
-        _medir("thiago", "Três consultas em paralelo e o aviso ao lojista pronto."),
-        _banca("thiago"),
+        Passo("canal", "Ver o aviso no canal do Slack", "thiago", "/plugins/slack",
+              "Abra a página do Slack: a mensagem do agente aparece no canal #logistica.",
+              "A página consolidada do plugin mostra quem usa, quantas chamadas, o custo e a janela do canal, "
+              "com a mensagem que o agente acabou de publicar."),
+        _medir("thiago", "Três consultas em paralelo, o aviso ao lojista pronto e o canal da logística avisado sem ninguém digitar."),
     ), duracao_min=4)
 
 LUCAS = Roteiro(
@@ -271,7 +278,6 @@ LUCAS = Roteiro(
               "Volte o sistema ao normal: o alerta fecha sozinho.",
               "Quando o sistema volta, o alerta fecha sozinho e o agente pode ser retomado."),
         _medir("lucas", "Agentes publicados sem código novo e incidentes detectados pelo alerta."),
-        _banca("lucas"),
     ), duracao_min=5)
 
 HELENA = Roteiro(
@@ -299,7 +305,7 @@ HELENA = Roteiro(
               "Carregue os números de um processo e mude a adoção.",
               "A calculadora parte dos processos dos roteiros: mude a adoção e veja payback, VPL e TIR."),
         _medir("helena", "Consolidado dos quatro processos, com a origem de cada número."),
-        _banca("helena"),
+        _perguntas("helena"),
     ), duracao_min=4)
 
 ROTEIROS: dict[str, Roteiro] = {r.id: r for r in (MARINA, RAFAEL, CARLA, THIAGO, LUCAS, HELENA)}

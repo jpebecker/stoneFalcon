@@ -41,6 +41,9 @@ class Contexto:
     chamado: dict | None = None
     bloqueio: dict | None = None
     notificacao: dict | None = None
+    slack: dict | None = None
+    zendesk: dict | None = None
+    instrucao: str = ""          # a tarefa do passo (o que o criador escreveu), para campos como o canal do Slack
     analise: str = ""            # conclusão de um passo anterior (texto)
     erros: list[str] = field(default_factory=list)
 
@@ -57,6 +60,10 @@ class Contexto:
                 self.colaborador = obj
             elif "disponivel" in obj and "centro" in obj:
                 self.estoque = obj
+            elif "mensagem_id" in obj:
+                self.slack = obj
+            elif "chamado_id" in obj and ("assunto" in obj or "respostas" in obj):   # ler / responder no Zendesk
+                self.zendesk = obj
             elif "chamado_id" in obj:
                 self.chamado = obj
             elif "bloqueio_id" in obj:
@@ -67,6 +74,8 @@ class Contexto:
 
 def montar(inicial: str, resultados: list[str], entrada: dict) -> Contexto:
     ctx = Contexto(entrada=entrada)
+    tarefa = re.search(r"Tarefa deste passo: (.*)", inicial)
+    ctx.instrucao = tarefa.group(1) if tarefa else ""
     for origem, bruto in _DADOS.findall(inicial):
         obj = _carregar(bruto)
         if obj is not None:
@@ -200,11 +209,25 @@ def _aviso_lojista(ctx: Contexto) -> str:
     return texto + ": a troca foi solicitada e o equipamento novo sai do centro de distribuição em breve, com código de rastreio por mensagem."
 
 
+def _aviso_canal(ctx: Contexto) -> str:
+    s = ctx.slack or {}
+    l, e = ctx.lojista or {}, ctx.estoque or {}
+    texto = "Avisei o canal %s no Slack%s" % (s.get("canal", "#logistica"), " (%s)" % s["mensagem_id"] if s.get("mensagem_id") else "")
+    if e:
+        texto += ": troca de %s para %s" % (e.get("modelo", "maquininha"), l.get("nome", "o lojista"))
+    return texto + "."
+
+
 def compor(ctx: Contexto, titulo: str, tools_passo: list[str], usou_ferramentas: bool) -> str | None:
     """Texto final do passo, ou None para deixar o texto genérico. Escolhe pelo que há nos dados."""
     f = set(tools_passo)
     if f and not usou_ferramentas:
         return None   # ainda vai chamar as ferramentas; o texto final vem depois
+    if "slack_enviar_mensagem" in f:
+        return _aviso_canal(ctx)
+    if "zendesk_responder_chamado" in f:
+        z = ctx.zendesk or {}
+        return "Respondi o chamado %s no Zendesk." % z.get("chamado_id", ctx.entrada.get("chamado_id", ""))
     if "enviar_notificacao" in f:
         return _aviso_lojista(ctx)
     if "abrir_chamado" in f and ctx.estoque is not None:
@@ -224,6 +247,23 @@ def campo_para_ferramenta(campo: str, ferramenta: str, ctx: Contexto, titulo: st
     """Texto realista para os campos livres de uma ferramenta (título e descrição do chamado, aviso...)."""
     l, e = ctx.lojista or {}, ctx.estoque or {}
     nome = "%s (%s)" % (l.get("nome", "lojista"), l.get("id", ctx.entrada.get("lojista_id", "")))
+    if ferramenta == "slack_enviar_mensagem":
+        if campo == "canal":
+            achado = re.search(r"#[\w-]+", ctx.instrucao)
+            return achado.group(0) if achado else None
+        if campo == "mensagem":
+            protocolo = re.search(r"chamado (CH-\d+)", ctx.analise)
+            prazo = re.search(r"em até (\d+) dia", ctx.analise)
+            baixo = e and int(e.get("disponivel", 99)) < 10
+            return ("Troca de %s para %s%s.%s%s" % (
+                e.get("modelo", "maquininha"), nome, " (chamado %s)" % protocolo.group(1) if protocolo else "",
+                " Estoque baixo (%s unidade(s)): avaliar modelo equivalente." % e["disponivel"] if baixo else "",
+                " Envio em até %s dia(s) útil(eis)." % prazo.group(1) if prazo else ""))
+    if ferramenta == "zendesk_responder_chamado" and campo == "resposta":
+        z = ctx.zendesk or {}
+        regra = _regra(ctx)
+        return "Olá, equipe da %s! %s Qualquer dúvida, é só responder por aqui." % (
+            z.get("solicitante", "loja"), regra or "Estamos verificando o seu caso e retornamos em breve.")
     if ferramenta == "enviar_notificacao":
         if campo == "destino" and l.get("email"):
             return l["email"]

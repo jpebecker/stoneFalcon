@@ -6,6 +6,7 @@ from ..agents import modelos as am
 from ..agents.blueprint import Blueprint
 from ..core import db
 from ..core.identidade import PERSONAS
+from ..plugins import servico as plugins
 from ..runtime import motor
 from ..seed.demo import semear
 from ..tools import dados_ficticios, executor
@@ -43,6 +44,7 @@ def reiniciar(s: Session | None = None, roteiro_id: str | None = None) -> dict:
         SQLModel.metadata.drop_all(db.motor())
         db.criar_tabelas()
     dados_ficticios.zerar()
+    plugins.zerar()
     executor.zerar_limites()
     motor.zerar_pendentes()
     with Session(db.motor()) as nova:

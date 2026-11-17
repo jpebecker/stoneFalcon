@@ -7,7 +7,7 @@ from app.audit import trilha
 from app.core.identidade import PERSONAS
 from app.guardrails import injecao
 from app.tools import dados_ficticios, executor
-from app.tools.catalogo import CATALOGO
+from app.tools.catalogo import CATALOGO, disponiveis
 from app.tools.permissoes import avaliar
 from tests.conftest import como
 
@@ -122,7 +122,7 @@ def test_dados_ficticios_tem_padrao_suspeito_so_na_L1003():
 # ---------- API ----------
 def test_catalogo_mostra_disponibilidade_por_pessoa(api):
     fs = {f["id"]: f for f in api.get("/api/v1/ferramentas", headers=como("marina")).json()["ferramentas"]}
-    assert len(fs) == len(CATALOGO)
+    assert len(fs) == len(disponiveis()) and not any(f["plugin"] for f in fs.values())   # plugin só aparece depois de integrado
     assert fs["consultar_lojista"]["disponivel_para_mim"]
     assert not fs["listar_chargebacks"]["disponivel_para_mim"] and "confidencial" in fs["listar_chargebacks"]["motivo"]
 

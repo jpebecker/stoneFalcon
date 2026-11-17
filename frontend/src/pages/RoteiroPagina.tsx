@@ -1,8 +1,8 @@
 // Cartões AS IS × TO BE de uma persona e, no fim do roteiro, o valor medido.
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
-import { api, type Consolidado, type LinhaResultado, type ResultadoRoteiro, type Roteiro } from "../api/cliente";
+import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
+import { api, type Consolidado, type LinhaResultado, type Persona, type ResultadoRoteiro, type Roteiro } from "../api/cliente";
 import Avatar from "../components/Avatar";
 import { num, reais } from "../components/formato";
 import { useControle } from "../roteiro/Controle";
@@ -22,7 +22,7 @@ function valor(l: LinhaResultado, v: number | null) {
   return num(v) + " " + l.unidade;
 }
 
-function Resultado({ roteiro }: { roteiro: Roteiro }) {
+function Resultado({ roteiro, gestor }: { roteiro: Roteiro; gestor: boolean }) {
   const est = useEstadoRoteiro();
   const agenteId = est?.id === roteiro.id ? est.ctx.agenteId : undefined;
   const q = useQuery({
@@ -81,10 +81,12 @@ function Resultado({ roteiro }: { roteiro: Roteiro }) {
         {r.execucao && <> Execução medida: {num(r.execucao.duracao_min * 60)} s de agente, {reais(r.execucao.custo_brl)} em tokens.</>}
       </p>
       {r.aviso && <p className="text-xs text-tinta-3">{r.aviso}</p>}
-      <div className="flex gap-2 border-t border-linha pt-4">
-        <Link className="botao-claro" to={"/banca?persona=" + roteiro.persona}>Perguntas da banca</Link>
-        <Link className="botao-claro" to="/painel">Painel executivo</Link>
-      </div>
+      {gestor && (
+        <div className="flex gap-2 border-t border-linha pt-4">
+          <Link className="botao-claro" to={"/perguntas?persona=" + roteiro.persona}>Perguntas</Link>
+          <Link className="botao-claro" to="/painel">Painel executivo</Link>
+        </div>
+      )}
     </section>
   );
 }
@@ -126,20 +128,24 @@ function ConsolidadoHelena() {
         <Link className="botao-pedra" to="/financas/calculadora">Abrir a calculadora de ROI</Link>
         <Link className="botao-claro" to="/painel">Painel executivo</Link>
         <Link className="botao-claro" to="/financas">Finanças</Link>
-        <Link className="botao-claro" to="/banca?persona=helena">Perguntas da banca</Link>
+        <Link className="botao-claro" to="/perguntas?persona=helena">Perguntas da Ferramenta</Link>
       </div>
     </section>
   );
 }
 
-export default function RoteiroPagina() {
+export default function RoteiroPagina({ pessoa }: { pessoa: Persona }) {
   const { id = "" } = useParams();
   const [params] = useSearchParams();
-  const q = useQuery({ queryKey: ["roteiro", id], staleTime: Infinity, queryFn: () => api<Roteiro>("/roteiros/" + id) });
+  const gestor = pessoa.abas.includes("roteiros");
+  // a página de AS IS × TO BE é do dono do roteiro e da Helena; quem só participa de um passo (quatro olhos) volta ao Início
+  const podeVer = id === pessoa.roteiro_id || gestor;
+  const q = useQuery({ queryKey: ["roteiro", id], staleTime: Infinity, queryFn: () => api<Roteiro>("/roteiros/" + id), enabled: podeVer });
   const ativo = useEstadoRoteiro();
   const { iniciar } = useControle();
   const [iniciando, setIniciando] = useState(false);
   const r = q.data;
+  if (!podeVer) return <Navigate to="/" replace />;
   if (q.isError) return <p className="text-erro">{(q.error as Error).message}</p>;
   if (!r) return <p className="text-tinta-3">Carregando…</p>;
   const resultado = params.get("etapa") === "resultado";
@@ -160,7 +166,7 @@ export default function RoteiroPagina() {
         )}
       </div>
 
-      {resultado ? (r.id === "helena" ? <ConsolidadoHelena /> : <Resultado roteiro={r} />) : (
+      {resultado ? (r.id === "helena" ? <ConsolidadoHelena /> : <Resultado roteiro={r} gestor={gestor} />) : (
         <>
           <section className="caixa p-6">
             <h2 className="text-lg">A dor</h2>

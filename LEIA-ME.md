@@ -23,7 +23,7 @@ Nunca coloque a chave no código, na extensão ou no Git (`.env` está no `.giti
 
 ### Desenvolvimento
 ```bash
-cd backend && uv sync && uv run uvicorn app.main:app --reload --port 8765
+cd backend && uv sync && uv run uvicorn app.main:app --reload --port 8765   # um processo só (sem --workers): os plugins integrados ficam num cache em memória
 cd frontend && npm install && npm run dev        # http://localhost:5173 (repassa /api ao backend)
 cd backend && uv run pytest -q                   # 180 testes, sem chave nem internet
 ```
@@ -49,6 +49,28 @@ cd backend && uv run pytest -q                   # 180 testes, sem chave nem int
 | Agente: decisão, ferramentas, sequência/paralelo, raciocínio | Grafo de passos (paralelos rodam juntos), loop pensar → agir → observar com tool use, limites de passos e de custo, escalada segura para humano | `app/runtime` |
 | Critérios de avaliação (tempo, custo, produtividade, erros, ROI) | Painel executivo com os 5, medidos nas execuções | Painel executivo |
 
+## Acesso por perfil e plugins (v6)
+
+**A interface obedece ao perfil.** O back diz, junto com os dados da pessoa logada (`/eu`), quais abas ela vê (`abas`, calculado a partir dos papéis em `app/core/identidade.py`: uma fonte de verdade só). O menu e as rotas do front só leem essa lista; endereço digitado sem permissão volta ao Início; a API responde 403.
+
+| Aba | Helena Castro (CoE de IA) | Demais perfis |
+|---|---|---|
+| Início, Agentes, Execuções, Saúde, Finanças, Ferramentas, **Plugins** | sim | sim |
+| Estúdio / Revisões / Auditoria | pelos papéis (criador / revisor de segurança / CoE ou Segurança), como na v5 | idem |
+| **Roteiros** (todos), **Painel executivo**, **Perguntas da Ferramenta** (Alt + B) | sim | **não** |
+
+Cada pessoa vê só o próprio roteiro (card “Seu roteiro guiado”, no Início). Os passos de quatro olhos continuam trocando de perfil (Rafael → Lucas → Helena; Carla → Lucas; Lucas → Marina): quem participa de um passo consegue carregar o roteiro para a barra funcionar, mas a página AS IS × TO BE de outra persona volta ao Início. “Perguntas da banca” virou **Perguntas da Ferramenta** e é só da Helena; os roteiros dos outros perfis terminam no cartão AS IS × TO BE.
+
+**Fotos das personas** em `backend/app/static/avatares/<id>.png` (servidas em `/avatares/`); se a foto não carrega, aparecem as iniciais na cor da persona.
+
+**Marketplace de plugins (simulado).** A aba **Plugins** mostra 8 plugins homologados (Zendesk, Salesforce, Slack, Jira, Google Drive, ServiceNow, SAP SuccessFactors, Datadog): nomes reais, ícone genérico por categoria e selo “simulado”, sem logo oficial. O plugin nunca é executado: só as ferramentas que ele traz, com o mesmo contrato do Catálogo.
+
+- **Integrar** (criador da área do plugin ou Engenharia): plugin público/interno entra na hora; as ferramentas aparecem no Catálogo com a origem “plugin X” e viram passo no Estúdio. Plugin **confidencial ou restrito** (Salesforce, SAP) vira pedido na fila de Revisões do Lucas, com parecer; ninguém aprova o próprio pedido (o pedido feito pela Segurança é decidido pela Helena, na página do plugin); quem pediu recebe o resultado nos alertas. Escrita em dado confidencial (registrar interação no Salesforce) exige confirmação humana a cada execução. Quem não cria nem governa só registra o pedido.
+- **Página do plugin integrado:** agentes que usam, chamadas no mês, custo, latência e saúde (das execuções reais da demo) e, para Zendesk, Slack e Jira, uma janela simulada do sistema externo. Sem nível para a classificação do plugin, só os números agregados.
+- Remover a integração tira as ferramentas do Catálogo; os agentes que as usam ficam sinalizados e escalam com o motivo. Integração, pedido, aprovação e remoção ficam na auditoria; reiniciar a demo desfaz tudo.
+- O roteiro do Thiago inclui integrar o Slack e ver o aviso do agente no canal #logistica.
+- Observação: aprovar um plugin não libera dado para todos. O SAP é confidencial e homologado só para Pessoas (RH): depois de aprovado, roda para a Carla, mas não para quem é de outra área ou não tem o nível.
+
 ## Roteiros guiados (v5)
 
 A demonstração deixou de depender de quem apresenta saber onde clicar. Cada persona tem um **roteiro**: a mesma jornada, do mesmo jeito sempre, com entradas pré-determinadas e sem chave da API.
@@ -66,7 +88,7 @@ Na tela inicial (“Quem é você hoje?”) escolha **Iniciar roteiro**. A barra
 
 Cada roteiro termina num cartão **AS IS × TO BE** nos 5 critérios (tempo, custo, produtividade, erros, ROI). **Cada número diz de onde vem**: *medido* (tempo do agente e custo em tokens da execução do roteiro), *estimado* (sem execução, pelo desenho do agente), *premissa* (R$ 45/h, aproveitamento, conferência humana) ou *hipótese* (o AS IS, até validarmos com a área).
 
-**Perguntas da banca:** tela própria (menu, ou **Alt + B** de qualquer lugar) com 3 a 5 perguntas por persona e por tema (segurança, custo, escala, por que não um low-code genérico), cada uma com a resposta curta e o botão **Mostrar na tela**.
+**Perguntas da Ferramenta** (só da Helena): tela própria (menu, ou **Alt + B** de qualquer lugar) com 3 a 5 perguntas por persona e por tema (segurança, custo, escala, por que não um low-code genérico), cada uma com a resposta curta e o botão **Mostrar na tela**.
 
 **Roteiro do pitch de 8 a 10 minutos e checklist:** [ENSAIO-GERAL.md](ENSAIO-GERAL.md). **Perfis (login simulado):** as seis personas acima; nos campos do agente ninguém digita código: lojista se escolhe pelo nome, colaborador vem como “Eu mesmo” (e o RH busca outros por nome).
 
@@ -95,8 +117,9 @@ Cada roteiro termina num cartão **AS IS × TO BE** nos 5 critérios (tempo, cus
 | `backend/app/agents` | blueprint, risco e custo estimado, ciclo de vida, versões e diff |
 | `backend/app/observability` | métricas, alertas, nota de saúde |
 | `backend/app/finance` | premissas, resumo, ROI, calculadora, indicadores da banca |
+| `backend/app/plugins` | marketplace simulado: definições dos 8 plugins, sistemas externos fictícios, integração, pedidos e página consolidada |
 | `backend/app/seed` | agentes de exemplo, demo inicial, histórico sintético |
-| `backend/app/roteiros` | roteiros por persona, valor medido (AS IS × TO BE), perguntas da banca, reinício por roteiro |
+| `backend/app/roteiros` | roteiros por persona, valor medido (AS IS × TO BE), Perguntas da Ferramenta, reinício por roteiro |
 | `backend/app/runtime/respostas.py` | respostas pré-determinadas dos agentes (modo simulado e reserva do modo real) |
 | `backend/app/static/helpdesk.html` | helpdesk fictício para ensaiar a extensão |
 | `frontend/src/pages` | uma tela por arquivo |
@@ -111,8 +134,8 @@ Cada roteiro termina num cartão **AS IS × TO BE** nos 5 critérios (tempo, cus
 
 ## O que foi testado e o que não foi
 
-- **180 testes automáticos** (`uv run pytest -q`): semelhança de texto e guardrails portados do v3, catálogo e permissões, runtime (paralelismo real, aprovação, retomada com o dado real, limites, escalada), Estúdio, ciclo de vida e revisão, alertas, finanças e as rotas da API. O **ensaio geral** (`tests/test_roteiros.py`) percorre os seis roteiros do início ao fim pela API.
-- **Testado no navegador:** as telas da v4 e, na v5, os roteiros da Marina (até o helpdesk com o painel do copiloto), do Rafael (criação, revisão do Lucas, execução com confirmação e cartão AS IS × TO BE) e do Lucas (até o catálogo), o consolidado da Helena e as perguntas da banca.
+- **315 testes automáticos** (`uv run pytest -q`): semelhança de texto e guardrails portados do v3, catálogo e permissões, runtime (paralelismo real, aprovação, retomada com o dado real, limites, escalada), Estúdio, ciclo de vida e revisão, alertas, finanças e as rotas da API. O **ensaio geral** (`tests/test_roteiros.py`) percorre os seis roteiros do início ao fim pela API; `tests/test_acesso.py` confere a matriz de acesso (abas × perfis, roteiros × perfis, cada passo dos roteiros com o perfil do passo) e `tests/test_plugins.py` o marketplace.
+- **Testado no navegador:** as telas da v4 e, na v5, os roteiros da Marina (até o helpdesk com o painel do copiloto), do Rafael (criação, revisão do Lucas, execução com confirmação e cartão AS IS × TO BE) e do Lucas (até o catálogo), o consolidado da Helena e as perguntas; na v6, o menu por perfil (Marina e Helena), a redireção de endereço sem permissão, a vitrine de plugins, a integração do Zendesk (Marina) e a do Slack no roteiro do Thiago até a criação do agente, além das capturas de tela refeitas.
 - **Não testado:** chamadas à API real da Anthropic (não havia chave neste ambiente; o formato segue o SDK oficial `anthropic` 2.8), a **extensão carregada no Chrome** (os arquivos foram checados e o painel foi testado dentro do helpdesk fictício, mas o botão flutuante, o menu do botão direito e o painel lateral nativo não foram exercitados), os roteiros de Carla, Thiago e o restante do Lucas e da Helena na interface (cobertos só pelo ensaio via API), `iniciar.bat` numa máquina limpa e o Edge. Os tempos AS IS dos roteiros são hipóteses.
 
 ## Protótipo x produção
