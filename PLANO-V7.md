@@ -161,15 +161,15 @@ O rastreador de tickets não está configurado no projeto. A lista fica consolid
 
 **Bloqueado por:** 05.
 
-**Status:** ready-for-agent
+**Status:** feito (carga de 300 passos visual testada no navegador; falta medir fluidez do mapa, ticket 08)
 
-- [ ] Cada passo "auto" de uma execução mostra o nível de esforço, os modelos candidatos e o motivo da escolha.
-- [ ] Um passo leve vai a um modelo leve; um passo crítico vai a um modelo forte (teste com passos de exemplo de cada nível).
-- [ ] Simular a queda de um provedor faz os passos seguintes irem a outro provedor capaz, com o motivo "provedor indisponível" na trilha e um alerta em Saúde.
-- [ ] Agente acima do orçamento passa a usar o modelo capaz mais barato, com o motivo na trilha.
-- [ ] "Simular carga" (só Helena) roda um lote de execuções sintéticas e mostra a distribuição por nível e por provedor e o custo total, comparado com "tudo no modelo forte".
-- [ ] Passos com modelo fixado pelo criador continuam respeitados (como na v6).
-- [ ] Reiniciar a demo desfaz a queda simulada e a carga de teste.
+- [x] Cada passo "auto" de uma execução mostra o nível de esforço, os modelos candidatos e o motivo da escolha.
+- [x] Um passo leve vai a um modelo leve; um passo crítico vai a um modelo forte (teste com passos de exemplo de cada nível).
+- [x] Simular a queda de um provedor faz os passos seguintes irem a outro provedor capaz, com o motivo "provedor indisponível" na trilha e um alerta em Saúde.
+- [x] Agente acima do orçamento passa a usar o modelo capaz mais barato, com o motivo na trilha.
+- [x] "Simular carga" (só Helena) roda um lote de execuções sintéticas e mostra a distribuição por nível e por provedor e o custo total, comparado com "tudo no modelo forte".
+- [x] Passos com modelo fixado pelo criador continuam respeitados (como na v6).
+- [x] Reiniciar a demo desfaz a queda simulada e a carga de teste.
 
 ### 07: Mapa de IA ao vivo (bala traçante)
 

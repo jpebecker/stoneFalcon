@@ -94,7 +94,7 @@ export type UsoFerramenta = { conector: string; ok: boolean; erro: string | null
 
 export type RegistroPasso = {
   id: string; titulo: string; tipo: string; status: string; saida: unknown; motivo: string | null; modelo: string | null;
-  motivos_modelo: string[]; modelo_chave?: string | null; provedor?: string | null; modelo_simulado?: boolean | null; reserva?: string; ferramentas: UsoFerramenta[]; iteracoes: number; custo_usd: number;
+  motivos_modelo: string[]; modelo_chave?: string | null; esforco?: string | null; balanceador?: DecisaoBalanceador | null; provedor?: string | null; modelo_simulado?: boolean | null; reserva?: string; ferramentas: UsoFerramenta[]; iteracoes: number; custo_usd: number;
   duracao_ms: number; duracao_estimada_ms: number;
   pendencia: Pendencia | null;
 };
@@ -120,6 +120,23 @@ export type RegistroModelos = { provedores: { id: string; nome: string; real: bo
 export type Comparativo = {
   dias: number; execucoes: number; atual_brl: number; tem_demo: boolean; aviso: string;
   cenarios: { chave: string; modelo: string; provedor: string; provedor_nome: string; simulado: boolean; custo_brl: number; variacao_pct: number | null }[];
+};
+export type DecisaoBalanceador = {
+  esforco: string | null; modo: string; escolhido: string; provedor: string; motivo: string;
+  candidatos: { chave: string; nome: string; provedor: string; preco_ref_usd: number; simulado: boolean; descartado: string | null }[];
+};
+export type CargaBalanceador = {
+  passos: number; semente: number; fora: string[]; custo_brl: number; custo_tudo_forte_brl: number; economia_pct: number | null;
+  por_nivel: { nivel: string; rotulo: string; passos: number; custo_brl: number }[];
+  por_provedor: { provedor: string; nome: string; passos: number; custo_brl: number }[];
+  por_modelo: { chave: string; nome: string; provedor: string; passos: number; custo_brl: number }[];
+};
+export type PoliticaBalanceador = {
+  niveis: { id: string; rotulo: string; descricao: string; raciocinio_min: number;
+    escolha: { modelo: string; chave: string; provedor: string; modo: string; motivo: string; simulado: boolean } }[];
+  regras: { tolerancia_homologado: number; provedor_homologado: string; orcamento_apertado: number; limite_contexto_longo: number };
+  provedores: { id: string; nome: string; real: boolean; fora: boolean; modelos: string[] }[];
+  ultima_carga: CargaBalanceador | null; pode_simular: boolean; demonstracao: string;
 };
 export type Saude = { ok: boolean; versao: string; modo: "real" | "simulado"; modelos: Record<string, string>; cotacao_dolar: number };
 

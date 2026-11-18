@@ -13,54 +13,71 @@ from dataclasses import dataclass, field
 
 from ..core import config
 from ..texto.semelhanca import complexidade
-from . import registro
-
-NIVEL_AUTO = "auto"
+from . import balanceador, registro
+from .balanceador import NIVEL_AUTO
 
 
 @dataclass
 class Decisao:
-    chave_modelo: str                 # "rapido" | "forte"
+    chave_modelo: str                 # chave do modelo no registro ("rapido", "forte", "gpt-sol"...)
     complexidade: float
     motivos: list[str] = field(default_factory=list)
+    esforco: str | None = None        # leve | moderado | alto | critico
+    modo: str = "fixado"              # fixado | normal | economia | delegado | emergencia
+    candidatos: list[dict] = field(default_factory=list)
+    entrada: dict = field(default_factory=dict, repr=False)   # sinais usados (para decidir de novo ao delegar)
 
     @property
     def nome_modelo(self) -> str:
         return registro.obter(self.chave_modelo).nome
 
+    def trilha(self) -> dict:
+        """"Como o agente decidiu": nível, candidatos, escolhido e motivo (vai no registro do passo)."""
+        m = registro.obter(self.chave_modelo)
+        return {"esforco": self.esforco, "modo": self.modo, "escolhido": m.chave, "provedor": m.provedor,
+                "motivo": self.motivos[-1] if self.motivos else "", "candidatos": self.candidatos}
+
 
 def escolher_modelo(nivel: str, complexidade: float, tokens_contexto: int) -> str:
-    """Decide qual modelo atende um passo. Devolve "rapido" ou "forte".
-
-    nivel           -- o que o blueprint do agente pediu para o passo:
-                       "auto" (o roteador decide), "rapido" ou "forte".
-    complexidade    -- nota de 0 a 1 calculada a partir do texto do passo.
-    tokens_contexto -- tamanho estimado do prompt que será enviado neste passo.
-
-    Constantes úteis em config: COMPLEXIDADE_FORTE (0.60) e
-    registro.obter("rapido").limite_preco_padrao (100 mil tokens).
-    """
-    # Pedido explícito do blueprint é respeitado: comportamento previsível para quem
-    # criou o agente e para a revisão de segurança (o custo já aparece no Estúdio).
+    """Escolha simples entre o Claude rápido e o forte (a regra do v4, mantida para os testes e para quem
+    só quer a decisão sem o balanceador): devolve "rapido" ou "forte"."""
     if nivel != NIVEL_AUTO:
         return registro.obter(nivel).chave
-    # Auto: contexto acima do limite do Haiku indica passo pesado (muito material para
-    # sintetizar) e tira boa parte da vantagem de preço dele, então sobe para o forte.
     limite = registro.obter("rapido").limite_preco_padrao
     if complexidade >= config.COMPLEXIDADE_FORTE or (limite and tokens_contexto > limite):
         return "forte"
     return "rapido"
 
 
-def decidir(nivel: str, texto_passo: str, tokens_contexto: int) -> Decisao:
-    """Calcula a complexidade do passo e aplica `escolher_modelo`, guardando os motivos
-    para a trilha "como o agente decidiu"."""
+def decidir(nivel: str, texto_passo: str, tokens_contexto: int, *, n_ferramentas: int = 0, risco: str = "baixo",
+            economia: bool = False, so_reais: bool = False, excluir: frozenset[str] | set[str] = frozenset()) -> Decisao:
+    """Calcula o esforço do passo e escolhe o modelo, guardando os motivos para a trilha "como o agente decidiu".
+
+    nivel -- o que o blueprint pediu: "auto" (o balanceador decide) ou um modelo do registro (respeitado).
+    """
     if nivel != NIVEL_AUTO and not registro.existe(nivel):
         raise ValueError("Nível de modelo inválido: %r" % nivel)
-    nota, motivos = complexidade(texto_passo)
-    chave = escolher_modelo(nivel, nota, tokens_contexto)
+    nota, motivos_texto = complexidade(texto_passo)
+    idx, motivos_esforco = balanceador.classificar_esforco(nota, n_ferramentas, tokens_contexto, risco)
+    esforco = balanceador.NIVEIS[idx - 1]
+    sinais = dict(nivel=nivel, texto_passo=texto_passo, tokens_contexto=tokens_contexto, n_ferramentas=n_ferramentas,
+                  risco=risco, economia=economia, so_reais=so_reais)
+    cabecalho = ["esforço %s (%s)" % (esforco, ", ".join(motivos_esforco))] + motivos_texto
     if nivel != NIVEL_AUTO:
-        motivos = ["o agente pediu o modelo %s" % nivel] + motivos
-    elif tokens_contexto > (registro.obter("rapido").limite_preco_padrao or float("inf")):
-        motivos = motivos + ["contexto longo (%d mil tokens)" % (tokens_contexto // 1000)]
-    return Decisao(chave_modelo=chave, complexidade=nota, motivos=motivos)
+        m = registro.obter(nivel)
+        return Decisao(m.chave, nota, ["o agente pediu o modelo %s" % nivel] + cabecalho, esforco, "fixado", [], sinais)
+    e = balanceador.escolher(idx, n_ferramentas=n_ferramentas, tokens_contexto=tokens_contexto, economia=economia,
+                             so_reais=so_reais, excluir=excluir)
+    return Decisao(e.modelo.chave, nota, cabecalho + ["escolhi %s: %s" % (e.modelo.nome, e.motivo)], esforco, e.modo,
+                   e.candidatos, sinais)
+
+
+def delegar(anterior: Decisao, provedor_que_falhou: str, motivo: str) -> Decisao:
+    """O modelo escolhido falhou: decide de novo, sem esse provedor, e registra a delegação."""
+    sinais = dict(anterior.entrada)
+    excluir = set(sinais.pop("excluir", ())) | {provedor_que_falhou}
+    nova = decidir(sinais.pop("nivel"), sinais.pop("texto_passo"), sinais.pop("tokens_contexto"), excluir=excluir, **sinais)
+    nova.modo = "delegado" if nova.modo != "emergencia" else nova.modo
+    nova.motivos.append("delegado: %s falhou (%s)" % (registro.PROVEDORES[provedor_que_falhou].nome, motivo))
+    nova.entrada["excluir"] = sorted(excluir)
+    return nova

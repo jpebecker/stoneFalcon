@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from ..core import config
 from ..core.identidade import Classificacao, Persona
 from ..llm import precos, registro, roteador
 from ..tools.catalogo import CATALOGO
@@ -76,12 +77,14 @@ class Estimativa:
 
 def estimar_custo(bp: Blueprint) -> Estimativa:
     total_usd, chamadas, por_passo = 0.0, 0, {}
+    risco = avaliar_risco(bp).nivel
     for p in bp.passos:
         if p.tipo != "agente":
             por_passo[p.id] = {"modelo": None, "custo_brl": 0.0}
             continue
         entrada = _SISTEMA + len(p.depende_de) * _CONTEXTO_POR_DEPENDENCIA + len(p.ferramentas) * _POR_FERRAMENTA_DEFINIDA
-        decisao = roteador.decidir(p.modelo, p.instrucao, entrada)
+        decisao = roteador.decidir(p.modelo, p.instrucao, entrada, n_ferramentas=len(p.ferramentas), risco=risco,
+                                   so_reais=config.modo_real())
         voltas = 2 if p.ferramentas else 1   # pede a ferramenta, depois conclui
         custo = 0.0
         for v in range(voltas):
@@ -98,6 +101,7 @@ def estimar_custo(bp: Blueprint) -> Estimativa:
 # ---------- duração estimada (caminho crítico) ----------
 
 def estimar_duracao_ms(bp: Blueprint) -> int:
+    risco = avaliar_risco(bp).nivel
     """Tempo do caminho crítico: passos da mesma camada rodam juntos, então cada camada custa o mais lento."""
     def duracao(p) -> int:
         if p.tipo == "ferramenta":
@@ -105,7 +109,8 @@ def estimar_duracao_ms(bp: Blueprint) -> int:
         if p.tipo == "aprovacao":
             return 0
         entrada = _SISTEMA + len(p.depende_de) * _CONTEXTO_POR_DEPENDENCIA + len(p.ferramentas) * _POR_FERRAMENTA_DEFINIDA
-        chave = roteador.decidir(p.modelo, p.instrucao, entrada).chave_modelo
+        chave = roteador.decidir(p.modelo, p.instrucao, entrada, n_ferramentas=len(p.ferramentas),
+                                 risco=risco, so_reais=config.modo_real()).chave_modelo
         vel, lat = registro.obter(chave).velocidade
         voltas = 2 if p.ferramentas else 1
         total = voltas * lat + int((_SAIDA + (120 if voltas == 2 else 0)) / vel * 1000)

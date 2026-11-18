@@ -43,6 +43,21 @@ function CartaoPasso({ r, cotacao }: { r: RegistroPasso; cotacao: number }) {
           {r.motivos_modelo.length > 0 && (
             <p className="text-xs text-tinta-3">Por que este modelo: {r.motivos_modelo.join(", ")}.</p>
           )}
+          {r.balanceador && r.balanceador.candidatos.length > 0 && (
+            <details className="rounded-lg bg-papel p-2 text-xs text-tinta-2">
+              <summary className="cursor-pointer font-semibold">
+                Como o agente decidiu · esforço {r.esforco}, {r.balanceador.candidatos.filter((c) => !c.descartado).length} candidato(s)
+              </summary>
+              <ul className="mt-1 space-y-0.5">
+                {r.balanceador.candidatos.map((c) => (
+                  <li key={c.chave} className={c.chave === r.balanceador!.escolhido ? "font-semibold text-pedra-forte" : c.descartado ? "text-tinta-3" : ""}>
+                    {c.chave === r.balanceador!.escolhido ? "✓ " : "· "}{c.nome}{c.simulado ? " (simulado)" : ""}
+                    {c.descartado ? ` — descartado: ${c.descartado}` : ` — US$ ${c.preco_ref_usd}/milhão (entrada+saída)`}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
           <p className="text-xs text-tinta-3">{r.iteracoes} volta(s) de raciocínio · custo {reais(r.custo_usd * cotacao)}</p>
           <Saida valor={r.saida} />
         </div>

@@ -15,6 +15,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 from .api.agentes import rotas as rotas_agentes
+from .api.balanceador import rotas as rotas_balanceador
 from .api.cadastros import rotas as rotas_cadastros
 from .api.extensao import rotas as rotas_extensao
 from .api.estudio import rotas as rotas_estudio
@@ -88,6 +89,7 @@ app.include_router(rotas_saude)
 app.include_router(rotas_financas)
 app.include_router(rotas_roteiros)
 app.include_router(rotas_plugins)
+app.include_router(rotas_balanceador)
 
 
 # ---------- página de demonstração para a extensão (helpdesk fictício) ----------

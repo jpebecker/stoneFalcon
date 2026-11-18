@@ -16,7 +16,9 @@ from app.core import db  # noqa: E402
 
 @pytest.fixture()
 def motor():
+    from app.llm import balanceador
     from app.plugins import servico as plugins
+    balanceador.zerar()
     m = db.criar_motor("sqlite://")
     db.usar_motor(m)
     db.criar_tabelas()
@@ -24,6 +26,7 @@ def motor():
     yield m
     SQLModel.metadata.drop_all(m)
     plugins.zerar()
+    balanceador.zerar()
 
 
 @pytest.fixture()
