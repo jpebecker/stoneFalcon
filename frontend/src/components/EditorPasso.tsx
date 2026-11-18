@@ -1,9 +1,12 @@
-import type { Ferramenta, Passo } from "../api/cliente";
+import { useQuery } from "@tanstack/react-query";
+import { api, type Ferramenta, type Passo, type RegistroModelos } from "../api/cliente";
 import { NOME_TIPO } from "./formato";
 
 export default function EditorPasso({ passo, ferramentas, aoMudar, aoRemover }: {
   passo: Passo; ferramentas: Ferramenta[]; aoMudar: (p: Passo) => void; aoRemover: () => void;
 }) {
+  const registro = useQuery({ queryKey: ["modelos"], queryFn: () => api<RegistroModelos>("/modelos"), staleTime: 60_000 });
+  const opcoesModelo = [{ chave: "auto", nome: "Automático" }, ...(registro.data?.modelos ?? [])];
   const disponiveis = ferramentas.filter((f) => f.disponivel_para_mim);
   const nome = (id: string) => ferramentas.find((f) => f.id === id)?.nome ?? id;
   return (
@@ -27,11 +30,11 @@ export default function EditorPasso({ passo, ferramentas, aoMudar, aoRemover }: 
           <div>
             <span className="rotulo">Modelo</span>
             <div className="flex gap-1.5">
-              {(["auto", "rapido", "forte"] as const).map((m) => (
-                <button key={m} onClick={() => aoMudar({ ...passo, modelo: m })}
+              {opcoesModelo.map((m) => (
+                <button key={m.chave} onClick={() => aoMudar({ ...passo, modelo: m.chave })}
                   className={"rounded-lg border px-3 py-1.5 text-xs font-semibold " +
-                    (passo.modelo === m ? "border-pedra bg-pedra-fundo text-pedra-forte" : "border-linha text-tinta-2")}>
-                  {{ auto: "Automático", rapido: "Rápido (Haiku)", forte: "Forte (Sonnet)" }[m]}
+                    (passo.modelo === m.chave || ("apelidos" in m && m.apelidos.includes(passo.modelo)) ? "border-pedra bg-pedra-fundo text-pedra-forte" : "border-linha text-tinta-2")}>
+                  {m.nome}
                 </button>
               ))}
             </div>

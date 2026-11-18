@@ -90,8 +90,7 @@ export default function Financas({ pessoa }: { pessoa: Persona }) {
             <BarrasEmpilhadas titulo="Custo por dia, por modelo" dados={r.por_dia}
               rotulo={(d) => d.dia.slice(8, 10) + "/" + d.dia.slice(5, 7)} formatar={(v) => reais(v)}
               formatarEixo={(v) => "R$ " + v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              series={[{ chave: "rapido_brl", nome: "Claude Haiku 5.5", cor: "var(--serie-1)" },
-                       { chave: "forte_brl", nome: "Claude Sonnet 5.5", cor: "var(--serie-2)" }]} />
+              series={r.por_modelo.map((m, i) => ({ chave: m.chave + "_brl", nome: m.modelo, cor: `var(--serie-${(i % 6) + 1})` }))} />
             <p className="mt-3 text-xs text-tinta-3">
               {r.por_modelo.map((m) => `${m.modelo}: ${num(m.chamadas)} chamadas, ${reais(m.custo_brl)}`).join(" · ")}
             </p>

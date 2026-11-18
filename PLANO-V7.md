@@ -132,12 +132,12 @@ O rastreador de tickets não está configurado no projeto. A lista fica consolid
 
 **Bloqueado por:** 01.
 
-**Status:** ready-for-agent
+**Status:** feito (aguarda validação da esteira no GitHub)
 
-- [ ] Todos os testes atuais passam sem alteração de comportamento.
-- [ ] Nomes e preços dos modelos vêm só do registro (nenhuma tabela repetida em Finanças ou no cliente).
-- [ ] Um blueprint antigo com "rapido"/"forte" valida, roda e custa o mesmo que na v6 (teste).
-- [ ] Teste do registro: todo modelo tem provedor, preço de entrada e saída, capacidades e fonte/data do preço.
+- [x] Todos os testes atuais passam sem alteração de comportamento.
+- [x] Nomes e preços dos modelos vêm só do registro (nenhuma tabela repetida em Finanças ou no cliente).
+- [x] Um blueprint antigo com "rapido"/"forte" valida, roda e custa o mesmo que na v6 (teste).
+- [x] Teste do registro: todo modelo tem provedor, preço de entrada e saída, capacidades e fonte/data do preço.
 
 ### 05: Modelos de outros provedores no Estúdio e em Finanças
 

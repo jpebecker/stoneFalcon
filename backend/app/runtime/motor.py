@@ -33,16 +33,13 @@ from ..core import config, db
 from ..core.identidade import CURADOR, PERSONAS, Persona
 from ..core.relogio import agora
 from ..guardrails import injecao
-from ..llm import precos, roteador
+from ..llm import precos, registro, roteador
 from ..llm.cliente import ClienteLLM, ClienteSimulado, ErroModelo, RespostaLLM, obter_cliente
 from ..texto.semelhanca import estimar_tokens
 from ..tools import executor
 from ..tools.catalogo import CATALOGO, Contexto
 from . import modelos as m
 from . import simulacao  # noqa: F401  (registra a política do modo simulado)
-
-# Velocidade típica para estimar duração no modo simulado (tokens de saída/s, latência fixa ms).
-_VELOCIDADE = {"rapido": (180, 400), "forte": (70, 900)}
 
 
 class Orcamento:
@@ -252,7 +249,7 @@ def _passo_agente(s: Session, amb: _Ambiente, passo: Passo) -> dict:
             r = obter_cliente(True).gerar(decisao.chave_modelo, sistema, msgs, ferramentas or None)
             base["reserva"] = "Modelo indisponível (%s); usei a resposta de reserva." % e
         custo += amb.orc.somar(r)
-        vel, lat = _VELOCIDADE[decisao.chave_modelo]
+        vel, lat = registro.obter(decisao.chave_modelo).velocidade
         estimado += lat + int(r.tokens_saida / vel * 1000)
 
         if r.parada == "refusal":

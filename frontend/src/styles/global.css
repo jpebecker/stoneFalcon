@@ -25,9 +25,13 @@
   --erro-fundo: 251 233 231;
   --info: 39 94 196;
   --info-fundo: 229 237 252;
-  /* séries de gráfico: paleta categórica validada (CVD) — Haiku = 1, Sonnet = 2 */
+  /* séries de gráfico: paleta categórica (1 e 2 validadas para daltonismo; 3 a 6 distinguem provedores no v7) */
   --serie-1: #2a78d6;
   --serie-2: #eb6834;
+  --serie-3: #1fb37a;
+  --serie-4: #e0428f;
+  --serie-5: #6b5bd0;
+  --serie-6: #8a8f98;
   color-scheme: light;
 }
 

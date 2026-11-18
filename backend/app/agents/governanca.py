@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from ..core.identidade import Classificacao, Persona
-from ..llm import precos, roteador
+from ..llm import precos, registro, roteador
 from ..tools.catalogo import CATALOGO
 from ..tools.permissoes import avaliar
 from .blueprint import Blueprint
@@ -94,8 +94,6 @@ def estimar_custo(bp: Blueprint) -> Estimativa:
 
 
 # ---------- duração estimada (caminho crítico) ----------
-_VELOCIDADE = {"rapido": (180, 400), "forte": (70, 900)}   # tokens de saída/s, latência fixa ms (como o runtime)
-
 
 def estimar_duracao_ms(bp: Blueprint) -> int:
     """Tempo do caminho crítico: passos da mesma camada rodam juntos, então cada camada custa o mais lento."""
@@ -106,7 +104,7 @@ def estimar_duracao_ms(bp: Blueprint) -> int:
             return 0
         entrada = _SISTEMA + len(p.depende_de) * _CONTEXTO_POR_DEPENDENCIA + len(p.ferramentas) * _POR_FERRAMENTA_DEFINIDA
         chave = roteador.decidir(p.modelo, p.instrucao, entrada).chave_modelo
-        vel, lat = _VELOCIDADE[chave]
+        vel, lat = registro.obter(chave).velocidade
         voltas = 2 if p.ferramentas else 1
         total = voltas * lat + int((_SAIDA + (120 if voltas == 2 else 0)) / vel * 1000)
         return total + max((CATALOGO[f].latencia_ms for f in p.ferramentas), default=0)

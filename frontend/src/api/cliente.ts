@@ -61,7 +61,7 @@ export type Colaborador = { id: string; nome: string; area: string; eu: boolean 
 
 export type Passo = {
   id: string; titulo: string; tipo: "ferramenta" | "agente" | "aprovacao"; depende_de: string[];
-  instrucao: string; ferramentas: string[]; modelo: "auto" | "rapido" | "forte"; max_iteracoes: number;
+  instrucao: string; ferramentas: string[]; modelo: string; max_iteracoes: number;
   ferramenta: string | null; entrada: Record<string, unknown>;
 };
 
@@ -110,6 +110,13 @@ export type Execucao = {
   resultado_tela?: string; passos_tela?: Record<string, RegistroPasso>;
 };
 
+export type ModeloIA = {
+  chave: string; nome: string; provedor: string; provedor_nome: string; simulado: boolean; id_api: string;
+  preco_entrada: number; preco_saida: number; preco_cache_leitura: number; limite_preco_padrao: number | null;
+  capacidades: { ferramentas: boolean; contexto_longo: boolean; raciocinio: number; esforco_maximo: string };
+  fonte_preco: string; data_preco: string; apelidos: string[];
+};
+export type RegistroModelos = { provedores: { id: string; nome: string; real: boolean }[]; modelos: ModeloIA[] };
 export type Saude = { ok: boolean; versao: string; modo: "real" | "simulado"; modelos: Record<string, string>; cotacao_dolar: number };
 
 export type Agente = {
@@ -163,8 +170,8 @@ export type ResumoFinancas = {
   dias: number; tem_demo: boolean; execucoes: number; custo_brl: number; custo_sem_roteador_brl: number;
   economia_roteador_pct: number | null; ganho_brl: number; roi_variavel: number | null;
   por_agente: FinancasAgente[]; por_area: { area: string; execucoes: number; custo_brl: number; ganho_brl: number }[];
-  por_modelo: { modelo: string; chamadas: number; custo_brl: number }[];
-  por_dia: { dia: string; execucoes: number; custo_brl: number; rapido_brl: number; forte_brl: number }[];
+  por_modelo: { chave: string; modelo: string; provedor: string; provedor_nome: string; simulado: boolean; chamadas: number; custo_brl: number }[];
+  por_dia: ({ dia: string; execucoes: number; custo_brl: number } & Record<string, number | string>)[];
   premissas?: Record<string, number | boolean>;
 };
 

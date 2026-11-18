@@ -13,8 +13,9 @@ from dataclasses import dataclass, field
 
 from ..core import config
 from ..texto.semelhanca import complexidade
+from . import registro
 
-NIVEIS = ("auto", "rapido", "forte")
+NIVEL_AUTO = "auto"
 
 
 @dataclass
@@ -25,7 +26,7 @@ class Decisao:
 
     @property
     def nome_modelo(self) -> str:
-        return config.MODELOS[self.chave_modelo]["nome"]
+        return registro.obter(self.chave_modelo).nome
 
 
 def escolher_modelo(nivel: str, complexidade: float, tokens_contexto: int) -> str:
@@ -37,15 +38,15 @@ def escolher_modelo(nivel: str, complexidade: float, tokens_contexto: int) -> st
     tokens_contexto -- tamanho estimado do prompt que será enviado neste passo.
 
     Constantes úteis em config: COMPLEXIDADE_FORTE (0.60) e
-    MODELOS["rapido"]["limite_preco_padrao"] (100 mil tokens).
+    registro.obter("rapido").limite_preco_padrao (100 mil tokens).
     """
     # Pedido explícito do blueprint é respeitado: comportamento previsível para quem
     # criou o agente e para a revisão de segurança (o custo já aparece no Estúdio).
-    if nivel in ("rapido", "forte"):
-        return nivel
+    if nivel != NIVEL_AUTO:
+        return registro.obter(nivel).chave
     # Auto: contexto acima do limite do Haiku indica passo pesado (muito material para
     # sintetizar) e tira boa parte da vantagem de preço dele, então sobe para o forte.
-    limite = config.MODELOS["rapido"]["limite_preco_padrao"]
+    limite = registro.obter("rapido").limite_preco_padrao
     if complexidade >= config.COMPLEXIDADE_FORTE or (limite and tokens_contexto > limite):
         return "forte"
     return "rapido"
@@ -54,12 +55,12 @@ def escolher_modelo(nivel: str, complexidade: float, tokens_contexto: int) -> st
 def decidir(nivel: str, texto_passo: str, tokens_contexto: int) -> Decisao:
     """Calcula a complexidade do passo e aplica `escolher_modelo`, guardando os motivos
     para a trilha "como o agente decidiu"."""
-    if nivel not in NIVEIS:
+    if nivel != NIVEL_AUTO and not registro.existe(nivel):
         raise ValueError("Nível de modelo inválido: %r" % nivel)
     nota, motivos = complexidade(texto_passo)
     chave = escolher_modelo(nivel, nota, tokens_contexto)
-    if nivel != "auto":
+    if nivel != NIVEL_AUTO:
         motivos = ["o agente pediu o modelo %s" % nivel] + motivos
-    elif tokens_contexto > (config.MODELOS["rapido"]["limite_preco_padrao"] or float("inf")):
+    elif tokens_contexto > (registro.obter("rapido").limite_preco_padrao or float("inf")):
         motivos = motivos + ["contexto longo (%d mil tokens)" % (tokens_contexto // 1000)]
     return Decisao(chave_modelo=chave, complexidade=nota, motivos=motivos)

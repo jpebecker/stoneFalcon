@@ -16,13 +16,21 @@ from ..agents import modelos as am
 from ..audit.trilha import EventoAuditoria
 from ..core.identidade import GESTOR_IA, Persona
 from ..core.relogio import agora
-from ..llm import precos
+from ..llm import precos, registro
 from ..observability import metricas
 from ..runtime import modelos as rm
 from .calculadora import projetar
 from .premissas import Premissas
 
-NOME_MODELO = {"rapido": "Claude Haiku 5.5", "forte": "Claude Sonnet 5.5"}
+
+def _ficha_modelo(chave: str) -> dict:
+    """Linha de "gasto por modelo". Chaves de execuções antigas que saíram do registro aparecem como estão."""
+    if not registro.existe(chave):
+        return {"chave": chave, "modelo": chave, "provedor": "outro", "provedor_nome": "Outro", "simulado": True,
+                "chamadas": 0, "custo_brl": 0.0}
+    m = registro.obter(chave)
+    return {"chave": m.chave, "modelo": m.nome, "provedor": m.provedor, "provedor_nome": registro.PROVEDORES[m.provedor].nome,
+            "simulado": not registro.roda_de_verdade(m.chave), "chamadas": 0, "custo_brl": 0.0}
 
 
 def brl(usd: float) -> float:
@@ -56,7 +64,7 @@ def resumo(s: Session, p: Persona, dias: int = 30, premissas: Premissas | None =
     execs = [e for e in metricas.execucoes(s, horas=24 * dias) if e.agente_id in agentes]
     por_agente: dict[str, dict] = {}
     por_area: dict[str, dict] = defaultdict(lambda: {"execucoes": 0, "custo_brl": 0.0, "ganho_brl": 0.0})
-    por_modelo: dict[str, dict] = defaultdict(lambda: {"chamadas": 0, "custo_brl": 0.0})
+    por_modelo: dict[str, dict] = {}
     custo = tudo_forte = ganho = 0.0
     for a in agentes.values():
         minutos = _minutos(s, a)
@@ -83,17 +91,16 @@ def resumo(s: Session, p: Persona, dias: int = 30, premissas: Premissas | None =
     for e in execs:
         tudo_forte += brl(e.custo_tudo_forte_usd)
         for chave, v in (e.por_modelo or {}).items():
-            pm = por_modelo[NOME_MODELO.get(chave, chave)]
+            pm = por_modelo.setdefault(chave, _ficha_modelo(chave))
             pm["chamadas"] += v.get("chamadas", 0)
             pm["custo_brl"] = round(pm["custo_brl"] + brl(v.get("custo_usd", 0.0)), 4)
     dias_serie: dict[str, dict] = {}
     for e in execs:
-        d = dias_serie.setdefault(e.inicio[:10], {"dia": e.inicio[:10], "execucoes": 0, "custo_brl": 0.0,
-                                                  "rapido_brl": 0.0, "forte_brl": 0.0})
+        d = dias_serie.setdefault(e.inicio[:10], {"dia": e.inicio[:10], "execucoes": 0, "custo_brl": 0.0})
         d["execucoes"] += 1
         d["custo_brl"] = round(d["custo_brl"] + brl(e.custo_usd), 4)
-        for chave in ("rapido", "forte"):
-            d[chave + "_brl"] = round(d[chave + "_brl"] + brl((e.por_modelo or {}).get(chave, {}).get("custo_usd", 0.0)), 4)
+        for chave, v in (e.por_modelo or {}).items():   # uma coluna "<chave>_brl" por modelo usado
+            d[chave + "_brl"] = round(d.get(chave + "_brl", 0.0) + brl(v.get("custo_usd", 0.0)), 4)
     return {
         "dias": dias,
         "tem_demo": any(e.demo for e in execs),
@@ -105,7 +112,7 @@ def resumo(s: Session, p: Persona, dias: int = 30, premissas: Premissas | None =
         "roi_variavel": round((ganho - custo) / custo, 2) if custo else None,
         "por_agente": sorted(por_agente.values(), key=lambda x: -x["ganho_brl"]),
         "por_area": [{"area": k, **v} for k, v in sorted(por_area.items())],
-        "por_modelo": [{"modelo": k, **v} for k, v in sorted(por_modelo.items())],
+        "por_modelo": sorted(por_modelo.values(), key=lambda x: x["modelo"]),
         "por_dia": [dias_serie[k] for k in sorted(dias_serie)],
         "premissas": pr.model_dump(),
     }
