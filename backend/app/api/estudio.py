@@ -25,12 +25,13 @@ def padroes(_p: Persona = Depends(usuario_atual)):
 
 class PedidoSugestao(BaseModel):
     descricao: str = Field(min_length=15, max_length=3000)
+    fonte: dict[str, Any] | None = None     # de onde veio o pedido (ex.: uma planilha aberta, pela extensão)
 
 
 @rotas.post("/sugerir")
 def sugerir(pedido: PedidoSugestao, pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
     exigir(pessoa, CRIADOR)
-    sug = sugestao.sugerir(pessoa, pedido.descricao)
+    sug = sugestao.sugerir(pessoa, pedido.descricao, fonte=pedido.fonte)
     trilha.registrar(s, "estudio_sugestao", pessoa.id, dados={
         "origem": sug.origem, "nome": sug.blueprint.nome, "risco": sug.risco.nivel,
         "removidas": sorted(sug.removidas), "custo_sugestao_brl": sug.custo_sugestao_brl})

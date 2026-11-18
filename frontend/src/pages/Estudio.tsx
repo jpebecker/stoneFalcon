@@ -48,12 +48,17 @@ export default function Estudio({ pessoa }: { pessoa: Persona }) {
   useEffect(() => {
     if (agenteId) return;
     let texto = "";
+    let fonte: { tipo: string; url: string } | null = null;
     try {
       const guardado = sessionStorage.getItem(CHAVE_RASCUNHO);
       sessionStorage.removeItem(CHAVE_RASCUNHO);
-      texto = guardado ? (JSON.parse(guardado).texto ?? "") : "";
+      const d = guardado ? JSON.parse(guardado) : {};
+      texto = d.texto ?? "";
+      fonte = d.fonte?.tipo === "planilha" ? d.fonte : null;
     } catch { /* sem armazenamento */ }
-    if (texto.trim()) { setDescricao(texto); sugerir.mutate(texto); }
+    // vindo de uma planilha aberta no navegador: o Estúdio já monta o agente com a planilha como fonte
+    if (fonte && texto.trim().length < 15) texto = "Ler a planilha de pedidos de troca de maquininha e tratar o primeiro pedido pendente.";
+    if (texto.trim()) { setDescricao(texto); sugerir.mutate({ d: texto, fonte }); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -79,8 +84,9 @@ export default function Estudio({ pessoa }: { pessoa: Persona }) {
   const saude = useQuery({ queryKey: ["saude"], queryFn: () => api<Saude>("/saude") });
 
   const sugerir = useMutation({
-    mutationFn: (d: string) => api<Sugestao>("/estudio/sugerir", { descricao: d }),
-    onSuccess: (s) => { setSug(s); setBp(s.blueprint); setSel(null); setExe(null); setEntrada({}); },
+    mutationFn: ({ d, fonte }: { d: string; fonte?: { tipo: string; url: string } | null }) =>
+      api<Sugestao>("/estudio/sugerir", { descricao: d, fonte: fonte ?? null }),
+    onSuccess: (s) => { setSug(s); setBp(s.blueprint); setSel(null); setExe(null); setEntrada(s.entrada_sugerida ?? {}); },
   });
   const testar = useMutation({
     mutationFn: () => api<Execucao>("/estudio/testar", { blueprint: bp, entrada }),
@@ -133,7 +139,7 @@ export default function Estudio({ pessoa }: { pessoa: Persona }) {
           <div className="mt-3 flex items-center justify-between gap-3">
             <p className="text-xs text-tinta-3">Dados pessoais escritos aqui são removidos antes de qualquer envio.</p>
             <button className="botao-pedra" disabled={descricao.trim().length < 15 || sugerir.isPending}
-              onClick={() => sugerir.mutate(descricao)}>
+              onClick={() => sugerir.mutate({ d: descricao })}>
               {sugerir.isPending ? "Montando o agente…" : "Montar meu agente"}
             </button>
           </div>

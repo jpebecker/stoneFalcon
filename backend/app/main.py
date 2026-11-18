@@ -126,6 +126,18 @@ def helpdesk():
     return FileResponse(_ESTATICO / "helpdesk.html")
 
 
+@app.get("/demo/planilha", include_in_schema=False)
+def planilha_ficticia():
+    return FileResponse(_ESTATICO / "planilha.html")
+
+
+@app.get("/api/v1/demo/planilha", tags=["demo"])
+def planilha_ficticia_dados():
+    """A planilha fictícia local (plano B da demo, sem internet): só dados de mentira."""
+    from .plugins import planilhas
+    return {"titulo": planilhas.LOCAL_TITULO, "colunas": planilhas.COLUNAS, "linhas": planilhas.LINHAS_LOCAIS}
+
+
 # ---------- fotos das personas (avatares), servidas pela própria plataforma ----------
 app.mount("/avatares", StaticFiles(directory=_ESTATICO / "avatares"), name="avatares")
 

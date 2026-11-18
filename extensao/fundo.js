@@ -72,7 +72,8 @@ async function montar() {
 
 // Abre o Estúdio (passe de uso único). Se falhar, o painel lateral mostra o diagnóstico.
 async function criarAgente(tab, trecho) {
-  const r = await sfCriarAgente(trecho);
+  const fonte = tab ? sfFontePlanilha(tab.url, tab.title, await sfEndereco()) : null;
+  const r = await sfCriarAgente(trecho, fonte);
   if (r.ok) return;
   await chrome.storage.session.set({ atalhoErro: Object.assign({ quando: Date.now() }, r) });
   if (tab && tab.id !== undefined) abrirPainel(tab.id);

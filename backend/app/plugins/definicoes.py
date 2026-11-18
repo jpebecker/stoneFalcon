@@ -1,4 +1,4 @@
-"""Os 8 plugins da vitrine inicial e as ferramentas que cada um traz.
+"""Os 9 plugins da vitrine (os 8 da v6 e o Google Sheets da v7) e as ferramentas que cada um traz.
 
 Importado SÓ por `tools/catalogo.py` (no fim dele), que registra as ferramentas no catálogo com a marca `plugin=<id>`:
 elas existem sempre, mas só valem enquanto o plugin está integrado (`tools/permissoes.py` confere). Quem quiser os
@@ -11,6 +11,7 @@ import re
 from ..core.identidade import Classificacao
 from ..tools import dados_ficticios as fx
 from ..tools.catalogo import TODAS, Contexto, ErroFerramenta, Especificacao
+from . import planilhas
 from . import sistemas as sx
 
 
@@ -90,6 +91,13 @@ def _drive_buscar(e: dict, _c: Contexto) -> dict:
     achados = sorted(((len(q & _tokens(d["titulo"] + " " + d["resumo"])), d) for d in sx.DOCUMENTOS_DRIVE), key=lambda x: -x[0])
     return {"documentos": [{"id": d["id"], "titulo": d["titulo"], "pasta": d["pasta"], "resumo": d["resumo"]}
                            for n, d in achados if n > 0][:3]}
+
+
+def _sheets_ler(e: dict, _c: Contexto) -> dict:
+    try:
+        return planilhas.ler(e["fonte"])
+    except planilhas.ErroPlanilha as erro:
+        raise ErroFerramenta(str(erro))
 
 
 def _servicenow_abrir(e: dict, c: Contexto) -> dict:
@@ -172,6 +180,13 @@ FERRAMENTAS: list[Especificacao] = [
        "Procura nos documentos de política do Drive os mais próximos da consulta.",
        _I, (TODAS,), "leitura", {"consulta": {"type": "string", "description": "O que procurar, em linguagem natural."}},
        ("consulta",), _drive_buscar, 200),
+    _f("sheets", "sheets_ler_planilha", "Ler planilha (Google Sheets)",
+       "Lê as linhas de uma planilha do Google Sheets (publicada na web) ou da planilha fictícia local. Devolve as colunas, "
+       "as linhas e a primeira linha pendente. Só leitura.",
+       _I, ("logistica",), "leitura",
+       {"fonte": {"type": "string", "description": "Endereço da planilha (https://docs.google.com/spreadsheets/...) "
+                                                   "ou local:pedidos-troca para a planilha fictícia."}},
+       ("fonte",), _sheets_ler, 650),
     _f("servicenow", "servicenow_abrir_incidente", "Abrir incidente (ServiceNow)",
        "Abre um incidente de TI no ServiceNow.",
        _I, ("engenharia",), "escrita",
@@ -202,6 +217,8 @@ VITRINE = [
      "descricao": "Quadro de itens de trabalho: abre itens e consulta o andamento."},
     {"id": "drive", "nome": "Google Drive", "categoria": "documentos", "categoria_nome": "Documentos", "janela": False,
      "descricao": "Busca nos documentos de política da empresa."},
+    {"id": "sheets", "nome": "Google Sheets", "categoria": "planilhas", "categoria_nome": "Planilhas", "janela": False,
+     "descricao": "Lê planilhas (só leitura): publicadas na web no Google Sheets ou a planilha fictícia local, para ensaio sem internet."},
     {"id": "servicenow", "nome": "ServiceNow", "categoria": "ti", "categoria_nome": "Chamados de TI", "janela": False,
      "descricao": "Abre incidentes de TI para a Engenharia tratar."},
     {"id": "sap", "nome": "SAP SuccessFactors", "categoria": "rh", "categoria_nome": "RH", "janela": False,

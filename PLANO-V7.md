@@ -220,16 +220,25 @@ O rastreador de tickets não está configurado no projeto. A lista fica consolid
 
 **O que construir:** a ponte com uma plataforma terceira aberta no navegador. Começa por uma investigação curta (até meio dia) e registra a decisão no PR: o Google Sheets desenha a grade sem texto selecionável comum, então o menu do botão direito do Chrome provavelmente não recebe as células selecionadas. Caminhos a testar, nesta ordem: (a) a extensão lê o endereço da planilha aberta e a plataforma importa a versão publicada na web; (b) copiar e colar as células no painel; (c) a planilha fictícia local (plano B, sem internet). O resultado é um plugin "Google Sheets" no marketplace, com uma ferramenta de leitura de planilha que um agente usa como passo, e o atalho do ticket 03 reconhecendo quando a aba aberta é uma planilha.
 
+
+**Decisão da investigação (registrada na implementação):** o Google Sheets desenha a grade em `canvas`, então o menu do botão
+direito do Chrome não recebe as células. Ordem testada: **(a)** a extensão lê só o **endereço** da aba (permissão de host
+limitada a `docs.google.com/spreadsheets/*`) e a plataforma importa a **versão publicada na web** (CSV; só `https://docs.google.com`,
+tempo limite, 1 MB, 200 linhas, redirecionamento só entre domínios do Google); **(c)** a planilha fictícia local (`local:pedidos-troca`,
+página `/demo/planilha`) cobre o mesmo fluxo sem internet. **(b)** copiar e colar as células ficou de fora desta entrega (o caminho (a) e o plano B
+bastaram). Verificado com testes automáticos (rede simulada) e na tela com a página fictícia; **não verificado:** uma planilha real do Google
+(depende da pendência 4) e a extensão carregada no Chrome diante de uma aba real do Sheets.
+
 **Bloqueado por:** 03, 09.
 
-**Status:** ready-for-agent
+**Status:** feito com plano B local; falta validar com uma planilha real do Google (pendência 4) e a extensão no Chrome
 
-- [ ] Decisão da investigação registrada no PR, com o que funcionou e o que não funcionou no Chrome.
-- [ ] O plugin "Google Sheets" aparece no marketplace (classificação interna, selo "simulado" quando usar a planilha local) e integra como os outros.
-- [ ] Com uma planilha do Google aberta, o painel da extensão oferece "Criar Agente de IA a partir desta planilha", que leva ao Estúdio com a fonte já configurada.
-- [ ] Um agente com o passo "ler planilha" lê as linhas da planilha (real ou local) e mostra o que leu na execução.
-- [ ] Sem internet, a planilha fictícia local cobre o mesmo fluxo.
-- [ ] A planilha usada na demo só tem dados fictícios; nada de documento real da Stone.
+- [x] Decisão da investigação registrada no PR, com o que funcionou e o que não funcionou no Chrome.
+- [x] O plugin "Google Sheets" aparece no marketplace (classificação interna, selo "simulado" quando usar a planilha local) e integra como os outros.
+- [x] Com uma planilha do Google aberta, o painel da extensão oferece "Criar Agente de IA a partir desta planilha", que leva ao Estúdio com a fonte já configurada.
+- [x] Um agente com o passo "ler planilha" lê as linhas da planilha (real ou local) e mostra o que leu na execução.
+- [x] Sem internet, a planilha fictícia local cobre o mesmo fluxo.
+- [x] A planilha usada na demo só tem dados fictícios; nada de documento real da Stone.
 
 ### 11: Roteiro do pitch v7 (demo integrada)
 

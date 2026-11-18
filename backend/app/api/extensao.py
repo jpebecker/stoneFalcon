@@ -20,6 +20,7 @@ from ..agents.blueprint import Blueprint
 from ..audit import trilha
 from ..core.db import sessao
 from ..core.identidade import CONSULTA_COLABORADORES, PERSONAS, Persona, exigir_aba, usuario_atual
+from ..plugins import planilhas
 from ..texto.semelhanca import Indice
 from ..tools import dados_ficticios as fx
 
@@ -137,16 +138,28 @@ def zerar_passes() -> None:
 
 class PedidoPasse(BaseModel):
     trecho: str = Field(default="", max_length=8000)
-    fonte: dict | None = None      # reservado: de onde veio o trecho (ex.: uma planilha aberta, ticket 10)
+    fonte: dict | None = None      # de onde veio o pedido: {"tipo": "planilha", "url": ..., "titulo": ...}
 
 
 class PedidoTroca(BaseModel):
     passe: str = Field(max_length=200)
 
 
+def _fonte_segura(fonte: dict | None) -> dict | None:
+    """Só planilhas aceitas (Google Sheets ou a fictícia local), com o endereço já canônico; o resto é descartado."""
+    if not fonte or fonte.get("tipo") != "planilha":
+        return None
+    try:
+        url = planilhas.normalizar(str(fonte.get("url", "")))
+    except planilhas.ErroPlanilha:
+        return None
+    return {"tipo": "planilha", "url": url, "titulo": str(fonte.get("titulo") or "")[:120]}
+
+
 @rotas.post("/passe")
 def emitir_passe(pedido: PedidoPasse, pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
     exigir_aba(pessoa, "estudio")        # só quem tem a aba Estúdio cria agentes (a regra é a mesma lista de abas)
+    fonte = _fonte_segura(pedido.fonte)
     agora = _relogio()
     with _trava:
         for k in [k for k, v in _passes.items() if v["expira"] <= agora]:
@@ -155,7 +168,7 @@ def emitir_passe(pedido: PedidoPasse, pessoa: Persona = Depends(usuario_atual), 
             raise HTTPException(status_code=429, detail="Muitos acessos pendentes. Espere um minuto e tente de novo.")
         passe = secrets.token_urlsafe(24)
         _passes[passe] = {"pessoa": pessoa.id, "expira": agora + PASSE_VALIDADE_S,
-                          "trecho": pedido.trecho.strip(), "fonte": pedido.fonte}
+                          "trecho": pedido.trecho.strip(), "fonte": fonte}
     trilha.registrar(s, "passe_extensao_emitido", pessoa.id, None, {"com_trecho": bool(pedido.trecho.strip())})
     return {"passe": passe, "valido_por_s": PASSE_VALIDADE_S}
 

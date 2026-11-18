@@ -77,6 +77,7 @@ export type Explicacao = { passo: string; titulo: string; explicacao: string };
 export type Sugestao = {
   blueprint: Blueprint; origem: string; explicacao: Explicacao[]; ferramentas_removidas: Record<string, string>;
   alertas: string[]; risco: Risco; estimativa: Estimativa; niveis: string[][]; custo_sugestao_brl: number;
+  entrada_sugerida?: Record<string, string>;
 };
 
 export type Validacao =
