@@ -2,19 +2,19 @@
 
 Este arquivo é o ticket 10 do [PLANO-V6](PLANO-V6.md) (antes, o ticket 16 da v5): o que conferir antes de apresentar, como ensaiar e o que falar. **Na v6, quem apresenta Roteiros, Painel executivo e Perguntas da Ferramenta é a Helena**: as outras personas só iniciam o próprio roteiro pelo Início.
 
-## 1. Teste automático dos seis roteiros
+## 1. Teste automático dos roteiros (seis personas + o pitch v7)
 
 ```bash
 cd backend && uv run pytest -q tests/test_roteiros.py tests/test_acesso.py tests/test_plugins.py
 ```
 
-O teste percorre Marina, Rafael, Carla, Thiago, Lucas e Helena do início ao fim **pela API**, com as mesmas entradas que o roteiro mostra na tela, sem chave da API e sem internet. Para cada roteiro ele confere o agente montado, o teste no sandbox, a publicação (direta ou com revisão), a execução, o cartão AS IS × TO BE (cada número com a origem: medido, estimado, premissa ou hipótese) e de 3 a 5 Perguntas da Ferramenta por persona (só a Helena as lê). `test_acesso.py` confere a matriz de acesso para os seis perfis e `test_plugins.py` o marketplace. Também confere o reinício por roteiro, a busca por nome (lojista e colaborador), a sugestão da extensão e o helpdesk fictício. O conjunto todo: `uv run pytest -q` (315 testes).
+O teste percorre Marina, Rafael, Carla, Thiago, Lucas e Helena do início ao fim **pela API**, com as mesmas entradas que o roteiro mostra na tela, sem chave da API e sem internet. Para cada roteiro ele confere o agente montado, o teste no sandbox, a publicação (direta ou com revisão), a execução, o cartão AS IS × TO BE (cada número com a origem: medido, estimado, premissa ou hipótese) e de 3 a 5 Perguntas da Ferramenta por persona (só a Helena as lê). `test_acesso.py` confere a matriz de acesso para os seis perfis e `test_plugins.py` o marketplace. Também confere o reinício por roteiro, a busca por nome (lojista e colaborador), a sugestão da extensão e o helpdesk fictício. O conjunto todo: `uv run pytest -q` (558 testes). O pitch v7 tem teste próprio (`tests/test_pitch.py`) e a matriz de acesso da v7 está em `tests/test_matriz_v7.py`.
 
 ## 2. Checklist antes de apresentar
 
 **Na véspera**
 - [ ] Preços e dólar conferidos (`COTACAO_DOLAR` em `backend/app/core/config.py` e a tabela de preços em `backend/app/llm/precos.py`). O LEIA-ME diz a data da última conferência.
-- [ ] `uv run pytest -q` passando (315 testes) e `npm run build` feito em `frontend` (o servidor serve `frontend/dist`).
+- [ ] `uv run pytest -q` passando (558 testes) e `npm run build` feito em `frontend` (o servidor serve `frontend/dist`).
 - [ ] Decidir o modo: **simulado** (sem chave, resultado idêntico sempre, recomendado para o palco) ou **modelos reais** (chave em `backend/.env`, limite de gasto mensal definido). No modo real, se o serviço do modelo falhar (rede, limite), o passo usa a resposta pré-determinada e a tela mostra **“resposta de reserva”** (desligue com `STONEFALCON_RESERVA=0`); erro de chave ou de modelo escala em vez de fingir.
 - [ ] Extensão carregada no Chrome (`chrome://extensions` → Modo do desenvolvedor → Carregar sem compactação → `extensao`) e conexão testada nas opções. Sem a extensão, a página `/demo/helpdesk` abre o mesmo painel sozinha (plano B).
 
@@ -64,7 +64,7 @@ passo marca com **[v7: …]** onde cada recurso novo aparece; a barra mostra a f
 | 8:15 | Helena | Cartão AS IS × TO BE do Thiago | a rotina semanal conta no ganho | — |
 
 Atenção: **só o Claude roda de verdade; os outros provedores são simulados** (selo “simulado” em toda tela). O teste automático do roteiro é `tests/test_pitch.py`.
-O tempo acima é uma **estimativa por contagem de palavras e cliques** (a fala corrida soma menos de 5 min), ainda não cronometrada ao vivo (pendência 2 do plano da v7).
+O tempo acima é uma **estimativa por contagem de palavras e cliques** (a fala corrida soma menos de 5 min), ainda não cronometrada ao vivo (pendência 2 do plano da v7). Capturas do pitch em `entregaveis/telas/` (14 a 19: atalho da extensão, Estúdio com vários provedores, trilha do balanceador, Mapa de IA, queda de provedor em Saúde e Finanças por provedor).
 
 ## 4. Plano B
 

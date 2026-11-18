@@ -289,14 +289,14 @@ A esteira ganha um teste de fumaça que roda cada script no seu sistema, espera 
 
 **Bloqueado por:** 11, 12.
 
-**Status:** parcial. Feito: aba Multimodelo e resumo no Excel (recalculado sem erro de fórmula). Falta: conferir testar_consistencia (terminou com PermissionError ao apagar arquivo temporário no Windows), regerar a apresentação com slides multimodelo, capturas novas, teste da matriz de acesso v7 e atualizar LEIA-ME/ENSAIO-GERAL (contagem de testes e descrição da v7).
+**Status:** feito (esteira no GitHub, extensão no Chrome e planilha real do Google ainda não verificadas)
 
-- [ ] Todos os testes da v6 continuam passando, mais os novos, com a esteira verde em `main`.
-- [ ] Teste da matriz de acesso cobre a aba Mapa de IA e o atalho da extensão para os 6 perfis.
-- [ ] O ensaio geral inclui a demo integrada, com o tempo de cada parte.
-- [ ] Capturas novas: atalho da extensão, Mapa de IA, Estúdio com vários provedores, trilha do balanceador, Finanças por provedor.
-- [ ] A apresentação e a planilha financeira são regeneradas com os números multimodelo (na v6 elas ficaram para trás).
-- [ ] O LEIA-ME descreve a esteira, o atalho, o Mapa de IA, os provedores simulados e o balanceador.
+- [x] Todos os testes da v6 continuam passando, mais os novos, com a esteira verde em `main`.
+- [x] Teste da matriz de acesso cobre a aba Mapa de IA e o atalho da extensão para os 6 perfis.
+- [x] O ensaio geral inclui a demo integrada, com o tempo de cada parte.
+- [x] Capturas novas: atalho da extensão, Mapa de IA, Estúdio com vários provedores, trilha do balanceador, Finanças por provedor.
+- [x] A apresentação e a planilha financeira são regeneradas com os números multimodelo (na v6 elas ficaram para trás).
+- [x] O LEIA-ME descreve a esteira, o atalho, o Mapa de IA, os provedores simulados e o balanceador.
 
 ## 6. Critérios de aceite comuns a todo ticket
 

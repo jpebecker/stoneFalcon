@@ -202,7 +202,7 @@ pres.addSection({ title: "Solução" });
   linhas.forEach(([d, g, f]) => rows.push([{ text: d, options: { bold: true } }, { text: g, options: { color: HEX.cinza } }, { text: f }]));
   s.addTable(rows, { x: 0.6, y: 1.65, w: 12.1, colW: [2.6, 3.2, 6.3], fontSize: 15, color: HEX.tinta, fontFace: "Calibri",
     border: { type: "solid", color: HEX.linha, pt: 1 }, rowH: [0.5, 0.95, 0.95, 0.95, 0.95], valign: "middle", margin: 0.1 });
-  txt(s, "Tabela do desafio (seção 2.3), preenchida com o que a plataforma entrega. Custo comparado no slide 11.",
+  txt(s, "Tabela do desafio (seção 2.3), preenchida com o que a plataforma entrega. Custo comparado no slide 13.",
     { x: 0.6, y: 6.45, w: 12.1, h: 0.35, fontSize: 12, color: C.accent3 });
   s.addNotes("[0:50] Esta é a pergunta central do desafio: por que não liberar uma ferramenta de mercado? Em cada dimensão da tabela, o genérico deixa um buraco e o StoneFalcon já tem a resposta funcionando no protótipo: quem constrói é qualquer pessoa, mas dentro da infraestrutura oficial; a governança é central; a integração respeita a permissão de quem disparou; e os guardrails funcionam sem o criador configurar nada.");
 }
@@ -267,6 +267,46 @@ pres.addSection({ title: "Demonstração" });
     txt(s, d, { x: x + 0.15, y: y + 0.72, w: 2.2, h: 0.7, fontSize: 12, color: C.accent3 });
   });
   s.addNotes("[0:50] Segurança não é um passo que o criador precisa lembrar. Os dados pessoais viram marcadores antes de chegar ao modelo; o agente roda com a permissão de quem disparou; o dado confidencial só volta a um sistema que tenha a mesma classificação; risco alto passa pela Segurança; existe pausa de emergência; e a auditoria é encadeada por hash, então qualquer adulteração aparece. No print: a ação de reter repasses parou esperando o Rafael.");
+}
+
+// v7-a. Vários provedores e balanceador
+{
+  const s = novo("CONTEUDO", "Demonstração", () => "v7 · " + N("mm_modelos", "num") + " modelos de " + N("mm_provedores", "num") + " provedores: o balanceador escolhe o mais barato que dá conta");
+  const g5 = R.g5.slice(1);
+  s.addChart(pres.charts.BAR, [{ name: "R$ por execução", labels: g5.map((l) => l[0]), values: g5.map((l) => l[1]) }], {
+    x: 0.6, y: 1.55, w: 7.6, h: 5.2, barDir: "bar", chartColors: [HEX.pedra], showTitle: true,
+    title: "Mix de agentes da demo, todo em cada modelo (R$ por execução)", showLegend: false,
+    valAxisLabelFormatCode: "0.000", valAxisMinVal: 0, catAxisOrientation: "maxMin", ...eixo });
+  const itens = [["Nível de esforço", "Cada passo vira leve, moderado, alto ou crítico (texto, ferramentas, contexto, risco)"],
+    ["Mais barato que atende", "O Claude vale até 3× o preço do mais barato; fora disso, vai ao mais barato"],
+    ["Queda de provedor", "Provedor fora do ar é descartado, o passo é delegado e a Saúde avisa"]];
+  itens.forEach(([t, d], i) => {
+    const y = 1.55 + i * 1.28;
+    cartao(s, 8.5, y, 4.2, 1.15, C.background2, "bal" + i);
+    txt(s, t, { x: 8.7, y: y + 0.08, w: 3.8, h: 0.4, fontSize: 15, bold: true, color: C.text2 });
+    txt(s, d, { x: 8.7, y: y + 0.5, w: 3.8, h: 0.62, fontSize: 12, color: C.accent3 });
+  });
+  txt(s, [{ text: "Todo no modelo mais caro: ", options: { bold: true } }, { text: N("mm_razao", "x") + " o custo do Claude com balanceador (" + N("mm_claude_balanceado", "brl4") + " por execução).\n" },
+    { text: "Só o Claude roda de verdade; os outros provedores são simulados, com preço de tabela pública de 17/11/2026.", options: { bold: true, color: C.accent2 } }],
+    { x: 8.5, y: 5.45, w: 4.2, h: 1.4, fontSize: 12 });
+  s.addNotes("[0:40] v7. A plataforma não depende de um fornecedor: o registro tem " + N("mm_modelos", "num") + " modelos de " + N("mm_provedores", "num") + " provedores. O balanceador dá a cada passo um nível de esforço e escolhe o modelo mais barato que atende; se um provedor cai, delega a outro. Atenção: só o Claude roda de verdade, os demais são simulados nesta demonstração; o preço vem das tabelas públicas. No gráfico, o mesmo mix de agentes em cada modelo: o mais caro custa " + N("mm_razao", "x") + " o Claude com balanceador. Fonte: aba Multimodelo da planilha.");
+}
+
+// v7-b. Mapa de IA, rotina e atalho
+{
+  const s = novo("CONTEUDO", "Demonstração", "v7 · O CoE enxerga tudo ao vivo e os agentes rodam sozinhos");
+  const h = imagem(s, "17-mapa-de-ia.png", 0.6, 1.55, 7.6, "Mapa de IA: quem criou, agentes, modelos por provedor, ferramentas e plataformas");
+  txt(s, "Mapa de IA, só do CoE: o agente publicado aparece sozinho e cada execução acende um pulso pelo caminho.", { x: 0.6, y: 1.55 + h + 0.2, w: 7.6, h: 0.6, fontSize: 13, color: C.accent3 });
+  const pts = [["1", "Atalho na extensão", "Uma planilha aberta no navegador vira agente em um clique, no mesmo perfil"],
+    ["2", "Rotina", "Toda segunda às 9h, em nome de quem agendou, com as mesmas permissões e confirmação humana"],
+    ["3", "Mapa de IA", "Quem criou, modelos por provedor, plugins e plataformas, com custo do período"]];
+  pts.forEach(([n, t, d], i) => {
+    const y = 1.55 + i * 1.5;
+    circulo(s, 8.6, y, 0.55, n, i === 2 ? C.accent2 : C.accent1);
+    txt(s, t, { x: 9.3, y: y - 0.02, w: 3.45, h: 0.4, fontSize: 17, bold: true });
+    txt(s, d, { x: 9.3, y: y + 0.4, w: 3.45, h: 1.0, fontSize: 13, color: C.accent3 });
+  });
+  s.addNotes("[0:40] v7. O Thiago abre a planilha de pedidos, clica em Criar Agente de IA na extensão e o Estúdio já monta o agente; ele agenda a rotina de toda segunda às 9h. A Helena vê no Mapa de IA o agente aparecer sozinho e o pulso da execução percorrer planilha, modelos, ferramentas e plataformas. Dados da demo são fictícios; o histórico é cenário gerado.");
 }
 
 // 9. Recorte financeiro 1: quanto custa
@@ -510,7 +550,7 @@ pres.addSection({ title: "Anexos" });
     vistos.add(k);
     linhas.push(`| ${u.slide} | ${u.txt} | ${u.rotulo} | ${u.celula} | ${u.origem} |`);
   });
-  linhas.push("", "Os 5 indicadores aparecem no slide 12 com os nomes exatos dos critérios: Tempo de execução, Custo operacional, Produtividade, Taxa de erros e ROI.");
+  linhas.push("", "Os 5 indicadores aparecem no slide 14 com os nomes exatos dos critérios: Tempo de execução, Custo operacional, Produtividade, Taxa de erros e ROI.");
   fs.writeFileSync(path.join(AQUI, "..", "checagem-numeros.md"), linhas.join("\n") + "\n", "utf8");
   console.log("ok", SAIDA, "·", slideAtual, "slides ·", vistos.size, "números rastreados");
 })();
