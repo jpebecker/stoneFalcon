@@ -14,6 +14,10 @@ Precisa do **Python 3.11+** e, só na primeira vez, do **Node.js LTS** (para com
 - **Windows:** dois cliques em `iniciar.bat`.
 - **Mac/Linux:** `sh iniciar.sh`.
 
+**Atualizando de uma versão anterior (v6 ou antes):** é só rodar o script da versão nova na mesma pasta. Ele **recompila as telas** quando a versão ou o código delas mudou (por isso não abre mais as telas antigas) e **reinstala as dependências do back** quando o `backend/requirements.txt` mudou. O banco (`backend/dados`) continua valendo: a v7 só acrescenta tabelas. Se o Chrome ainda mostrar a extensão antiga, remova-a em `chrome://extensions` e carregue a pasta `extensao` de novo.
+
+Mensagens claras em português para o que costuma dar errado: **Python abaixo de 3.11**, **Node.js ausente** (só quando falta compilar as telas) e **porta ocupada** (outra cópia aberta; use `STONEFALCON_PORTA=8766`). Variáveis opcionais: `STONEFALCON_PORTA` (padrão 8765), `STONEFALCON_SEM_NAVEGADOR=1` e, no Windows, `STONEFALCON_SEM_PAUSA=1`.
+
 Abre em **http://localhost:8765**. Sem configuração nenhuma roda em **modo simulado**: sem chave, sem custo e sem internet. Runtime, guardrails, auditoria, alertas e custos funcionam como no modo real; só o texto produzido pelos modelos é de exemplo, e tokens e custos são estimados com a mesma régua.
 
 ### Modelos de verdade
@@ -48,8 +52,9 @@ cd backend && uv run pytest -q                   # 180 testes, sem chave nem int
   2. **Front:** checagem de tipos e compilação de produção (`npm run build`).
   3. **Extensão:** manifesto válido e arquivos citados existem (`scripts/verifica_extensao.py`).
   4. **Versão:** extensão, API e front contam o mesmo número (`scripts/verifica_versao.py`; a fonte é `backend/app/core/versao.py`).
+  5. **Scripts de início:** `iniciar.sh` no Ubuntu e `iniciar.bat` no Windows sobem a plataforma e respondem a versão em `/api/v1/saude` (`scripts/fumaca_iniciar.py`).
 - Para rodar o mesmo na sua máquina: `cd backend && uv run pytest -q`, `cd frontend && npm run build` e `python scripts/verifica_extensao.py` e `python scripts/verifica_versao.py`.
-- Configuração do repositório (feita no GitHub, fora do código): em *Settings → Branches*, proteger `main` exigindo os quatro jobs da esteira verdes antes de juntar.
+- Configuração do repositório (feita no GitHub, fora do código): em *Settings → Branches*, proteger `main` exigindo os jobs da esteira verdes antes de juntar.
 
 ## O que o desafio pede e onde está
 

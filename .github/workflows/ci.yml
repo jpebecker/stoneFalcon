@@ -71,3 +71,22 @@ jobs:
           python-version: "3.11"
       - name: Extensão, API e front contam o mesmo número
         run: python scripts/verifica_versao.py
+
+  iniciar:
+    name: Fumaça dos scripts de início (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: iniciar.sh (Ubuntu) ou iniciar.bat (Windows) sobe a plataforma e responde a versão em /api/v1/saude
+        run: python scripts/fumaca_iniciar.py

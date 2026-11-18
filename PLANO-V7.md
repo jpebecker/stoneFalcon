@@ -274,14 +274,14 @@ A esteira ganha um teste de fumaça que roda cada script no seu sistema, espera 
 
 **Bloqueado por:** 02, 03, 06, 08, 10 (validar com todas as mudanças dentro).
 
-**Status:** ready-for-agent
+**Status:** feito; testado à mão no Windows (pasta que já tinha telas e venv de antes); falta a esteira no GitHub e uma máquina Windows limpa
 
-- [ ] Numa pasta que já rodou a v6, rodar o script da v7 recompila as telas e abre a v7 (versão 7.0 no rodapé).
-- [ ] Mudar as dependências do back faz o script reinstalar na próxima execução.
-- [ ] Python abaixo de 3.11 e porta ocupada geram mensagens claras em português.
+- [x] Numa pasta que já rodou a v6, rodar o script da v7 recompila as telas e abre a v7 (versão 7.0 no rodapé).
+- [x] Mudar as dependências do back faz o script reinstalar na próxima execução.
+- [x] Python abaixo de 3.11 e porta ocupada geram mensagens claras em português.
 - [ ] A esteira roda `iniciar.sh` no Ubuntu e `iniciar.bat` no Windows e confere que a saúde responde 7.0.0.
 - [ ] Testado à mão numa máquina Windows limpa (registro no PR, item que a v6 deixou como "não testado").
-- [ ] O LEIA-ME explica como atualizar de uma versão anterior.
+- [x] O LEIA-ME explica como atualizar de uma versão anterior.
 
 ### 13: Ensaio geral v7
 
