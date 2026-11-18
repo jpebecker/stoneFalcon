@@ -289,7 +289,7 @@ A esteira ganha um teste de fumaça que roda cada script no seu sistema, espera 
 
 **Bloqueado por:** 11, 12.
 
-**Status:** ready-for-agent
+**Status:** parcial. Feito: aba Multimodelo e resumo no Excel (recalculado sem erro de fórmula). Falta: conferir testar_consistencia (terminou com PermissionError ao apagar arquivo temporário no Windows), regerar a apresentação com slides multimodelo, capturas novas, teste da matriz de acesso v7 e atualizar LEIA-ME/ENSAIO-GERAL (contagem de testes e descrição da v7).
 
 - [ ] Todos os testes da v6 continuam passando, mais os novos, com a esteira verde em `main`.
 - [ ] Teste da matriz de acesso cobre a aba Mapa de IA e o atalho da extensão para os 6 perfis.
