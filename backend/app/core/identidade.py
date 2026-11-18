@@ -113,6 +113,7 @@ ABAS: dict[str, tuple[str, ...] | None] = {
     "roteiros": (GESTOR_IA,),                       # todos os roteiros: só o CoE de IA
     "painel": (GESTOR_IA,),
     "perguntas": (GESTOR_IA,),                      # Perguntas da Ferramenta
+    "mapa": (GESTOR_IA,),                           # Mapa de IA (v7): o fluxo ao vivo de tudo o que foi criado
     "plugins": None,
     "estudio": (CRIADOR,),
     "agentes": None,

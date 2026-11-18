@@ -24,6 +24,7 @@ import Perguntas from "./pages/Perguntas";
 import Revisoes from "./pages/Revisoes";
 import RoteiroPagina from "./pages/RoteiroPagina";
 import Roteiros from "./pages/Roteiros";
+import MapaIAPagina from "./pages/MapaIA";
 import PaginaSaude from "./pages/Saude";
 import ViaExtensao from "./pages/ViaExtensao";
 import { BarraRoteiro, ProvedorRoteiro } from "./roteiro/Controle";
@@ -35,6 +36,7 @@ const NAV: { aba: string; para: string; rotulo: string }[] = [
   { aba: "inicio", para: "/", rotulo: "Início" },
   { aba: "roteiros", para: "/roteiros", rotulo: "Roteiros" },
   { aba: "painel", para: "/painel", rotulo: "Painel executivo" },
+  { aba: "mapa", para: "/mapa", rotulo: "Mapa de IA" },
   { aba: "estudio", para: "/estudio", rotulo: "Estúdio" },
   { aba: "agentes", para: "/agentes", rotulo: "Agentes" },
   { aba: "plugins", para: "/plugins", rotulo: "Plugins" },
@@ -188,6 +190,7 @@ export default function App() {
                 <Route path="/" element={<Inicio pessoa={pessoa} />} />
                 <Route path="/roteiros" element={<Guarda pessoa={pessoa} aba="roteiros"><Roteiros /></Guarda>} />
                 <Route path="/roteiro/:id" element={<RoteiroPagina pessoa={pessoa} />} />
+                <Route path="/mapa" element={<Guarda pessoa={pessoa} aba="mapa"><MapaIAPagina /></Guarda>} />
                 <Route path="/perguntas" element={<Guarda pessoa={pessoa} aba="perguntas"><Perguntas /></Guarda>} />
                 <Route path="/plugins" element={<Guarda pessoa={pessoa} aba="plugins"><Plugins /></Guarda>} />
                 <Route path="/plugins/:id" element={<Guarda pessoa={pessoa} aba="plugins"><PluginPagina pessoa={pessoa} /></Guarda>} />

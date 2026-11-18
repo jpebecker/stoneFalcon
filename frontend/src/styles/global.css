@@ -72,3 +72,14 @@ h1, h2, h3 { @apply font-titulo font-semibold tracking-tight; }
 }
 .ext-tema .botao-pedra { color: #04150d; }
 @media (prefers-reduced-motion: reduce) { .animate-pulse { animation: none; } }
+
+
+/* Mapa de IA: entrada de nós novos, arestas recém-ligadas e o ponto "ao vivo". Com "reduzir movimento", vira destaque estático. */
+@keyframes mapa-entrada { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: scale(1); } }
+@keyframes mapa-pulso { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+.mapa-no-novo { animation: mapa-entrada .5s ease-out; box-shadow: 0 0 0 4px rgb(var(--pedra) / .25); }
+.mapa-aresta-nova path.react-flow__edge-path { stroke: rgb(var(--pedra)); stroke-width: 3; }
+.mapa-vivo { animation: mapa-pulso 2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .mapa-no-novo, .mapa-vivo { animation: none; }
+}

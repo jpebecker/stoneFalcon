@@ -177,14 +177,14 @@ O rastreador de tickets não está configurado no projeto. A lista fica consolid
 
 **Bloqueado por:** 01.
 
-**Status:** ready-for-agent
+**Status:** feito (publicação em outra janela apareceu no mapa em ~1 s no navegador)
 
-- [ ] A aba aparece só para a Helena; outros perfis voltam ao Início e recebem 403 na API (teste dos 6 perfis).
-- [ ] O mapa mostra todos os agentes publicados da semente, ligados às ferramentas, aos plugins integrados e aos sistemas que eles tocam.
-- [ ] Publicar um agente novo (como Thiago, em outra janela) faz ele aparecer no mapa da Helena em até 5 s, sem recarregar.
-- [ ] Integrar ou remover um plugin muda o mapa do mesmo jeito.
-- [ ] Clicar num agente ou num plugin abre a página dele.
-- [ ] Teste do back: a rota do mapa devolve nós e ligações coerentes com o catálogo e os agentes publicados.
+- [x] A aba aparece só para a Helena; outros perfis voltam ao Início e recebem 403 na API (teste dos 6 perfis).
+- [x] O mapa mostra todos os agentes publicados da semente, ligados às ferramentas, aos plugins integrados e aos sistemas que eles tocam.
+- [x] Publicar um agente novo (como Thiago, em outra janela) faz ele aparecer no mapa da Helena em até 5 s, sem recarregar.
+- [x] Integrar ou remover um plugin muda o mapa do mesmo jeito.
+- [x] Clicar num agente ou num plugin abre a página dele.
+- [x] Teste do back: a rota do mapa devolve nós e ligações coerentes com o catálogo e os agentes publicados.
 
 ### 08: Fluxo animado e camada de modelos no mapa
 
