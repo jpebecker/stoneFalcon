@@ -25,6 +25,7 @@ from .api.ferramentas import rotas as rotas_ferramentas
 from .api.financas import rotas as rotas_financas
 from .api.plataforma import rotas as rotas_plataforma
 from .api.plugins import rotas as rotas_plugins
+from .api.rotinas import rotas as rotas_rotinas
 from .api.roteiros import rotas as rotas_roteiros
 from .api.saude import rotas as rotas_saude
 from .core import config
@@ -48,9 +49,11 @@ async def ciclo(_app: FastAPI):
         with Session(db.motor()) as s:
             semear(s)
     tarefa = asyncio.create_task(_vigiar()) if os.environ.get("STONEFALCON_VIGIA", "1") != "0" else None
+    agendador = asyncio.create_task(_agendar()) if os.environ.get("STONEFALCON_AGENDADOR", "1") != "0" else None
     yield
-    if tarefa:
-        tarefa.cancel()
+    for t in (tarefa, agendador):
+        if t:
+            t.cancel()
 
 
 async def _vigiar():
@@ -65,6 +68,25 @@ async def _vigiar():
     while True:
         await asyncio.sleep(60)
         await asyncio.to_thread(rodada)
+
+
+async def _agendar():
+    """Dispara as rotinas que venceram no relógio das rotinas (a cada poucos segundos, para o relógio acelerado da demo)."""
+    import logging
+
+    from sqlmodel import Session
+
+    from . import rotinas
+
+    def rodada():
+        with Session(db.motor()) as s:
+            rotinas.tick(s)
+    while True:
+        await asyncio.sleep(5)
+        try:
+            await asyncio.to_thread(rodada)
+        except Exception:   # a agenda nunca derruba a plataforma
+            logging.getLogger("stonefalcon.rotinas").exception("Falha ao disparar rotinas")
 
 
 app = FastAPI(
@@ -92,6 +114,7 @@ app.include_router(rotas_roteiros)
 app.include_router(rotas_plugins)
 app.include_router(rotas_balanceador)
 app.include_router(rotas_mapa)
+app.include_router(rotas_rotinas)
 
 
 # ---------- página de demonstração para a extensão (helpdesk fictício) ----------

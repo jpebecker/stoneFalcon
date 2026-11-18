@@ -42,6 +42,7 @@ def criar_tabelas() -> None:
     from ..audit import trilha  # noqa: F401  (registra os modelos nas tabelas)
     from ..observability import alertas as _alertas  # noqa: F401
     from ..plugins import modelos as _plugins  # noqa: F401
+    from ..rotinas import modelos as _rotinas  # noqa: F401
     from ..runtime import modelos  # noqa: F401
     from ..tools import executor  # noqa: F401
     SQLModel.metadata.create_all(motor())

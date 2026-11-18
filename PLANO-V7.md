@@ -207,14 +207,14 @@ O rastreador de tickets não está configurado no projeto. A lista fica consolid
 
 **Bloqueado por:** 01.
 
-**Status:** ready-for-agent
+**Status:** feito (testado na tela com o relógio acelerado)
 
-- [ ] Thiago agenda o agente de troca de maquininha para toda segunda às 9h; a agenda aparece na página do agente.
-- [ ] "Rodar agora" executa a rotina e a execução aparece com o selo "rotina".
-- [ ] Com o relógio da demo acelerado, a rotina dispara sozinha na hora marcada (teste com relógio controlado).
-- [ ] Uma rotina não roda ferramentas que quem agendou não poderia rodar (teste).
-- [ ] Ação sensível dentro de uma rotina fica aguardando confirmação humana, sem executar sozinha.
-- [ ] Criar, pausar e remover a agenda fica na auditoria; reiniciar a demo remove as agendas.
+- [x] Thiago agenda o agente de troca de maquininha para toda segunda às 9h; a agenda aparece na página do agente.
+- [x] "Rodar agora" executa a rotina e a execução aparece com o selo "rotina".
+- [x] Com o relógio da demo acelerado, a rotina dispara sozinha na hora marcada (teste com relógio controlado).
+- [x] Uma rotina não roda ferramentas que quem agendou não poderia rodar (teste).
+- [x] Ação sensível dentro de uma rotina fica aguardando confirmação humana, sem executar sozinha.
+- [x] Criar, pausar e remover a agenda fica na auditoria; reiniciar a demo remove as agendas.
 
 ### 10: Planilha do Google como fonte de uma rotina
 

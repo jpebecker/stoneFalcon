@@ -5,6 +5,7 @@ from ..agents import ciclo
 from ..agents import modelos as am
 from ..agents.blueprint import Blueprint
 from ..core import db
+from .. import rotinas
 from ..llm import balanceador
 from ..core.identidade import PERSONAS
 from ..plugins import servico as plugins
@@ -49,6 +50,7 @@ def reiniciar(s: Session | None = None, roteiro_id: str | None = None) -> dict:
     executor.zerar_limites()
     motor.zerar_pendentes()
     balanceador.zerar()   # desfaz a queda simulada de provedor e a carga de teste
+    rotinas.zerar()       # o relógio das rotinas volta ao normal (as agendas somem com o banco)
     with Session(db.motor()) as nova:
         semear(nova, sem=roteiro.sem if roteiro else frozenset())
         if roteiro and roteiro.preparar:

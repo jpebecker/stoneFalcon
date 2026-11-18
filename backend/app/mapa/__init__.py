@@ -18,6 +18,7 @@ from ..llm import precos, registro
 from ..observability import metricas
 from ..plugins import catalogo as plugins_catalogo
 from ..plugins import estado as plugins_estado
+from ..rotinas import ligacoes as ligacoes_rotina
 from ..runtime import modelos as rm
 from ..tools.catalogo import CATALOGO
 
@@ -162,7 +163,7 @@ def grafo(s: Session, dias: int = 7, area: str | None = None, provedor: str | No
 
     lista = list(nos.values())
     visiveis = {a_id for a_id in caminho_do_agente}
-    recentes = _recentes(execs, visiveis, caminho_do_agente, provedor)
+    recentes = _recentes(s, execs, visiveis, caminho_do_agente, provedor)
     return {
         "dias": dias, "colunas": COLUNAS, "nos": lista,
         "ligacoes": [{"de": d, "para": p, "volume": v} for (d, p), v in sorted(ligacoes.items())],
@@ -201,11 +202,13 @@ def _sistema_de(alvo: str) -> str:
     return "sistema:" + SISTEMA_STONE.get(alvo.split(":", 1)[1], _PADRAO_STONE)[0]
 
 
-def _recentes(execs: list[rm.Execucao], visiveis: set[str], caminhos: dict[str, dict], provedor: str | None) -> list[dict]:
+def _recentes(s: Session, execs: list[rm.Execucao], visiveis: set[str], caminhos: dict[str, dict], provedor: str | None) -> list[dict]:
     """As últimas execuções, cada uma com o caminho que o pulso percorre: agente -> modelo -> ferramenta -> plataforma.
     `ordem` (0, 1, 2) diz em que etapa a aresta acende, para os pulsos saírem em sequência."""
     saida = []
-    for e in sorted((x for x in execs if x.agente_id in visiveis), key=lambda x: (x.inicio, x.id), reverse=True)[:RECENTES]:
+    escolhidas = sorted((x for x in execs if x.agente_id in visiveis), key=lambda x: (x.inicio, x.id), reverse=True)[:RECENTES]
+    de_rotina = ligacoes_rotina(s, [x.id for x in escolhidas])
+    for e in escolhidas:
         ano = "agente:" + e.agente_id
         usados = [registro.obter(k).chave for k in (e.por_modelo or {}) if registro.existe(k)]
         if provedor:
@@ -220,6 +223,6 @@ def _recentes(execs: list[rm.Execucao], visiveis: set[str], caminhos: dict[str, 
             arestas += [[ano, alvo, 1] for alvo in alvos]
         arestas += [[alvo, _sistema_de(alvo), 2] for alvo in alvos]
         saida.append({"id": e.id, "agente_id": e.agente_id, "agente": e.agente_nome, "status": e.status, "quando": e.inicio,
-                      "custo_brl": round(precos.usd_para_brl(e.custo_usd), 5), "rotina": bool(getattr(e, "rotina", False)),
+                      "custo_brl": round(precos.usd_para_brl(e.custo_usd), 5), "rotina": bool(e.id in de_rotina),
                       "modelos": [registro.obter(k).nome for k in usados], "demo": e.demo, "arestas": arestas})
     return saida

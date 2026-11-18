@@ -6,6 +6,7 @@ os.environ.pop("ANTHROPIC_API_KEY", None)
 os.environ["STONEFALCON_DB"] = "sqlite://"
 os.environ["STONEFALCON_SEMEAR"] = "0"
 os.environ["STONEFALCON_VIGIA"] = "0"
+os.environ["STONEFALCON_AGENDADOR"] = "0"
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
@@ -16,9 +17,11 @@ from app.core import db  # noqa: E402
 
 @pytest.fixture()
 def motor():
+    from app import rotinas
     from app.llm import balanceador
     from app.plugins import servico as plugins
     balanceador.zerar()
+    rotinas.zerar()
     m = db.criar_motor("sqlite://")
     db.usar_motor(m)
     db.criar_tabelas()
@@ -27,6 +30,7 @@ def motor():
     SQLModel.metadata.drop_all(m)
     plugins.zerar()
     balanceador.zerar()
+    rotinas.zerar()
 
 
 @pytest.fixture()

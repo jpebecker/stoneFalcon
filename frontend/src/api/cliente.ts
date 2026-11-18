@@ -108,6 +108,7 @@ export type Execucao = {
   tokens_saida: number; custo_usd: number; custo_brl: number; duracao_ms: number; duracao_estimada_ms: number;
   simulado: boolean; inicio: string; fim: string | null;
   resultado_tela?: string; passos_tela?: Record<string, RegistroPasso>;
+  rotina?: { rotina: string; origem: string } | null;
 };
 
 export type ModeloIA = {
@@ -154,6 +155,12 @@ export type MapaIA = {
   filtros: { area: string | null; provedor: string | null; areas: string[]; provedores: { id: string; nome: string }[] };
   execucoes_recentes: ExecucaoRecenteMapa[];
 };
+export type Rotina = {
+  id: string; agente_id: string; agente_nome?: string; dono: string; frequencia: "diaria" | "semanal"; dia_semana: number | null;
+  hora: number; minuto: number; descricao: string; ativa: boolean; entrada: Record<string, string>; proxima_em: string | null;
+  ultima_em: string | null; ultima_execucao_id: string | null; ultimo_resultado: string | null; pode_gerir?: boolean;
+};
+export type RelogioRotinas = { agora: string; fator: number; demo: boolean; disparadas?: unknown[] };
 export type Saude = { ok: boolean; versao: string; modo: "real" | "simulado"; modelos: Record<string, string>; cotacao_dolar: number };
 
 export type Agente = {
