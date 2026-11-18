@@ -57,9 +57,11 @@ export default function PainelRotina({ agenteId, campos, pessoa, editor }: { age
         {relogio.data?.demo && (
           <div className="flex flex-wrap items-center gap-2 text-xs text-tinta-3" aria-label="Relógio da demonstração">
             <span>Relógio da demo: <b className="text-tinta-2">{quando(relogio.data.agora)}</b></span>
+            {relogio.data.pode_mexer && <>
             <button className="botao-claro px-2 py-1 text-xs" disabled={relogioMut.isPending} onClick={() => relogioMut.mutate({ avancar_horas: 24 })}>+1 dia</button>
             <button className="botao-claro px-2 py-1 text-xs" disabled={relogioMut.isPending} onClick={() => relogioMut.mutate({ avancar_horas: 24 * 7 })}>+1 semana</button>
             <button className="text-xs font-semibold text-tinta-3 hover:text-tinta" onClick={() => relogioMut.mutate({ zerar: true })}>voltar ao normal</button>
+            </>}
           </div>
         )}
       </div>
@@ -83,9 +85,11 @@ export default function PainelRotina({ agenteId, campos, pessoa, editor }: { age
             </p>
             {r.pode_gerir && (
               <div className="mt-2 flex flex-wrap gap-2">
-                <button className="botao-pedra px-3 py-1 text-xs" disabled={agir.isPending} onClick={() => agir.mutate({ id: r.id, rota: "/rodar" })}>
-                  {agir.isPending ? "Rodando…" : "Rodar agora"}
-                </button>
+                {r.pode_rodar && (
+                  <button className="botao-pedra px-3 py-1 text-xs" disabled={agir.isPending} onClick={() => agir.mutate({ id: r.id, rota: "/rodar" })}>
+                    {agir.isPending ? "Rodando…" : "Rodar agora"}
+                  </button>
+                )}
                 {r.ativa
                   ? <button className="botao-claro px-3 py-1 text-xs" onClick={() => agir.mutate({ id: r.id, rota: "/pausar" })}>Pausar</button>
                   : <button className="botao-claro px-3 py-1 text-xs" onClick={() => agir.mutate({ id: r.id, rota: "/retomar" })}>Retomar</button>}

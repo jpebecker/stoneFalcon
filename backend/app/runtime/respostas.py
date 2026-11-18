@@ -291,7 +291,8 @@ def campo_para_ferramenta(campo: str, ferramenta: str, ctx: Contexto, titulo: st
         if "sinais de risco relevantes" in ctx.analise and campo in ("titulo", "descricao"):
             achado = re.search(r"sinais de risco relevantes em ([^:]+):", ctx.analise)
             quem = achado.group(1) if achado else "lojista"
-            return ("Triagem de chargebacks: %s" % quem) if campo == "titulo" else                 ("Análise do agente: " + ctx.analise.strip()[:380])
+            return (("Triagem de chargebacks: %s" % quem) if campo == "titulo"
+                    else ("Análise do agente: " + ctx.analise.strip()[:380]))
         if e:
             relato = str(ctx.entrada.get("relato") or ((ctx.planilha or {}).get("primeira") or {}).get("relato") or "").strip()
             if campo == "titulo":

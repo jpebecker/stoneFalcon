@@ -15,6 +15,15 @@ from sqlmodel import Session, SQLModel  # noqa: E402
 from app.core import db  # noqa: E402
 
 
+@pytest.fixture(autouse=True)
+def _balanceador_limpo():
+    """Queda simulada de provedor é estado global: nenhum teste herda a do anterior (nem os que não usam o banco)."""
+    from app.llm import balanceador
+    balanceador.zerar()
+    yield
+    balanceador.zerar()
+
+
 @pytest.fixture()
 def motor():
     from app import rotinas

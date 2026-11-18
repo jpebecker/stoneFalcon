@@ -72,12 +72,14 @@ def endereco_csv(fonte: str) -> str:
     u = urllib.parse.urlparse(fonte)
     gid = urllib.parse.parse_qs(u.query).get("gid", [None])[0]
     m = re.match(r"^/spreadsheets/d/e/([\w-]+)", u.path)       # "Publicar na web": .../d/e/<id>/pub...
+    if gid is not None and not re.fullmatch(r"\d{1,12}", gid):
+        gid = None                                              # gid é numérico; qualquer outra coisa é descartada
     if m:
-        q = "output=csv" + ("&gid=" + gid if gid else "")
+        q = urllib.parse.urlencode({"output": "csv", **({"gid": gid} if gid else {})})
         return "https://docs.google.com/spreadsheets/d/e/%s/pub?%s" % (m.group(1), q)
     m = re.match(r"^/spreadsheets/d/([\w-]+)", u.path)         # "qualquer pessoa com o link": .../d/<id>/edit
     if m:
-        q = "format=csv" + ("&gid=" + gid if gid else "")
+        q = urllib.parse.urlencode({"format": "csv", **({"gid": gid} if gid else {})})
         return "https://docs.google.com/spreadsheets/d/%s/export?%s" % (m.group(1), q)
     raise ErroPlanilha("Não reconheci o endereço da planilha do Google.")
 

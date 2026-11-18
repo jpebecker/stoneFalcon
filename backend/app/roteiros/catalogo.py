@@ -333,7 +333,7 @@ PITCH = Roteiro(
               "Apresente o problema do CoE: não enxerga o que os times criam, quanto custa nem de qual fornecedor depende.",
               "A Helena não vê o que os times estão criando, quanto custa nem de que fornecedor de IA depende. Hoje, um pedido de troca "
               "de maquininha mora numa planilha e alguém copia linha por linha. Vamos ver isso mudar em oito minutos."),
-        Passo("planilha", "Abrir a planilha de pedidos", "thiago", "/demo/planilha?perfil=thiago",
+        Passo("planilha", "Abrir a planilha de pedidos", "thiago", "/demo/planilha",
               "Mostre a planilha “Pedidos de troca de maquininha” no navegador (dados fictícios; abre em outra aba).",
               "Esta é a planilha do Thiago, aberta no navegador. No Google Sheets a grade não é texto selecionável: a extensão lê o "
               "endereço da planilha, não as células. Aqui, a versão local para ensaiar sem internet.", externa=True),

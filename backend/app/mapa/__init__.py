@@ -92,7 +92,7 @@ def grafo(s: Session, dias: int = 7, area: str | None = None, provedor: str | No
         if v is None:
             continue
         bp = Blueprint.model_validate(v.blueprint)
-        feitas = por_agente.get(a.id, [])
+        feitas = [e for e in por_agente.get(a.id, []) if _no_filtro(e, provedor)]   # volume e custo também seguem o filtro
         modelos = _modelos_do_agente(feitas, bp)
         if provedor:
             modelos = {k: u for k, u in modelos.items() if registro.obter(k).provedor == provedor}
@@ -171,7 +171,8 @@ def grafo(s: Session, dias: int = 7, area: str | None = None, provedor: str | No
                    "modelos": sum(1 for n in lista if n["tipo"] == "modelo"),
                    "plugins": sum(1 for n in lista if n["tipo"] == "plugin"),
                    "ferramentas": sum(1 for n in lista if n["tipo"] == "ferramenta"),
-                   "plataformas": sum(1 for n in lista if n["tipo"] == "sistema"), "execucoes": len(execs)},
+                   "plataformas": sum(1 for n in lista if n["tipo"] == "sistema"),
+                   "execucoes": sum(1 for e in execs if e.agente_id in visiveis and _no_filtro(e, provedor))},
         "filtros": {"area": area, "provedor": provedor, "areas": areas,
                     "provedores": [{"id": p.id, "nome": p.nome} for p in registro.PROVEDORES.values()]},
         "execucoes_recentes": recentes,
@@ -202,11 +203,19 @@ def _sistema_de(alvo: str) -> str:
     return "sistema:" + SISTEMA_STONE.get(alvo.split(":", 1)[1], _PADRAO_STONE)[0]
 
 
+def _no_filtro(e: rm.Execucao, provedor: str | None) -> bool:
+    """Com filtro de provedor, só entram execuções que usaram um modelo dele (ou que não chamaram modelo nenhum)."""
+    if not provedor or not e.por_modelo:
+        return True
+    return any(registro.existe(k) and registro.obter(k).provedor == provedor for k in e.por_modelo)
+
+
 def _recentes(s: Session, execs: list[rm.Execucao], visiveis: set[str], caminhos: dict[str, dict], provedor: str | None) -> list[dict]:
     """As últimas execuções, cada uma com o caminho que o pulso percorre: agente -> modelo -> ferramenta -> plataforma.
     `ordem` (0, 1, 2) diz em que etapa a aresta acende, para os pulsos saírem em sequência."""
     saida = []
-    escolhidas = sorted((x for x in execs if x.agente_id in visiveis), key=lambda x: (x.inicio, x.id), reverse=True)[:RECENTES]
+    escolhidas = sorted((x for x in execs if x.agente_id in visiveis and _no_filtro(x, provedor)),
+                        key=lambda x: (x.inicio, x.id), reverse=True)[:RECENTES]
     de_rotina = ligacoes_rotina(s, [x.id for x in escolhidas])
     for e in escolhidas:
         ano = "agente:" + e.agente_id

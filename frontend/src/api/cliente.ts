@@ -159,9 +159,9 @@ export type MapaIA = {
 export type Rotina = {
   id: string; agente_id: string; agente_nome?: string; dono: string; frequencia: "diaria" | "semanal"; dia_semana: number | null;
   hora: number; minuto: number; descricao: string; ativa: boolean; entrada: Record<string, string>; proxima_em: string | null;
-  ultima_em: string | null; ultima_execucao_id: string | null; ultimo_resultado: string | null; pode_gerir?: boolean;
+  ultima_em: string | null; ultima_execucao_id: string | null; ultimo_resultado: string | null; pode_gerir?: boolean; pode_rodar?: boolean;
 };
-export type RelogioRotinas = { agora: string; fator: number; demo: boolean; disparadas?: unknown[] };
+export type RelogioRotinas = { agora: string; fator: number; demo: boolean; pode_mexer?: boolean; disparadas?: unknown[] };
 export type Saude = { ok: boolean; versao: string; modo: "real" | "simulado"; modelos: Record<string, string>; cotacao_dolar: number };
 
 export type Agente = {

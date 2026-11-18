@@ -87,15 +87,17 @@ def classificar_esforco(nota: float, n_ferramentas: int, tokens_contexto: int, r
         idx, motivos = 2, ["complexidade média (%.2f)" % nota]
     else:
         idx, motivos = 1, ["texto simples (%.2f)" % nota]
+    # o risco vem antes das ferramentas: assim o resultado não depende da ordem das regras
+    # (texto médio + risco alto + 3 ferramentas dá "crítico", como texto complexo + risco alto + 3 ferramentas)
+    if risco == "alto" and idx == 2:
+        idx = 3
+        motivos.append("agente de risco alto")
     if n_ferramentas >= 3 and idx == 2:
         idx = 3
         motivos.append("usa %d ferramentas" % n_ferramentas)
     elif n_ferramentas >= 3 and idx == 3 and risco == "alto":
         idx = 4
         motivos.append("agente de risco alto com %d ferramentas" % n_ferramentas)
-    if risco == "alto" and idx == 2:
-        idx = 3
-        motivos.append("agente de risco alto")
     if tokens_contexto > LIMITE_CONTEXTO_LONGO and idx < 3:
         idx = 3
         motivos.append("contexto longo (%d mil tokens)" % (tokens_contexto // 1000))
@@ -128,6 +130,11 @@ def escolher(idx: int, *, n_ferramentas: int = 0, tokens_contexto: int = 0, econ
              so_reais: bool = False, excluir: frozenset[str] | set[str] = frozenset()) -> Escolha:
     """O modelo mais barato que atende o nível `idx` (1 a 4), com os candidatos e o motivo."""
     fora = fora_do_ar()
+    reais_fora = so_reais and any(registro.PROVEDORES[p].real for p in fora if p in registro.PROVEDORES)
+    if reais_fora:
+        # Modo real com o provedor real em queda simulada: sem isto nenhum candidato sobra e a escolha cairia de novo
+        # no Claude (emergência), ou seja, a queda não teria efeito. Delega a um provedor simulado, como no modo simulado.
+        so_reais = False
     candidatos, capazes = [], []
     for m in registro.todos():
         if m.provedor in excluir:
@@ -162,13 +169,16 @@ def escolher(idx: int, *, n_ferramentas: int = 0, tokens_contexto: int = 0, econ
         return Escolha(barato, "economia", "orçamento do mês apertado: o modelo capaz mais barato" + sufixo, candidatos)
     homologado = next((m for m in capazes if m.provedor == PROVEDOR_HOMOLOGADO), None)
     if homologado and homologado.peso <= TOLERANCIA_HOMOLOGADO * barato.peso:
-        motivo = "o mais barato capaz, e já é o provedor homologado" if homologado is barato             else "provedor homologado, a até %.0fx do mais barato capaz" % TOLERANCIA_HOMOLOGADO
+        motivo = ("o mais barato capaz, e já é o provedor homologado" if homologado is barato
+                  else "provedor homologado, a até %.0fx do mais barato capaz" % TOLERANCIA_HOMOLOGADO)
         return Escolha(homologado, "normal", motivo, candidatos)
     if homologado is None:
         motivo = ("o provedor homologado está indisponível: o mais barato capaz" if PROVEDOR_HOMOLOGADO in quedas
                   else "o provedor homologado não atende o nível: o mais barato capaz")
     else:
         motivo = "o mais barato capaz (o homologado custa mais de %.0fx)" % TOLERANCIA_HOMOLOGADO
+    if reais_fora and not registro.roda_de_verdade(barato.chave):
+        motivo += " (simulado: o provedor real está fora do ar)"
     return Escolha(barato, "delegado" if quedas else "normal", motivo + (sufixo if quedas and PROVEDOR_HOMOLOGADO not in quedas else ""), candidatos)
 
 

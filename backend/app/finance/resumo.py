@@ -43,6 +43,24 @@ def _por_provedor(fichas) -> list[dict]:
     return sorted(agrupado.values(), key=lambda x: -x["custo_brl"])
 
 
+def _custo_em(chave: str, e: rm.Execucao) -> float:
+    """Custo da execução `e` se todas as chamadas dela rodassem no modelo `chave`.
+
+    A faixa de preço (padrão ou "contexto longo") vale POR CHAMADA: cobrar os tokens somados da execução de uma vez
+    jogaria execuções com várias chamadas pequenas na faixa longa. Por isso refaz chamada a chamada, com a média de
+    tokens por chamada de cada modelo que a execução usou (é o que `por_modelo` guarda)."""
+    grupos = [v for v in (e.por_modelo or {}).values() if v.get("chamadas")]
+    if not grupos:   # execução sem detalhe por modelo: trata o total como as chamadas da execução
+        grupos = [{"chamadas": max(e.chamadas_modelo, 1), "tokens_entrada": e.tokens_entrada, "tokens_saida": e.tokens_saida}]
+    chamadas_total = sum(g["chamadas"] for g in grupos)
+    cache_por_chamada = (e.tokens_cache or 0) / chamadas_total
+    usd = 0.0
+    for g in grupos:
+        n = g["chamadas"]
+        usd += n * precos.custo_usd(chave, g.get("tokens_entrada", 0) / n, g.get("tokens_saida", 0) / n, cache_por_chamada)
+    return usd
+
+
 def comparativo(s: Session, p: Persona, dias: int = 30, modelo: str | None = None) -> dict:
     """"E se tudo rodasse em X": o mesmo consumo (tokens) do período, cobrado pela tabela de cada modelo."""
     agentes = _agentes_visiveis(s, p)
@@ -51,7 +69,7 @@ def comparativo(s: Session, p: Persona, dias: int = 30, modelo: str | None = Non
     alvos = [registro.obter(modelo)] if modelo else registro.todos()
     cenarios = []
     for m in alvos:
-        usd = sum(precos.custo_usd(m.chave, e.tokens_entrada, e.tokens_saida, e.tokens_cache) for e in execs)
+        usd = sum(_custo_em(m.chave, e) for e in execs)
         cenarios.append({"chave": m.chave, "modelo": m.nome, "provedor": m.provedor,
                          "provedor_nome": registro.PROVEDORES[m.provedor].nome, "simulado": not registro.roda_de_verdade(m.chave),
                          "custo_brl": round(brl(usd), 2),

@@ -40,7 +40,9 @@
 </main>
 <aside id="sf-reserva" aria-label="Painel do StoneFalcon"><button id="sf-fechar" type="button">Fechar</button><iframe title="StoneFalcon" id="sf-quadro"></iframe></aside>
 <script>
-const url = new URLSearchParams(location.search);
+// Perfil: o mesmo em que o hub está logado neste navegador (mesma origem). Nunca vem do endereço: abrir
+// /demo/planilha?perfil=... não troca o perfil de ninguém, como no resto da plataforma.
+function perfilDoHub() { try { return localStorage.getItem("stonefalcon.perfil") || ""; } catch (e) { return ""; } }
 const fonte = { tipo: "planilha", url: location.origin + "/demo/planilha", titulo: document.title };
 fetch("/api/v1/demo/planilha").then((r) => r.json()).then((p) => {
   const cab = document.getElementById("cab"), corpo = document.getElementById("corpo");
@@ -65,7 +67,8 @@ window.addEventListener("message", (e) => {
   if (d.tipo === "pronto") { quadroPronto = true; avisarPlanilha(); }
   // "Criar Agente de IA": sem a extensão, esta página faz o papel dela (passe de uso único, Estúdio numa aba nova)
   if (d.tipo === "criar-agente") {
-    const perfil = url.get("perfil") || "";
+    const perfil = perfilDoHub();
+    if (!perfil) { alert("Entre no StoneFalcon com o seu perfil (nesta mesma janela do navegador) e tente de novo."); return; }
     fetch("/api/v1/extensao/passe", { method: "POST", headers: { "Content-Type": "application/json", "X-Usuario": perfil },
       body: JSON.stringify({ trecho: String(d.trecho || "").slice(0, 8000), fonte: d.fonte || fonte }) })
       .then((r) => r.ok ? r.json() : Promise.reject(r.status))
@@ -75,8 +78,7 @@ window.addEventListener("message", (e) => {
 });
 document.getElementById("sf-abrir").onclick = () => {
   reserva.style.display = "block"; principal.classList.add("com-painel");
-  const perfil = url.get("perfil") || "";
-  if (!quadro.src) quadro.src = "/extensao" + (perfil ? "?" + new URLSearchParams({ perfil }) : "");
+  if (!quadro.src) quadro.src = "/extensao";   // a moldura usa o perfil do hub (mesma origem)
   else if (quadroPronto) avisarPlanilha();
 };
 document.getElementById("sf-fechar").onclick = () => { reserva.style.display = "none"; principal.classList.remove("com-painel"); };

@@ -8,6 +8,7 @@ isso sem esperar até segunda-feira. Reiniciar a demo apaga as agendas e volta o
 from __future__ import annotations
 
 import json
+import logging
 import threading
 import time
 import uuid
@@ -29,6 +30,7 @@ from .modelos import Rotina, RotinaExecucao
 DIAS = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"]
 _FEMININO = {0, 1, 2, 3, 4}          # "toda segunda", mas "todo sábado"
 MAX_POR_AGENTE = 10
+_log = logging.getLogger("stonefalcon.rotinas")
 FREQUENCIAS = ("diaria", "semanal")
 
 
@@ -124,6 +126,25 @@ def _pode_gerir(p: Persona, r: Rotina, a: am.Agente) -> bool:
     return p.id == r.dono or p.id == a.dono or (p.tem(CRIADOR) and p.area == a.area)
 
 
+def _pode_rodar(p: Persona, r: Rotina) -> bool:
+    return p.id == r.dono
+
+
+def _agente(s: Session, agente_id: str) -> am.Agente:
+    """Agente da rotina; erro do ciclo vira erro de rotina (a API só converte ErroRotina em resposta HTTP)."""
+    try:
+        return ciclo.obter(s, agente_id)
+    except ciclo.ErroCiclo as e:
+        raise ErroRotina(str(e), e.status)
+
+
+def _exigir_gestao(s: Session, p: Persona, r: Rotina, acao: str = "gerem") -> am.Agente:
+    a = _agente(s, r.agente_id)
+    if not _pode_gerir(p, r, a):
+        raise ErroRotina("Só quem agendou ou os criadores da área %s esta rotina." % acao, 403)
+    return a
+
+
 def _salvar(s: Session, r: Rotina) -> None:
     with trava:
         s.add(r)
@@ -142,10 +163,7 @@ def criar(s: Session, pessoa: Persona, agente_id: str, frequencia: str, dia_sema
         raise ErroRotina("Escolha o dia da semana.", 422)
     if not (0 <= hora <= 23 and 0 <= minuto <= 59):
         raise ErroRotina("Horário inválido.", 422)
-    try:
-        a = ciclo.obter(s, agente_id)
-    except ciclo.ErroCiclo as e:
-        raise ErroRotina(str(e), e.status)
+    a = _agente(s, agente_id)
     if a.estado != am.PUBLICADO:
         raise ErroRotina("Só agentes publicados têm rotina.", 409)
     if not (pessoa.tem(CRIADOR) and ciclo.pode_executar(pessoa, a)):
@@ -172,8 +190,7 @@ def criar(s: Session, pessoa: Persona, agente_id: str, frequencia: str, dia_sema
 
 def pausar(s: Session, pessoa: Persona, rotina_id: str) -> Rotina:
     r = _obter(s, rotina_id)
-    if not _pode_gerir(pessoa, r, ciclo.obter(s, r.agente_id)):
-        raise ErroRotina("Só quem agendou ou os criadores da área gerem esta rotina.", 403)
+    _exigir_gestao(s, pessoa, r)
     r.ativa, r.proxima_em = False, None
     _salvar(s, r)
     trilha.registrar(s, "rotina_pausada", pessoa.id, r.agente_id, {"rotina": r.id, "agenda": descricao(r)})
@@ -182,8 +199,7 @@ def pausar(s: Session, pessoa: Persona, rotina_id: str) -> Rotina:
 
 def retomar(s: Session, pessoa: Persona, rotina_id: str) -> Rotina:
     r = _obter(s, rotina_id)
-    if not _pode_gerir(pessoa, r, ciclo.obter(s, r.agente_id)):
-        raise ErroRotina("Só quem agendou ou os criadores da área gerem esta rotina.", 403)
+    _exigir_gestao(s, pessoa, r)
     r.ativa = True
     r.proxima_em = proxima_depois(r, relogio.agora()).isoformat()
     _salvar(s, r)
@@ -193,8 +209,7 @@ def retomar(s: Session, pessoa: Persona, rotina_id: str) -> Rotina:
 
 def remover(s: Session, pessoa: Persona, rotina_id: str) -> None:
     r = _obter(s, rotina_id)
-    if not _pode_gerir(pessoa, r, ciclo.obter(s, r.agente_id)):
-        raise ErroRotina("Só quem agendou ou os criadores da área gerem esta rotina.", 403)
+    _exigir_gestao(s, pessoa, r)
     agente_id, agenda = r.agente_id, descricao(r)
     with trava:
         s.delete(r)
@@ -213,6 +228,7 @@ def listar(s: Session, pessoa: Persona, agente_id: str | None = None) -> list[di
             d = publica(s, r)
             d["agente_nome"] = a.nome
             d["pode_gerir"] = _pode_gerir(pessoa, r, a)
+            d["pode_rodar"] = _pode_rodar(pessoa, r)
             saida.append(d)
     return saida
 
@@ -250,8 +266,12 @@ def disparar(s: Session, r: Rotina, origem: str = "agenda", por: Persona | None 
 
 def rodar_agora(s: Session, pessoa: Persona, rotina_id: str) -> dict:
     r = _obter(s, rotina_id)
-    if not _pode_gerir(pessoa, r, ciclo.obter(s, r.agente_id)):
-        raise ErroRotina("Só quem agendou ou os criadores da área rodam esta rotina.", 403)
+    _exigir_gestao(s, pessoa, r, "rodam")
+    # a execução usa as permissões (e a classificação de acesso) de QUEM AGENDOU e devolve o detalhe dela: se outra
+    # pessoa pudesse disparar, "Rodar agora" viraria um jeito de agir e ler com o acesso de outra pessoa
+    if not _pode_rodar(pessoa, r):
+        raise ErroRotina("Só quem agendou a rotina roda agora (ela executa com as permissões dessa pessoa). "
+                         "Os outros criadores da área podem pausar, retomar ou remover.", 403)
     return disparar(s, r, "manual", pessoa)
 
 
@@ -265,7 +285,17 @@ def tick(s: Session, agora: datetime | None = None) -> list[dict]:
         for r in sorted(vencidas, key=lambda x: x.proxima_em or ""):
             r.proxima_em = proxima_depois(r, momento).isoformat()   # avança ANTES de rodar: nunca dispara duas vezes
             _salvar(s, r)
-            feitas.append({"rotina": r.id, **disparar(s, r, "agenda")})
+            try:
+                feitas.append({"rotina": r.id, **disparar(s, r, "agenda")})
+            except Exception as e:   # uma rotina com defeito não impede as outras do mesmo tick
+                _log.exception("Falha ao disparar a rotina %s", r.id)
+                s.rollback()
+                motivo = "falhou: %s" % (str(e) or type(e).__name__)
+                r = _obter(s, r.id)
+                r.ultima_em, r.ultimo_resultado, r.ultima_execucao_id = momento.isoformat(), motivo, None
+                _salvar(s, r)
+                trilha.registrar(s, "rotina_pulada", "sistema", r.agente_id, {"rotina": r.id, "origem": "agenda", "motivo": motivo})
+                feitas.append({"rotina": r.id, "execucao": None, "status": "pulada", "motivo": motivo})
         return feitas
 
 

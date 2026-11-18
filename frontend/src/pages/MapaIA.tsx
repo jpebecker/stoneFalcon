@@ -220,7 +220,7 @@ function RelogioDemo() {
     mutationFn: (corpo: { avancar_horas?: number; zerar?: boolean }) => api<RelogioRotinas>("/rotinas/relogio", corpo),
     onSuccess: (r) => { qc.setQueryData(["relogio-rotinas"], r); qc.invalidateQueries({ queryKey: ["mapa"] }); qc.invalidateQueries({ queryKey: ["execucoes"] }); },
   });
-  if (!relogio.data?.demo) return null;
+  if (!relogio.data?.demo || !relogio.data.pode_mexer) return null;
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs text-tinta-3" aria-label="Relógio da demonstração">
       <span>Relógio da demo: <b className="text-tinta-2">{new Date(relogio.data.agora).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</b></span>

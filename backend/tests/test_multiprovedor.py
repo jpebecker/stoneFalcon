@@ -1,7 +1,6 @@
 """v7/05: modelos de outros provedores no Estúdio e em Finanças (simulados, sempre)."""
 import pytest
 
-from app.agents.blueprint import Blueprint
 from app.llm import precos, registro
 from app.seed import historico
 from app.seed.demo import semear

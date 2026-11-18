@@ -101,8 +101,8 @@ def estimar_custo(bp: Blueprint) -> Estimativa:
 # ---------- duração estimada (caminho crítico) ----------
 
 def estimar_duracao_ms(bp: Blueprint) -> int:
-    risco = avaliar_risco(bp).nivel
     """Tempo do caminho crítico: passos da mesma camada rodam juntos, então cada camada custa o mais lento."""
+    risco = avaliar_risco(bp).nivel
     def duracao(p) -> int:
         if p.tipo == "ferramenta":
             return CATALOGO[p.ferramenta].latencia_ms

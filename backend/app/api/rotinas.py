@@ -8,7 +8,7 @@ from sqlmodel import Session
 from .. import rotinas
 from ..core import config
 from ..core.db import sessao
-from ..core.identidade import Persona, usuario_atual
+from ..core.identidade import CRIADOR, GESTOR_IA, Persona, usuario_atual
 from ..rotinas import ErroRotina
 from .execucoes import _publico
 
@@ -47,12 +47,17 @@ def todas(pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)
 
 
 @rotas.get("/rotinas/relogio")
-def relogio(_p: Persona = Depends(usuario_atual)):
-    return _relogio()
+def relogio(pessoa: Persona = Depends(usuario_atual)):
+    return _relogio(pessoa)
 
 
-def _relogio() -> dict:
-    return {"agora": rotinas.relogio.agora().isoformat(), "fator": rotinas.relogio.fator, "demo": config.MODO_DEMO}
+def pode_mexer_no_relogio(p: Persona) -> bool:
+    return p.tem(GESTOR_IA) or p.tem(CRIADOR)
+
+
+def _relogio(pessoa: Persona) -> dict:
+    return {"agora": rotinas.relogio.agora().isoformat(), "fator": rotinas.relogio.fator, "demo": config.MODO_DEMO,
+            "pode_mexer": config.MODO_DEMO and pode_mexer_no_relogio(pessoa)}
 
 
 class PedidoRelogio(BaseModel):
@@ -62,10 +67,13 @@ class PedidoRelogio(BaseModel):
 
 
 @rotas.post("/rotinas/relogio")
-def mexer_no_relogio(pedido: PedidoRelogio, _p: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
-    """Relógio acelerado da demonstração: avança no tempo e já dispara o que venceu (sem esperar a segunda-feira)."""
+def mexer_no_relogio(pedido: PedidoRelogio, pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
+    """Relógio acelerado da demonstração: avança no tempo e já dispara o que venceu (sem esperar a segunda-feira).
+    Mexe na agenda de todo mundo: só o CoE de IA e os criadores (quem agenda rotinas)."""
     if not config.MODO_DEMO:
         raise HTTPException(status_code=403, detail="O relógio acelerado só existe no modo demonstração.")
+    if not pode_mexer_no_relogio(pessoa):
+        raise HTTPException(status_code=403, detail="Só o CoE de IA e os criadores mexem no relógio da demonstração.")
     if pedido.zerar:
         rotinas.relogio.zerar()
     if pedido.fator is not None:
@@ -73,7 +81,7 @@ def mexer_no_relogio(pedido: PedidoRelogio, _p: Persona = Depends(usuario_atual)
     if pedido.avancar_horas:
         from datetime import timedelta
         rotinas.relogio.avancar(timedelta(hours=pedido.avancar_horas))
-    return {**_relogio(), "disparadas": rotinas.tick(s)}
+    return {**_relogio(pessoa), "disparadas": rotinas.tick(s)}
 
 
 @rotas.post("/rotinas/{rotina_id}/pausar")

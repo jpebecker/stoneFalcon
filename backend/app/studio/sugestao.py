@@ -284,7 +284,9 @@ def sugerir(pessoa: Persona, descricao: str, simulado: bool | None = None, fonte
                        % ", ".join("%d %s" % (r["quantidade"], r["rotulo"]) for r in resumo))
     custo_usd = 0.0
     planilha = _fonte_planilha(fonte)
-    real = (planilha is None) and ((simulado is False) or (simulado is None and not isinstance(obter_cliente(), ClienteSimulado)))
+    # o modelo real fica disponível mesmo com fonte de planilha: se o plugin Sheets não estiver integrado, o pedido
+    # segue o caminho normal (modelo real com chave, senão o simulado) em vez de cair direto no agente básico
+    real = (simulado is False) or (simulado is None and not isinstance(obter_cliente(), ClienteSimulado))
     dados = None
     origem = "modelo"
     if planilha:
