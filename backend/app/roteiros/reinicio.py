@@ -34,7 +34,14 @@ def _versao_em_revisao(s: Session) -> None:
     ciclo.publicar(s, rafael, agente.id)   # risco alto: vai para a revisão da Segurança
 
 
-PREPARAR = {"versao_em_revisao": _versao_em_revisao}
+def _pitch(s: Session) -> None:
+    """Pitch v7: os plugins que o agente da planilha usa (Google Sheets e Slack) já estão integrados pelo Thiago,
+    para a demonstração seguir direto ao ponto. Planilha local, agenda, balanceador e relógio nascem como no início."""
+    for plugin in ("sheets", "slack"):
+        plugins.integrar(s, PERSONAS["thiago"], plugin, "Preparado antes do pitch.")
+
+
+PREPARAR = {"versao_em_revisao": _versao_em_revisao, "pitch": _pitch}
 
 
 def reiniciar(s: Session | None = None, roteiro_id: str | None = None) -> dict:

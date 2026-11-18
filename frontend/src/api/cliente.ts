@@ -244,7 +244,8 @@ export type Indicadores = {
 // ---------- roteiros e Perguntas da Ferramenta ----------
 export type PassoRoteiro = {
   id: string; titulo: string; perfil: string; rota: string; acao: string; fala: string;
-  preenche: { descricao?: string; entrada?: Record<string, string>; parecer?: string }; externa: boolean;
+  preenche: { descricao?: string; entrada?: Record<string, string>; parecer?: string; fonte?: { tipo: string; url: string };
+    frequencia?: "semanal" | "diaria"; dia_semana?: number; hora?: string }; externa: boolean;
 };
 
 export type AsIs = { minutos: number; hipotese: boolean; dor: string; passos: string[]; erros: string[] };
@@ -255,7 +256,7 @@ export type Roteiro = {
   as_is: AsIs; to_be: ToBe; valor: string[]; agente_nome: string | null; passos: PassoRoteiro[]; persona_dados: Persona;
 };
 
-export type ResumoRoteiro = { id: string; persona: string; titulo: string; processo: string; resumo: string; duracao_min: number; passos: number };
+export type ResumoRoteiro = { id: string; persona: string; titulo: string; processo: string; resumo: string; duracao_min: number; passos: number; apresentacao?: boolean };
 
 export type LinhaResultado = {
   criterio: string; unidade: string; as_is: number | null; to_be: number | null; delta_pct: number | null;
@@ -267,6 +268,7 @@ export type ResultadoRoteiro = {
   execucao: { id: string; status: string; custo_brl: number; duracao_min: number; simulado: boolean } | null;
   origem: "medido" | "estimado"; linhas: LinhaResultado[]; ganho_por_tarefa_brl: number; aviso: string | null;
   indicadores: { nome: string; valor: number | null; unidade: string; origem: string; detalhe: string }[];
+  rotina?: { agendas: string[]; execucoes_feitas: number; execucoes_por_mes: number; ganho_mensal_brl: number; origem: string } | null;
 };
 
 export type Consolidado = {

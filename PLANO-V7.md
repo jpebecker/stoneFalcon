@@ -254,13 +254,13 @@ bastaram). Verificado com testes automáticos (rede simulada) e na tela com a p�
 
 **Bloqueado por:** 06, 08, 10.
 
-**Status:** ready-for-agent
+**Status:** feito (tempo por estimativa; falta cronometrar ao vivo, pendência 2)
 
-- [ ] O roteiro roda do início ao fim sem digitar nada além do roteiro e sem chave da API, com a troca Thiago → Helena.
-- [ ] Reiniciar o roteiro devolve a planilha, o plugin, a agenda e o balanceador ao estado inicial.
-- [ ] O texto do pitch cabe no tempo combinado (ver pendência 2) e marca onde cada recurso da v7 aparece.
-- [ ] Há um plano B para cada passo que depende do navegador ou da internet (planilha local, helpdesk fictício).
-- [ ] A aba Perguntas da Ferramenta ganha 2 a 3 perguntas novas (multiprovedor, mapa ao vivo, rotina), com "Mostrar na tela" funcionando.
+- [x] O roteiro roda do início ao fim sem digitar nada além do roteiro e sem chave da API, com a troca Thiago → Helena.
+- [x] Reiniciar o roteiro devolve a planilha, o plugin, a agenda e o balanceador ao estado inicial.
+- [x] O texto do pitch cabe no tempo combinado (ver pendência 2) e marca onde cada recurso da v7 aparece.
+- [x] Há um plano B para cada passo que depende do navegador ou da internet (planilha local, helpdesk fictício).
+- [x] A aba Perguntas da Ferramenta ganha 2 a 3 perguntas novas (multiprovedor, mapa ao vivo, rotina), com "Mostrar na tela" funcionando.
 
 ### 12: `iniciar.bat` e `iniciar.sh` validados para a v7
 

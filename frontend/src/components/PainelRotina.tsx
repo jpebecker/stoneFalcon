@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { api, type Campo, type Persona, type RelogioRotinas, type Rotina } from "../api/cliente";
 import CampoEntrada from "./CampoEntrada";
+import { usePreenche } from "../roteiro/estado";
 import { quando } from "./formato";
 
 const DIAS = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"];
@@ -12,10 +13,11 @@ export default function PainelRotina({ agenteId, campos, pessoa, editor }: { age
   const qc = useQueryClient();
   const rotinas = useQuery({ queryKey: ["rotinas", agenteId], queryFn: () => api<Rotina[]>(`/agentes/${agenteId}/rotinas`), refetchInterval: 5000 });
   const relogio = useQuery({ queryKey: ["relogio-rotinas"], queryFn: () => api<RelogioRotinas>("/rotinas/relogio"), refetchInterval: 3000 });
-  const [freq, setFreq] = useState<"semanal" | "diaria">("semanal");
-  const [dia, setDia] = useState(0);
-  const [hora, setHora] = useState("09:00");
-  const [entrada, setEntrada] = useState<Record<string, string>>({});
+  const pre = usePreenche("rotina");   // roteiro guiado: a agenda do passo já vem preenchida
+  const [freq, setFreq] = useState<"semanal" | "diaria">(pre?.frequencia ?? "semanal");
+  const [dia, setDia] = useState(typeof pre?.dia_semana === "number" ? pre.dia_semana : 0);
+  const [hora, setHora] = useState(pre?.hora ?? "09:00");
+  const [entrada, setEntrada] = useState<Record<string, string>>(pre?.entrada ?? {});
   const [aviso, setAviso] = useState<string | null>(null);
 
   const recarregar = () => {

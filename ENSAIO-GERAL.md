@@ -44,6 +44,28 @@ Cada linha é um roteiro iniciado pela tela “Quem é você hoje?” (botão **
 
 Se a duração do pitch for menor, corte nesta ordem: Plugins, Lucas, Helena (fica só o painel), Rafael (fica até a pausa para confirmação). A Marina é a bala traçante e não sai.
 
+## 3b. Pitch v7: demonstração integrada (≈ 9 minutos)
+
+Na aba **Roteiros** (como Helena) o cartão **Pitch v7** (selo “pitch”) inicia o roteiro `pitch`: ele reinicia a plataforma, deixa o Google Sheets e o Slack
+já integrados pelo Thiago e **troca de perfil sozinho** (Helena → Thiago → Helena). Nada é digitado e não precisa de chave nem de internet. A fala de cada
+passo marca com **[v7: …]** onde cada recurso novo aparece; a barra mostra a fala com o botão **Fala**.
+
+| Tempo | Perfil | Tela | Recurso da v7 | Plano B |
+|---|---|---|---|---|
+| 0:00 | Helena | Contexto do pitch | a dor: o CoE não enxerga o que os times criam | — |
+| 0:45 | Thiago | `/demo/planilha` (outra aba) | planilha aberta no navegador | a planilha **já é a local** (sem internet); no Google real, só o endereço da aba é lido |
+| 1:30 | Thiago | Estúdio com a planilha como fonte | atalho **Criar Agente de IA** (extensão) | sem a extensão, a própria página da planilha abre o painel (botão “Abrir o StoneFalcon”) |
+| 2:30 | Thiago | Sandbox: “Como o agente decidiu” | **vários provedores + balanceador** | o simulador responde igual sempre |
+| 3:30 | Thiago | Publicar | — | — |
+| 4:00 | Thiago | Página do agente: **Rotina** + Rodar agora | **tarefa de rotina** (toda segunda às 9h) | o relógio da demo (+1 semana) dispara sem esperar |
+| 5:00 | Helena | **Mapa de IA** (+1 semana no relógio) | **mapa ao vivo** com pulso | se o pulso não aparecer, a linha do tempo ao lado mostra a execução com o selo “rotina” |
+| 6:15 | Helena | Saúde: **Simular queda** no Claude + **Simular carga** | queda de provedor e balanceador | “Reiniciar” da barra desfaz |
+| 7:30 | Helena | Finanças | gasto por provedor e “e se tudo rodasse em X” | histórico de demonstração já tem vários provedores |
+| 8:15 | Helena | Cartão AS IS × TO BE do Thiago | a rotina semanal conta no ganho | — |
+
+Atenção: **só o Claude roda de verdade; os outros provedores são simulados** (selo “simulado” em toda tela). O teste automático do roteiro é `tests/test_pitch.py`.
+O tempo acima é uma **estimativa por contagem de palavras e cliques** (a fala corrida soma menos de 5 min), ainda não cronometrada ao vivo (pendência 2 do plano da v7).
+
 ## 4. Plano B
 
 | Problema | O que fazer |

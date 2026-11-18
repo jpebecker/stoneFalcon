@@ -20,15 +20,18 @@ from ..llm import precos
 from ..runtime import modelos as rm
 from ..seed.agentes_exemplo import DUVIDA_LOJISTA, TRIAGEM_CHARGEBACK
 from ..studio.modelos_prontos import por_id
+from ..studio.sugestao import blueprint_planilha
 from .catalogo import ROTEIROS, Roteiro
 
-PROCESSOS = ("marina", "rafael", "carla", "thiago")
+PROCESSOS = ("marina", "rafael", "carla", "thiago")      # os quatro processos do consolidado da Helena
+COM_TAREFA = PROCESSOS + ("pitch",)               # roteiros com cartão AS IS × TO BE
 
 
 def _padrao(roteiro_id: str) -> Blueprint:
     return {"marina": DUVIDA_LOJISTA, "rafael": TRIAGEM_CHARGEBACK,
             "carla": Blueprint.model_validate(por_id("ferias_colaborador")["blueprint"]),
-            "thiago": Blueprint.model_validate(por_id("troca_maquininha_estoque")["blueprint"])}[roteiro_id]
+            "thiago": Blueprint.model_validate(por_id("troca_maquininha_estoque")["blueprint"]),
+            "pitch": Blueprint.model_validate(blueprint_planilha("local:pedidos-troca"))}[roteiro_id]
 
 
 def _agente(s: Session, r: Roteiro, agente_id: str | None) -> am.Agente | None:
@@ -113,8 +116,28 @@ def _indicadores_governanca(s: Session, r: Roteiro) -> list[dict]:
     ]
 
 
+EXECUCOES_POR_MES = {"semanal": 52 / 12, "diaria": 365 / 12}     # premissa: a rotina roda em todas as semanas e dias
+
+
+def _rotina(s: Session, agente: am.Agente | None, ganho_por_tarefa: float) -> dict | None:
+    """A rotina semanal conta no ganho: cada disparo sozinho é uma tarefa feita sem ninguém iniciar (premissa a validar)."""
+    if agente is None:
+        return None
+    from ..rotinas import descricao
+    from ..rotinas.modelos import Rotina, RotinaExecucao
+    rotinas = s.exec(select(Rotina).where(Rotina.agente_id == agente.id)).all()
+    if not rotinas:
+        return None
+    ativas = [r for r in rotinas if r.ativa]
+    feitas = s.exec(select(RotinaExecucao).where(RotinaExecucao.rotina_id.in_([r.id for r in rotinas]))).all()
+    por_mes = sum(EXECUCOES_POR_MES[r.frequencia] for r in ativas)
+    return {"agendas": [descricao(r) for r in ativas], "execucoes_feitas": len(feitas), "execucoes_por_mes": round(por_mes, 1),
+            "ganho_mensal_brl": round(ganho_por_tarefa * por_mes, 2),
+            "origem": "premissa (a rotina roda em todas as semanas; cada disparo vale uma tarefa sem ninguém iniciar)"}
+
+
 def resultado(s: Session, r: Roteiro, agente_id: str | None = None) -> dict:
-    if r.id not in PROCESSOS:
+    if r.id not in COM_TAREFA:
         return {"roteiro": r.id, "titulo": r.titulo, "processo": r.processo, "agente": None, "execucao": None,
                 "origem": "medido", "linhas": [], "ganho_por_tarefa_brl": 0.0, "aviso": None,
                 "indicadores": _indicadores_governanca(s, r)}
@@ -151,6 +174,7 @@ def resultado(s: Session, r: Roteiro, agente_id: str | None = None) -> dict:
         "execucao": ({"id": exe.id, "status": exe.status, "custo_brl": round(exe.custo_usd * precos.usd_para_brl(1.0), 4),
                       "duracao_min": round(n["agente_min"], 3), "simulado": exe.simulado} if exe else None),
         "origem": n["origem"], "linhas": linhas, "ganho_por_tarefa_brl": round(ganho, 2), "indicadores": [],
+        "rotina": _rotina(s, n["agente"], ganho),
         "aviso": ("Números medidos no modo simulado: o tempo é o caminho crítico das latências típicas e os tokens são estimados."
                   if (exe is not None and exe.simulado) else None),
     }

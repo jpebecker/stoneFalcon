@@ -80,7 +80,7 @@ def _fim(api, roteiro_id: str, agente_id: str | None = None):
     assert tempo["to_be"] < tempo["as_is"]
     assert "medido" in tempo["origem_to_be"] and tempo["origem_as_is"] == "hipótese"
     perguntas = api.get(f"{V1}/perguntas", params={"persona": persona}, headers=como("helena")).json()["perguntas"]
-    assert 3 <= len(perguntas) <= 5
+    assert 3 <= len(perguntas) <= 8
     assert all(q["resposta"] and q["prova"]["rota"] for q in perguntas)
     return res
 
@@ -260,7 +260,7 @@ def test_roteiro_helena(api):
                     **cons["processos"][0]["calculadora"]}, headers=como("helena"))
     assert calc.status_code == 200 and calc.json()["roi"] is not None
     res = api.get(f"{V1}/perguntas", params={"persona": "helena"}, headers=como("helena")).json()
-    assert 3 <= len(res["perguntas"]) <= 5
+    assert 3 <= len(res["perguntas"]) <= 8
     assert [p.id for p in ROTEIROS["helena"].passos][-2:] == ["medir", "perguntas"]
 
 
@@ -274,7 +274,7 @@ def test_estrutura_dos_roteiros(api, rid):
     assert "medir" in [p.id for p in r.passos] and "banca" not in [p.id for p in r.passos]
     assert len({p.id for p in r.passos}) == len(r.passos)
     perguntas = [q for q in PERGUNTAS if q["persona"] == rid]
-    assert 3 <= len(perguntas) <= 5
+    assert (len(perguntas) == 0) if r.apresentacao else (3 <= len(perguntas) <= 8)    # o pitch usa as perguntas da Helena e do Thiago
     d = api.get(f"{V1}/roteiros/{rid}", headers=como(r.persona)).json()
     assert d["persona_dados"]["id"] == r.persona
 

@@ -6,10 +6,10 @@ import {
   type Edge, type EdgeProps, type Node, type NodeProps,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { api, type ExecucaoRecenteMapa, type MapaIA, type NoMapa } from "../api/cliente";
+import { api, type ExecucaoRecenteMapa, type MapaIA, type NoMapa, type RelogioRotinas } from "../api/cliente";
 import { COR_STATUS, NOME_STATUS, num, reais } from "../components/formato";
 
 const INTERVALO_MS = 2500;      // consulta curta (padrão de Saúde e da página do plugin); sem infraestrutura nova
@@ -212,6 +212,25 @@ function LinhaDoTempoMapa({ itens }: { itens: ExecucaoRecenteMapa[] }) {
   );
 }
 
+/** Relógio da demonstração: avançar o tempo faz as rotinas vencidas dispararem sozinhas (e o pulso aparece no mapa). */
+function RelogioDemo() {
+  const qc = useQueryClient();
+  const relogio = useQuery({ queryKey: ["relogio-rotinas"], queryFn: () => api<RelogioRotinas>("/rotinas/relogio"), refetchInterval: 4000 });
+  const mover = useMutation({
+    mutationFn: (corpo: { avancar_horas?: number; zerar?: boolean }) => api<RelogioRotinas>("/rotinas/relogio", corpo),
+    onSuccess: (r) => { qc.setQueryData(["relogio-rotinas"], r); qc.invalidateQueries({ queryKey: ["mapa"] }); qc.invalidateQueries({ queryKey: ["execucoes"] }); },
+  });
+  if (!relogio.data?.demo) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-xs text-tinta-3" aria-label="Relógio da demonstração">
+      <span>Relógio da demo: <b className="text-tinta-2">{new Date(relogio.data.agora).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</b></span>
+      <button className="botao-claro px-2 py-1 text-xs" disabled={mover.isPending} onClick={() => mover.mutate({ avancar_horas: 24 })}>+1 dia</button>
+      <button className="botao-claro px-2 py-1 text-xs" disabled={mover.isPending} onClick={() => mover.mutate({ avancar_horas: 24 * 7 })}>+1 semana</button>
+      <button className="text-xs font-semibold text-tinta-3 hover:text-tinta" onClick={() => mover.mutate({ zerar: true })}>voltar ao normal</button>
+    </div>
+  );
+}
+
 export default function MapaIAPagina() {
   const [area, setArea] = useState("");
   const [provedor, setProvedor] = useState("");
@@ -252,6 +271,7 @@ export default function MapaIAPagina() {
             {m?.filtros.provedores.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
           </select>
         </label>
+        <RelogioDemo />
         {(area || provedor) && <button className="text-xs font-semibold text-pedra-forte" onClick={() => { setArea(""); setProvedor(""); }}>limpar filtros</button>}
         {m && (
           <span className="selo ml-auto bg-pedra-fundo text-pedra-forte">

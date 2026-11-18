@@ -116,7 +116,8 @@ def _com_plugins(pessoa: Persona, dados: dict, descricao: str, origem: str) -> l
         return ["Você falou em avisar um canal do Slack, mas o plugin do Slack ainda não está integrado. "
                 "Integre-o na aba Plugins e descreva o processo de novo."]
     dados["passos"].append({
-        "id": "canal", "titulo": "Avisar o canal da logística", "tipo": "agente", "modelo": "rapido",
+        "id": "canal", "titulo": "Avisar o canal da logística", "tipo": "agente",
+        "modelo": "auto" if origem == "planilha" else "rapido",
         "depende_de": ["chamado", "cadastro", "estoque"], "ferramentas": ["slack_enviar_mensagem"],
         "instrucao": "Publique no canal #logistica um aviso curto com o modelo, o protocolo do chamado e a situação do estoque."})
     return []

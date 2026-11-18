@@ -139,7 +139,7 @@ export default function Estudio({ pessoa }: { pessoa: Persona }) {
           <div className="mt-3 flex items-center justify-between gap-3">
             <p className="text-xs text-tinta-3">Dados pessoais escritos aqui são removidos antes de qualquer envio.</p>
             <button className="botao-pedra" disabled={descricao.trim().length < 15 || sugerir.isPending}
-              onClick={() => sugerir.mutate({ d: descricao })}>
+              onClick={() => sugerir.mutate({ d: descricao, fonte: pre?.fonte ?? null })}>
               {sugerir.isPending ? "Montando o agente…" : "Montar meu agente"}
             </button>
           </div>
