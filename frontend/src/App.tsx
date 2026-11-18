@@ -27,6 +27,7 @@ import Roteiros from "./pages/Roteiros";
 import PaginaSaude from "./pages/Saude";
 import { BarraRoteiro, ProvedorRoteiro } from "./roteiro/Controle";
 import { useEstadoRoteiro } from "./roteiro/estado";
+import { versaoCurta } from "./components/formato";
 
 // O menu e as rotas só leem `pessoa.abas`, que vem do back (a fonte da verdade do acesso por perfil).
 const NAV: { aba: string; para: string; rotulo: string }[] = [
@@ -151,6 +152,7 @@ export default function App() {
             ))}
           </nav>
           <p className="mt-auto text-xs leading-relaxed text-white/45">
+            <span className="mb-1 block font-semibold text-white/70" data-testid="versao">StoneFalcon {saude.data ? versaoCurta(saude.data.versao) : ""}</span>
             Protótipo acadêmico (UFSC) para o desafio StoneLab. Não é um produto oficial da Stone. Pessoas e dados são fictícios.
           </p>
         </aside>

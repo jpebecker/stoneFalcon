@@ -1,5 +1,8 @@
 const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 4 });
 
+/** "7.0.0" -> "7.0", como a versão aparece para as pessoas. */
+export const versaoCurta = (v: string) => v.split(".").slice(0, 2).join(".");
+
 export const reais = (v: number) => moeda.format(v);
 export const ms = (v: number) => (v >= 1000 ? (v / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + " s" : v + " ms");
 export const quando = (iso: string) => new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });

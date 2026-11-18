@@ -1,6 +1,6 @@
 [project]
 name = "stonefalcon"
-version = "4.0.0"
+version = "7.0.0"
 description = "StoneFalcon: plataforma agêntica institucional (protótipo acadêmico UFSC / StoneLab)"
 requires-python = ">=3.11"
 dependencies = [

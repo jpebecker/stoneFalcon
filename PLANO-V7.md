@@ -102,13 +102,13 @@ O rastreador de tickets não está configurado no projeto. A lista fica consolid
 
 **Bloqueado por:** 01.
 
-**Status:** ready-for-agent
+**Status:** feito (falta conferir o nome no `chrome://extensions` com a extensão carregada e a esteira no GitHub)
 
 - [ ] Carregar a pasta da extensão em `chrome://extensions` mostra o nome "StoneFalcon 7.0" e a versão 7.0.0.
-- [ ] A rota de saúde da API responde 7.0.0.
-- [ ] A tela de opções da extensão e o rodapé do hub mostram 7.0.
-- [ ] A checagem de versão da esteira falha quando extensão e plataforma contam números diferentes (testado).
-- [ ] O LEIA-ME pede para remover e recarregar a extensão da v6, porque o Chrome mantém a antiga.
+- [x] A rota de saúde da API responde 7.0.0.
+- [x] A tela de opções da extensão e o rodapé do hub mostram 7.0.
+- [x] A checagem de versão da esteira falha quando extensão e plataforma contam números diferentes (testado).
+- [x] O LEIA-ME pede para remover e recarregar a extensão da v6, porque o Chrome mantém a antiga.
 
 ### 03: Atalho "Criar Agente de IA" na extensão
 

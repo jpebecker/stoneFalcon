@@ -1,4 +1,4 @@
-"""StoneFalcon v6: plataforma agêntica institucional (protótipo acadêmico UFSC / StoneLab).
+"""StoneFalcon v7: plataforma agêntica institucional (protótipo acadêmico UFSC / StoneLab).
 
     uv run uvicorn app.main:app --reload --port 8765
 Se frontend/dist existir (npm run build), o app inteiro abre em http://localhost:8765.
@@ -27,6 +27,7 @@ from .api.roteiros import rotas as rotas_roteiros
 from .api.saude import rotas as rotas_saude
 from .core import config
 from .core import db
+from .core.versao import VERSAO
 from .core.db import criar_tabelas
 
 
@@ -66,7 +67,7 @@ async def _vigiar():
 
 app = FastAPI(
     title="StoneFalcon",
-    version="6.0.0",
+    version=VERSAO,
     description="Fábrica governada de agentes de IA. Protótipo acadêmico; não é um produto oficial da Stone.",
     lifespan=ciclo,
 )

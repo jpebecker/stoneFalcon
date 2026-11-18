@@ -53,3 +53,56 @@ def test_manifesto_sem_campo_obrigatorio_falha(tmp_path):
     del m["version"]
     (copia / "manifest.json").write_text(json.dumps(m), encoding="utf-8")
     assert any("version" in p for p in v.verificar(copia))
+
+
+# ---------- versão única (ticket 02) ----------
+def test_saude_responde_a_versao_da_plataforma(api):
+    from app.core.versao import VERSAO
+    r = api.get("/api/v1/saude").json()
+    assert r["versao"] == VERSAO == "7.0.0"
+
+
+def test_api_openapi_usa_a_mesma_versao(api):
+    from app.core.versao import VERSAO
+    assert api.get("/openapi.json").json()["info"]["version"] == VERSAO
+
+
+def test_versoes_do_repositorio_batem():
+    assert _carregar("verifica_versao").verificar(RAIZ) == []
+
+
+def _copia_minima(tmp_path):
+    for rel in ("backend/app/core/versao.py", "backend/pyproject.toml", "extensao/manifest.json",
+                "frontend/package.json", "frontend/package-lock.json"):
+        (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(RAIZ / rel, tmp_path / rel)
+    return tmp_path
+
+
+def test_versao_divergente_da_extensao_falha(tmp_path):
+    v = _carregar("verifica_versao")
+    raiz = _copia_minima(tmp_path)
+    m = json.loads((raiz / "extensao/manifest.json").read_text(encoding="utf-8"))
+    m["version"] = "5.0.0"
+    (raiz / "extensao/manifest.json").write_text(json.dumps(m), encoding="utf-8")
+    assert any("manifest.json" in p and "5.0.0" in p for p in v.verificar(raiz))
+
+
+def test_nome_da_extensao_sem_a_versao_falha(tmp_path):
+    v = _carregar("verifica_versao")
+    raiz = _copia_minima(tmp_path)
+    m = json.loads((raiz / "extensao/manifest.json").read_text(encoding="utf-8"))
+    m["name"] = "StoneFalcon"
+    (raiz / "extensao/manifest.json").write_text(json.dumps(m), encoding="utf-8")
+    assert any("StoneFalcon 7.0" in p for p in v.verificar(raiz))
+
+
+def test_versao_divergente_do_front_e_do_pacote_do_back_falha(tmp_path):
+    v = _carregar("verifica_versao")
+    raiz = _copia_minima(tmp_path)
+    p = raiz / "frontend/package.json"
+    p.write_text(p.read_text(encoding="utf-8").replace('"7.0.0"', '"6.0.0"'), encoding="utf-8")
+    t = raiz / "backend/pyproject.toml"
+    t.write_text(t.read_text(encoding="utf-8").replace('version = "7.0.0"', 'version = "4.0.0"'), encoding="utf-8")
+    problemas = v.verificar(raiz)
+    assert any("package.json" in x for x in problemas) and any("pyproject" in x for x in problemas)

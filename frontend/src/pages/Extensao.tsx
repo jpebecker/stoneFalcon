@@ -7,7 +7,7 @@ import { api, type AnaliseTrecho, type Execucao, type Persona, type Saude } from
 import Avatar from "../components/Avatar";
 import CampoEntrada from "../components/CampoEntrada";
 import Marca from "../components/Marca";
-import { COR_STATUS, NOME_STATUS, ms, reais } from "../components/formato";
+import { COR_STATUS, NOME_STATUS, ms, reais, versaoCurta } from "../components/formato";
 
 type Item = { id: string; agente: string; quando: string; status: string; resultado: string; execId: string };
 const CHAVE_HIST = "stonefalcon.extensao.historico";
@@ -311,6 +311,7 @@ export default function Extensao({ pessoa, aoEntrar, aoSair, erroPerfil }: {
             </ul>
           </section>
         )}
+        {conectado && <p className="pt-2 text-center text-[11px] text-tinta-3">StoneFalcon {versaoCurta(saude.data!.versao)}</p>}
       </div>
     </div>
   );

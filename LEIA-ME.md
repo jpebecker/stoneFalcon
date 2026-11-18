@@ -31,6 +31,8 @@ cd backend && uv run pytest -q                   # 180 testes, sem chave nem int
 ```
 
 ### Extensão copiloto (Chrome/Edge)
+> **Vinha da v6 (ou anterior)?** Remova a extensão antiga em `chrome://extensions` e carregue a pasta `extensao` de novo: o Chrome guarda a versão antiga até isso. Depois da troca, a página de extensões mostra **StoneFalcon 7.0** (versão 7.0.0).
+
 `chrome://extensions` → Modo do desenvolvedor → **Carregar sem compactação** → pasta `extensao`. Na primeira vez abre uma tela de boas-vindas e testa a conexão com a plataforma (com diagnóstico: servidor desligado, endereço errado, demora). Depois:
 
 - **Botão flutuante** “Perguntar ao StoneFalcon”: aparece só quando há texto selecionado.
@@ -45,8 +47,9 @@ cd backend && uv run pytest -q                   # 180 testes, sem chave nem int
   1. **Back:** `pytest` em Python 3.11 e 3.14, em modo simulado (sem chave da API).
   2. **Front:** checagem de tipos e compilação de produção (`npm run build`).
   3. **Extensão:** manifesto válido e arquivos citados existem (`scripts/verifica_extensao.py`).
-- Para rodar o mesmo na sua máquina: `cd backend && uv run pytest -q`, `cd frontend && npm run build` e `python scripts/verifica_extensao.py`.
-- Configuração do repositório (feita no GitHub, fora do código): em *Settings → Branches*, proteger `main` exigindo os três jobs da esteira verdes antes de juntar.
+  4. **Versão:** extensão, API e front contam o mesmo número (`scripts/verifica_versao.py`; a fonte é `backend/app/core/versao.py`).
+- Para rodar o mesmo na sua máquina: `cd backend && uv run pytest -q`, `cd frontend && npm run build` e `python scripts/verifica_extensao.py` e `python scripts/verifica_versao.py`.
+- Configuração do repositório (feita no GitHub, fora do código): em *Settings → Branches*, proteger `main` exigindo os quatro jobs da esteira verdes antes de juntar.
 
 ## O que o desafio pede e onde está
 

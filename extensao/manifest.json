@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "StoneFalcon",
-  "version": "5.0.0",
+  "name": "StoneFalcon 7.0",
+  "version": "7.0.0",
   "description": "Copiloto do StoneFalcon: selecione um texto em qualquer página e peça a um agente. Protótipo acadêmico (UFSC).",
   "minimum_chrome_version": "116",
   "icons": {

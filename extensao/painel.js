@@ -17,6 +17,8 @@ function mostrarEstado(...nos) {
   estado.hidden = false;
   limpar(estado);
   nos.forEach((n) => estado.appendChild(n));
+  const m = chrome.runtime.getManifest();
+  estado.appendChild(el('p', { className: 'nota', textContent: m.name + ' · versão ' + m.version }));
 }
 
 // ---------------------------------------------------------------- primeira execução

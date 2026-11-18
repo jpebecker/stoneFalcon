@@ -59,3 +59,15 @@ jobs:
           python-version: "3.11"
       - name: Manifesto válido e arquivos citados existem
         run: python scripts/verifica_extensao.py
+
+  versao:
+    name: Consistência da versão
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Extensão, API e front contam o mesmo número
+        run: python scripts/verifica_versao.py

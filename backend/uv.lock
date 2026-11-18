@@ -805,7 +805,7 @@ wheels = [
 
 [[package]]
 name = "stonefalcon"
-version = "4.0.0"
+version = "7.0.0"
 source = { virtual = "." }
 dependencies = [
     { name = "anthropic" },
