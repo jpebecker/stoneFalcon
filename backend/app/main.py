@@ -1,4 +1,4 @@
-"""StoneFalcon v6: plataforma agêntica institucional (protótipo acadêmico UFSC / StoneLab).
+"""StoneFalcon v7: plataforma agêntica institucional (protótipo acadêmico UFSC / StoneLab).
 
     uv run uvicorn app.main:app --reload --port 8765
 Se frontend/dist existir (npm run build), o app inteiro abre em http://localhost:8765.
@@ -15,18 +15,22 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 from .api.agentes import rotas as rotas_agentes
+from .api.balanceador import rotas as rotas_balanceador
 from .api.cadastros import rotas as rotas_cadastros
 from .api.extensao import rotas as rotas_extensao
+from .api.mapa import rotas as rotas_mapa
 from .api.estudio import rotas as rotas_estudio
 from .api.execucoes import rotas as rotas_execucoes
 from .api.ferramentas import rotas as rotas_ferramentas
 from .api.financas import rotas as rotas_financas
 from .api.plataforma import rotas as rotas_plataforma
 from .api.plugins import rotas as rotas_plugins
+from .api.rotinas import rotas as rotas_rotinas
 from .api.roteiros import rotas as rotas_roteiros
 from .api.saude import rotas as rotas_saude
 from .core import config
 from .core import db
+from .core.versao import VERSAO
 from .core.db import criar_tabelas
 
 
@@ -45,9 +49,11 @@ async def ciclo(_app: FastAPI):
         with Session(db.motor()) as s:
             semear(s)
     tarefa = asyncio.create_task(_vigiar()) if os.environ.get("STONEFALCON_VIGIA", "1") != "0" else None
+    agendador = asyncio.create_task(_agendar()) if os.environ.get("STONEFALCON_AGENDADOR", "1") != "0" else None
     yield
-    if tarefa:
-        tarefa.cancel()
+    for t in (tarefa, agendador):
+        if t:
+            t.cancel()
 
 
 async def _vigiar():
@@ -64,9 +70,28 @@ async def _vigiar():
         await asyncio.to_thread(rodada)
 
 
+async def _agendar():
+    """Dispara as rotinas que venceram no relógio das rotinas (a cada poucos segundos, para o relógio acelerado da demo)."""
+    import logging
+
+    from sqlmodel import Session
+
+    from . import rotinas
+
+    def rodada():
+        with Session(db.motor()) as s:
+            rotinas.tick(s)
+    while True:
+        await asyncio.sleep(5)
+        try:
+            await asyncio.to_thread(rodada)
+        except Exception:   # a agenda nunca derruba a plataforma
+            logging.getLogger("stonefalcon.rotinas").exception("Falha ao disparar rotinas")
+
+
 app = FastAPI(
     title="StoneFalcon",
-    version="6.0.0",
+    version=VERSAO,
     description="Fábrica governada de agentes de IA. Protótipo acadêmico; não é um produto oficial da Stone.",
     lifespan=ciclo,
 )
@@ -87,6 +112,9 @@ app.include_router(rotas_saude)
 app.include_router(rotas_financas)
 app.include_router(rotas_roteiros)
 app.include_router(rotas_plugins)
+app.include_router(rotas_balanceador)
+app.include_router(rotas_mapa)
+app.include_router(rotas_rotinas)
 
 
 # ---------- página de demonstração para a extensão (helpdesk fictício) ----------
@@ -96,6 +124,18 @@ _ESTATICO = Path(__file__).resolve().parent / "static"
 @app.get("/demo/helpdesk", include_in_schema=False)
 def helpdesk():
     return FileResponse(_ESTATICO / "helpdesk.html")
+
+
+@app.get("/demo/planilha", include_in_schema=False)
+def planilha_ficticia():
+    return FileResponse(_ESTATICO / "planilha.html")
+
+
+@app.get("/api/v1/demo/planilha", tags=["demo"])
+def planilha_ficticia_dados():
+    """A planilha fictícia local (plano B da demo, sem internet): só dados de mentira."""
+    from .plugins import planilhas
+    return {"titulo": planilhas.LOCAL_TITULO, "colunas": planilhas.COLUNAS, "linhas": planilhas.LINHAS_LOCAIS}
 
 
 # ---------- fotos das personas (avatares), servidas pela própria plataforma ----------

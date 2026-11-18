@@ -32,30 +32,7 @@ def modo_real() -> bool:
 COTACAO_DOLAR = float(_env("COTACAO_DOLAR", "5.52"))
 
 # ---------- Modelos e preços ----------
-# US$ por milhão de tokens, tabela oficial da Anthropic (conferida em 15/11/2026).
-# Haiku 5.5: preço vale para prompts de até 100 mil tokens (acima disso, 0,50 / 2,50).
-MODELOS = {
-    "rapido": {
-        "nome": "Claude Haiku 5.5",
-        "id": "claude-haiku-5-5",
-        "preco_entrada": 0.10,
-        "preco_saida": 0.50,
-        "preco_cache_leitura": 0.01,   # estimativa: 10% da entrada (padrão da tabela); conferir
-        "limite_preco_padrao": 100_000,
-        "preco_entrada_longo": 0.50,
-        "preco_saida_longo": 2.50,
-        "max_tokens": 4096,
-    },
-    "forte": {
-        "nome": "Claude Sonnet 5.5",
-        "id": "claude-sonnet-5-5",
-        "preco_entrada": 2.00,
-        "preco_saida": 10.00,
-        "preco_cache_leitura": 0.10,
-        "limite_preco_padrao": None,
-        "max_tokens": 8192,
-    },
-}
+# Moram em app/llm/registro.py (registro único: provedor, preços, capacidades, simulado ou real).
 
 # ---------- Roteador ----------
 COMPLEXIDADE_FORTE = 0.60   # a partir daqui um passo "auto" vai ao modelo forte

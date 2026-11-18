@@ -80,6 +80,16 @@ function Resultado({ roteiro, gestor }: { roteiro: Roteiro; gestor: boolean }) {
         Ganho por tarefa (premissa de aproveitamento): <b>{reais(r.ganho_por_tarefa_brl)}</b>.
         {r.execucao && <> Execução medida: {num(r.execucao.duracao_min * 60)} s de agente, {reais(r.execucao.custo_brl)} em tokens.</>}
       </p>
+      {r.rotina && (
+        <div className="rounded-caixa border border-info/30 bg-info-fundo/50 p-4 text-sm" data-testid="ganho-rotina">
+          <div className="text-xs font-semibold uppercase tracking-wide text-info">Rotina semanal</div>
+          <p className="mt-1">
+            {r.rotina.agendas.join(" · ")}: <b>{num(r.rotina.execucoes_feitas)}</b> execução(ões) já rodaram, e a rotina faz cerca de{" "}
+            <b>{num(r.rotina.execucoes_por_mes)}</b> por mês sem ninguém iniciar. Ganho projetado: <b>{reais(r.rotina.ganho_mensal_brl)}</b> por mês.
+          </p>
+          <div className="mt-1"><Origem texto={r.rotina.origem} /></div>
+        </div>
+      )}
       {r.aviso && <p className="text-xs text-tinta-3">{r.aviso}</p>}
       {gestor && (
         <div className="flex gap-2 border-t border-linha pt-4">

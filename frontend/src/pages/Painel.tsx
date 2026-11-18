@@ -34,7 +34,10 @@ export default function Painel() {
           <h1 className="text-3xl">Painel executivo</h1>
           <p className="mt-1 text-tinta-2">Os cinco indicadores do desafio, medidos nas execuções dos últimos {i.dias} dias ({num(i.execucoes)} execuções).</p>
         </div>
-        <Link to="/financas/calculadora" className="botao-claro">Projeção de 36 meses</Link>
+        <div className="flex flex-wrap gap-2">
+          <Link to="/mapa" className="botao-pedra">Mapa de IA ao vivo</Link>
+          <Link to="/financas/calculadora" className="botao-claro">Projeção de 36 meses</Link>
+        </div>
       </div>
       {i.tem_demo && (
         <p className="rounded-caixa border border-alerta/40 bg-alerta-fundo/60 px-4 py-2 text-sm">

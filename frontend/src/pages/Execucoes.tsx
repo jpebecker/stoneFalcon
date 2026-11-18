@@ -21,7 +21,8 @@ export default function Execucoes() {
               <tr key={e.id} className="hover:bg-papel">
                 <td className="px-4 py-2.5"><span className={"selo " + COR_STATUS[e.status]}>{NOME_STATUS[e.status] ?? e.status}</span></td>
                 <td className="px-4 py-2.5"><Link className="font-medium hover:text-pedra-forte" to={"/execucoes/" + e.id}>{e.agente_nome}</Link>
-                  {e.agente_id === "sandbox" && <span className="ml-2 text-xs text-tinta-3">teste</span>}</td>
+                  {e.agente_id === "sandbox" && <span className="ml-2 text-xs text-tinta-3">teste</span>}
+                  {e.rotina && <span className="selo ml-2 bg-info-fundo text-info" title={e.rotina.origem === "manual" ? "Rotina: Rodar agora" : "Rotina: disparou sozinha"}>rotina</span>}</td>
                 <td className="px-4 py-2.5 text-tinta-2">{e.persona}</td>
                 <td className="px-4 py-2.5 text-right">{reais(e.custo_brl)}</td>
                 <td className="px-4 py-2.5 text-right text-tinta-2">{ms(e.duracao_estimada_ms)}</td>

@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import sys
+
 from openpyxl import Workbook
 from openpyxl.chart import BarChart, LineChart, Reference
 from openpyxl.chart.label import DataLabelList
@@ -19,6 +21,8 @@ from openpyxl.workbook.defined_name import DefinedName
 from openpyxl.worksheet.datavalidation import DataValidation
 
 SAIDA = Path(__file__).resolve().parents[1] / "analise-financeira.xlsx"
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "backend"))
+from app.llm import registro  # noqa: E402  (preços, provedores e capacidades: o mesmo registro que o protótipo usa)
 DATA_CONF = "15/11/2026"
 
 # ---------- identidade e estilos ----------
@@ -55,6 +59,7 @@ NUM2 = '#,##0.00;(#,##0.00);"-"'
 MES = '"mês "0'
 
 S_PREM, S_CAPEX, S_OPEX, S_TOK, S_BEN = "Premissas", "Investimento (CAPEX)", "Operação (OPEX)", "Tokens", "Benefícios"
+S_MM = "Multimodelo"
 S_FLUXO, S_CEN, S_SENS, S_CXC, S_RES, S_MOTOR = ("Fluxo de caixa", "Cenários", "Sensibilidade", "Construir × comprar",
                                                   "Resumo para slides", "Motor")
 
@@ -640,6 +645,72 @@ cel(wt, "A40", "Custo por execução MODELADO (vai para o cenário Base medido)"
 cel(wt, "D40", "=B31", f_calc_b, BRL4, p_kpi)
 cel(wt, "L40", "A premissa da equipe (R$ 0,03) fica ~1,7× acima do modelado: margem para passos e voltas extras.", f_sub, alin=quebra)
 
+
+# =====================================================================
+# 6b. Multimodelo (v7): preços por provedor e o mix de agentes da demo em cada modelo
+# =====================================================================
+wmm = wb.create_sheet(S_MM)
+titulo(wmm, "Multimodelo (v7): o mesmo mix de agentes da demo em cada provedor",
+       "Preços das tabelas públicas de cada provedor (conferidos em 17/11/2026). SÓ O CLAUDE RODA DE VERDADE no protótipo; os demais são simulados.")
+larguras(wmm, {"A": 14, "B": 26, "C": 13, "D": 13, "E": 13, "F": 13, "G": 13, "H": 16, "I": 14, "J": 12, "K": 70})
+secao(wmm, 4, "Registro de modelos (backend/app/llm/registro.py): preço em US$ por milhão de tokens", 11)
+cabecalho(wmm, 5, ["Provedor", "Modelo", "Entrada", "Saída", "Leitura de cache", "Raciocínio (1–4)", "Roda de verdade?", "", "", "", "Fonte do preço"])
+MM0 = 6
+modelos_mm = registro.todos()
+for i, m in enumerate(modelos_mm):
+    r = MM0 + i
+    cel(wmm, "A%d" % r, registro.PROVEDORES[m.provedor].nome)
+    cel(wmm, "B%d" % r, m.nome)
+    cel(wmm, "C%d" % r, m.preco_entrada, f_in, NUM2)
+    cel(wmm, "D%d" % r, m.preco_saida, f_in, NUM2)
+    cel(wmm, "E%d" % r, m.preco_cache_leitura, f_in, '0.000')
+    cel(wmm, "F%d" % r, m.capacidades.raciocinio, f_in, NUM)
+    cel(wmm, "G%d" % r, "sim" if registro.roda_de_verdade(m.chave) else "simulado")
+    cel(wmm, "K%d" % r, "%s (%s)" % (m.fonte_preco, m.data_preco), f_sub)
+MM1 = MM0 + len(modelos_mm) - 1
+
+CM0 = MM1 + 3
+secao(wmm, CM0 - 1, "E se TODOS os passos com IA do mix de agentes da demo rodassem em cada modelo (US$ por execução, tamanhos do aba Tokens)", 11)
+cabecalho(wmm, CM0, ["Provedor", "Modelo", "Triagem · análise", "Triagem · ação", "Dúvidas · resposta", "Férias · resposta",
+                     "Mix ponderado (R$/exec)", "Variação vs balanceador", "", "", "Leitura"])
+TK = q(S_TOK)
+def custo_mm(r, pin, pout):
+    """Mesma conta da aba Tokens (b), com o preço do modelo da linha: 1 volta = entrada + saída; 2 voltas (com ferramenta) = + a volta da ferramenta."""
+    return ("IF({t}!$F${r}=2,({t}!$G${r}*{pin}+tk_chamada_ferramenta*{pout}+({t}!$G${r}+tk_resultado_ferramenta+tk_chamada_ferramenta)*{pin}"
+            "+tk_saida*{pout}),{t}!$G${r}*{pin}+tk_saida*{pout})/1000000").format(t=TK, r=r, pin=pin, pout=pout)
+CM1 = CM0 + len(modelos_mm)
+for i, m in enumerate(modelos_mm):
+    r = CM0 + 1 + i
+    pr = MM0 + i
+    cel(wmm, "A%d" % r, "=A%d" % pr, f_calc)
+    cel(wmm, "B%d" % r, "=B%d" % pr, f_calc)
+    for j, aba_r in enumerate((20, 21, 22, 23)):
+        cel(wmm, "%s%d" % ("CDEF"[j], r), "=" + custo_mm(aba_r, "$C%d" % pr, "$D%d" % pr), f_calc, '0.000000')
+    cel(wmm, "G%d" % r, "=cotacao_dolar*((C{r}+D{r})*{t}!$F$28+E{r}*{t}!$F$29+F{r}*{t}!$F$30)".format(r=r, t=TK), f_calc_b, BRL4)
+    cel(wmm, "H%d" % r, "=G%d/$G$%d-1" % (r, CM1 + 2), f_calc, PCT)
+RB = CM1 + 2
+cel(wmm, "A%d" % RB, "Claude + balanceador", f_neg)
+cel(wmm, "B%d" % RB, "política do protótipo: Sonnet só na análise, Haiku no resto", f_calc)
+cel(wmm, "G%d" % RB, "=%s!$B$31" % TK, f_link, BRL4, p_kpi)
+cel(wmm, "K%d" % RB, "É o 'Com roteador' da aba Tokens: o balanceador escolhe o mais barato capaz de cada passo.", f_sub)
+secao(wmm, RB + 2, "Resultado", 11)
+cel(wmm, "A%d" % (RB + 3), "Modelos no registro")
+cel(wmm, "G%d" % (RB + 3), "=COUNTA(B%d:B%d)" % (MM0, MM1), f_calc, NUM)
+cel(wmm, "A%d" % (RB + 4), "Provedores")
+cel(wmm, "G%d" % (RB + 4), len({m.provedor for m in modelos_mm}), f_in, NUM)
+cel(wmm, "A%d" % (RB + 5), "Mix no modelo mais barato (R$/exec)")
+cel(wmm, "G%d" % (RB + 5), "=MIN(G%d:G%d)" % (CM0 + 1, CM1), f_calc, BRL4)
+cel(wmm, "A%d" % (RB + 6), "Mix no modelo mais caro (R$/exec)")
+cel(wmm, "G%d" % (RB + 6), "=MAX(G%d:G%d)" % (CM0 + 1, CM1), f_calc, BRL4)
+cel(wmm, "A%d" % (RB + 7), "Mix todo no modelo mais caro ÷ Claude com balanceador")
+cel(wmm, "G%d" % (RB + 7), "=G%d/G%d" % (RB + 6, RB), f_calc, '0.0"×"')
+cel(wmm, "K%d" % (RB + 3), "O balanceador não depende de um fornecedor: escolhe por esforço, troca de provedor se um cai ou o orçamento aperta.", f_sub)
+cel(wmm, "K%d" % (RB + 5), "Conta direta: mesmos tokens, outra tabela de preços. Os modelos simulados só alimentam a contabilidade.", f_sub)
+nomear("mm_custos", S_MM, "$B$%d:$B$%d" % (CM0, CM1))
+MM_RES = {"n_modelos": "$G$%d" % (RB + 3), "n_provedores": "$G$%d" % (RB + 4), "mais_barato": "$G$%d" % (RB + 5),
+          "mais_caro": "$G$%d" % (RB + 6), "razao": "$G$%d" % (RB + 7), "claude_balanceado": "$G$%d" % RB}
+MM_TAB = (CM0, CM1)
+
 # =====================================================================
 # 7. Fluxo de caixa
 # =====================================================================
@@ -1024,6 +1095,12 @@ numeros = [
     ("piloto_meses", "Duração do piloto (meses)", "=piloto_meses", NUM, "Premissas"),
     ("escalada_demo", "Taxa de escalada para humano (histórico sintético)", "=taxa_escalada", PCT, "Premissas"),
     ("minutos_demo", "Minutos à mão, média ponderada dos 3 agentes", "=%s!$D$12" % q(S_BEN), NUM1, "Benefícios!D12"),
+    ("mm_modelos", "Modelos no registro (v7)", "=%s!%s" % (q(S_MM), MM_RES["n_modelos"]), NUM, "Multimodelo"),
+    ("mm_provedores", "Provedores de IA no registro (v7)", "=%s!%s" % (q(S_MM), MM_RES["n_provedores"]), NUM, "Multimodelo"),
+    ("mm_claude_balanceado", "Mix da demo: Claude com balanceador (R$ por execução)", "=%s!%s" % (q(S_MM), MM_RES["claude_balanceado"]), BRL4, "Multimodelo"),
+    ("mm_mais_barato", "Mix da demo no modelo mais barato (R$ por execução)", "=%s!%s" % (q(S_MM), MM_RES["mais_barato"]), BRL4, "Multimodelo"),
+    ("mm_mais_caro", "Mix da demo no modelo mais caro (R$ por execução)", "=%s!%s" % (q(S_MM), MM_RES["mais_caro"]), BRL4, "Multimodelo"),
+    ("mm_razao", "Mais caro ÷ Claude com balanceador", "=%s!%s" % (q(S_MM), MM_RES["razao"]), '0.0"×"', "Multimodelo"),
 ]
 RES_ROW = {}
 for i, (chave_n, rot, f_, fmt, orig) in enumerate(numeros):
@@ -1070,7 +1147,19 @@ for i in range(4):
     cel(wr, "A%d" % r, "=%s!A%d" % (S_TOK, 28 + i), f_link)
     cel(wr, "B%d" % r, "=%s!B%d" % (S_TOK, 28 + i), f_link, BRL4)
     cel(wr, "C%d" % r, "=%s!C%d" % (S_TOK, 28 + i), f_link, BRL4)
-for nome_g, ref in (("g1", "$A$%d:$E$%d" % (G1 + 1, G1 + 38)), ("g2", "$A$%d:$E$%d" % (G2 + 1, G2 + 4)),
+G5 = G4 + 2 + 4 + 1
+secao(wr, G5, "Gráfico 5 (v7): custo do mix da demo por modelo, R$ por execução", 4)
+cabecalho(wr, G5 + 1, ["Modelo", "R$ por execução", "Provedor"], col0=1)
+for i in range(len(modelos_mm)):
+    r = G5 + 2 + i
+    cel(wr, "A%d" % r, "=%s!B%d" % (q(S_MM), MM_TAB[0] + 1 + i), f_link)
+    cel(wr, "B%d" % r, "=%s!G%d" % (q(S_MM), MM_TAB[0] + 1 + i), f_link, BRL4)
+    cel(wr, "C%d" % r, "=%s!A%d" % (q(S_MM), MM_TAB[0] + 1 + i), f_link)
+cel(wr, "A%d" % (G5 + 2 + len(modelos_mm)), "Claude + balanceador", f_link)
+cel(wr, "B%d" % (G5 + 2 + len(modelos_mm)), "=%s!%s" % (q(S_MM), MM_RES["claude_balanceado"]), f_link, BRL4)
+cel(wr, "C%d" % (G5 + 2 + len(modelos_mm)), "Anthropic (política)", f_link)
+for nome_g, ref in (("g5", "$A$%d:$C$%d" % (G5 + 1, G5 + 2 + len(modelos_mm))),
+                    ("g1", "$A$%d:$E$%d" % (G1 + 1, G1 + 38)), ("g2", "$A$%d:$E$%d" % (G2 + 1, G2 + 4)),
                     ("g3", "$A$%d:$C$%d" % (G3 + 1, G3 + 1 + NS)), ("g4", "$A$%d:$C$%d" % (G4 + 1, G4 + 5))):
     nomear("res_" + nome_g, S_RES, ref)
 
@@ -1175,9 +1264,11 @@ blocos = [
                          "usa os tamanhos e o roteador do código, não tráfego real. 2) Como a calculadora, o fluxo põe o investimento "
                          "no mês 0 e o benefício desde o mês 1; os 5 meses de construção atrasariam o payback. 3) Retrabalho evitado e "
                          "custo evitado de AI Engineer ficam fora do fluxo (aba Benefícios). 4) Preços de mercado mudam: conferir."),
-    ("Abas", "Leia-me · Premissas · Investimento (CAPEX) · Operação (OPEX) · Tokens · Benefícios · Fluxo de caixa · Cenários · "
+    ("Abas", "Leia-me · Premissas · Investimento (CAPEX) · Operação (OPEX) · Tokens · Multimodelo (v7) · Benefícios · Fluxo de caixa · Cenários · "
              "Sensibilidade · Construir × comprar · Resumo para slides · Motor (auxiliar: um fluxo completo por coluna)."),
     ("Nome da aba de resumo", "O plano pedia 'Resumo p/ slides'; o Excel não aceita '/' em nome de aba, por isso 'Resumo para slides'."),
+    ("Multimodelo (v7)", "A aba Multimodelo põe o MESMO mix de agentes da demo em cada provedor (Claude, Gemini, GPT, DeepSeek, Grok), com os preços das "
+                          "tabelas públicas de 17/11/2026. Só o Claude roda de verdade no protótipo; os demais são simulados e só alimentam a contabilidade."),
     ("Uso de IA", "Planilha gerada por script (entregaveis/gerador/gerar_excel.py) escrito com o Claude (Anthropic), a pedido da equipe."),
 ]
 for i, (k, v) in enumerate(blocos):
@@ -1191,7 +1282,7 @@ cel(wl, "B17", "Na aba Premissas, mude adocao_alvo do Base (célula E da linha '
 wl.row_dimensions[17].height = 30
 
 # ordem final das abas
-ordem = ["Leia-me", S_PREM, S_CAPEX, S_OPEX, S_TOK, S_BEN, S_FLUXO, S_CEN, S_SENS, S_CXC, S_RES, S_MOTOR]
+ordem = ["Leia-me", S_PREM, S_CAPEX, S_OPEX, S_TOK, S_MM, S_BEN, S_FLUXO, S_CEN, S_SENS, S_CXC, S_RES, S_MOTOR]
 wb._sheets = [wb[n] for n in ordem]
 for ws in wb.worksheets:
     ws.sheet_properties.tabColor = {S_RES: ROSA, S_PREM: VERDE, S_MOTOR: "A0A0A0"}.get(ws.title, "0B6342")

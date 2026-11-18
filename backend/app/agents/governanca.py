@@ -8,8 +8,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from ..core import config
 from ..core.identidade import Classificacao, Persona
-from ..llm import precos, roteador
+from ..llm import precos, registro, roteador
 from ..tools.catalogo import CATALOGO
 from ..tools.permissoes import avaliar
 from .blueprint import Blueprint
@@ -76,12 +77,14 @@ class Estimativa:
 
 def estimar_custo(bp: Blueprint) -> Estimativa:
     total_usd, chamadas, por_passo = 0.0, 0, {}
+    risco = avaliar_risco(bp).nivel
     for p in bp.passos:
         if p.tipo != "agente":
             por_passo[p.id] = {"modelo": None, "custo_brl": 0.0}
             continue
         entrada = _SISTEMA + len(p.depende_de) * _CONTEXTO_POR_DEPENDENCIA + len(p.ferramentas) * _POR_FERRAMENTA_DEFINIDA
-        decisao = roteador.decidir(p.modelo, p.instrucao, entrada)
+        decisao = roteador.decidir(p.modelo, p.instrucao, entrada, n_ferramentas=len(p.ferramentas), risco=risco,
+                                   so_reais=config.modo_real())
         voltas = 2 if p.ferramentas else 1   # pede a ferramenta, depois conclui
         custo = 0.0
         for v in range(voltas):
@@ -89,24 +92,26 @@ def estimar_custo(bp: Blueprint) -> Estimativa:
             custo += precos.custo_usd(decisao.chave_modelo, t_in, _SAIDA if v == voltas - 1 else 120)
         total_usd += custo
         chamadas += voltas
-        por_passo[p.id] = {"modelo": decisao.nome_modelo, "custo_brl": round(precos.usd_para_brl(custo), 5)}
+        mod = registro.obter(decisao.chave_modelo)
+        por_passo[p.id] = {"modelo": decisao.nome_modelo, "custo_brl": round(precos.usd_para_brl(custo), 5),
+                           "modelo_chave": mod.chave, "provedor": mod.provedor, "simulado": not registro.roda_de_verdade(mod.chave)}
     return Estimativa(round(precos.usd_para_brl(total_usd), 5), chamadas, por_passo)
 
 
 # ---------- duração estimada (caminho crítico) ----------
-_VELOCIDADE = {"rapido": (180, 400), "forte": (70, 900)}   # tokens de saída/s, latência fixa ms (como o runtime)
-
 
 def estimar_duracao_ms(bp: Blueprint) -> int:
     """Tempo do caminho crítico: passos da mesma camada rodam juntos, então cada camada custa o mais lento."""
+    risco = avaliar_risco(bp).nivel
     def duracao(p) -> int:
         if p.tipo == "ferramenta":
             return CATALOGO[p.ferramenta].latencia_ms
         if p.tipo == "aprovacao":
             return 0
         entrada = _SISTEMA + len(p.depende_de) * _CONTEXTO_POR_DEPENDENCIA + len(p.ferramentas) * _POR_FERRAMENTA_DEFINIDA
-        chave = roteador.decidir(p.modelo, p.instrucao, entrada).chave_modelo
-        vel, lat = _VELOCIDADE[chave]
+        chave = roteador.decidir(p.modelo, p.instrucao, entrada, n_ferramentas=len(p.ferramentas),
+                                 risco=risco, so_reais=config.modo_real()).chave_modelo
+        vel, lat = registro.obter(chave).velocidade
         voltas = 2 if p.ferramentas else 1
         total = voltas * lat + int((_SAIDA + (120 if voltas == 2 else 0)) / vel * 1000)
         return total + max((CATALOGO[f].latencia_ms for f in p.ferramentas), default=0)

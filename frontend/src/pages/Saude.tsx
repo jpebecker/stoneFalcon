@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { api, type SaudeAgente, type SaudeConector } from "../api/cliente";
+import PainelBalanceador from "../components/PainelBalanceador";
 import { COR_SAUDE, NOME_SAUDE, ms, pct, reais } from "../components/formato";
 
 function Medidor({ nota, status }: { nota: number; status: string }) {
@@ -28,6 +29,8 @@ export default function Saude() {
           Monitoramento automático: nenhum criador precisa configurar nada. Quando algo degrada, o responsável pelo agente é avisado.
         </p>
       </div>
+
+      <PainelBalanceador />
 
       <section>
         <h2 className="mb-3 text-lg">Agentes</h2>

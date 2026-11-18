@@ -100,6 +100,15 @@ window.addEventListener("message", (e) => {
     quadroPronto = true;
     if (pendente !== null) { enviarAoPainel(pendente); pendente = null; }
   }
+  // "Criar Agente de IA" no painel: sem a extensão, esta página faz o papel dela (passe de uso único, abre o Estúdio numa aba nova)
+  if (e.data && e.data.origem === "stonefalcon-plataforma" && e.data.tipo === "criar-agente") {
+    const perfil = url.get("perfil") || "";
+    fetch("/api/v1/extensao/passe", { method: "POST", headers: { "Content-Type": "application/json", "X-Usuario": perfil },
+      body: JSON.stringify({ trecho: String(e.data.trecho || "").slice(0, 8000) }) })
+      .then((r) => r.ok ? r.json() : Promise.reject(r.status))
+      .then((d) => window.open("/via-extensao?passe=" + encodeURIComponent(d.passe), "_blank"))
+      .catch(() => alert("Não consegui abrir o Estúdio. Confira se o seu perfil cria agentes e se a plataforma está ligada."));
+  }
 });
 botao.onclick = () => {
   const t = selecionado().slice(0, 8000);

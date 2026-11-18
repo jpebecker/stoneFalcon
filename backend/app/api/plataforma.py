@@ -6,6 +6,8 @@ from sqlmodel import Session
 from .. import guardrails
 from ..audit import trilha
 from ..core import config
+from ..core.versao import VERSAO
+from ..llm import registro
 from ..core.db import sessao
 from ..core.identidade import GESTOR_IA, PERSONAS, REVISOR_SEGURANCA, Persona, usuario_atual
 
@@ -16,11 +18,18 @@ rotas = APIRouter(prefix="/api/v1")
 def saude():
     return {
         "ok": True,
-        "versao": "6.0.0",
+        "versao": VERSAO,
         "modo": "real" if config.modo_real() else "simulado",
-        "modelos": {k: m["nome"] for k, m in config.MODELOS.items()},
+        "modelos": {m.chave: m.nome for m in registro.todos()},
         "cotacao_dolar": config.COTACAO_DOLAR,
     }
+
+
+@rotas.get("/modelos")
+def modelos():
+    """Registro de modelos (provedor, preços, capacidades, simulado ou real): a única fonte para as telas."""
+    return {"provedores": [{"id": p.id, "nome": p.nome, "real": p.real} for p in registro.PROVEDORES.values()],
+            "modelos": [registro.publico(m) for m in registro.todos()]}
 
 
 @rotas.get("/perfis")

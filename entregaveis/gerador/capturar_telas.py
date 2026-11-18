@@ -133,6 +133,52 @@ try:
                                                                    "relato": "A tela ficou preta e a maquininha não liga mais."}})
     abrir("/plugins/slack", "thiago", "Visão consolidada", pausa=3)
     foto("13-plugin-slack-consolidado")
+
+    # 7. v7: atalho da extensão, Estúdio com vários provedores, trilha do balanceador, Mapa de IA e Finanças por provedor
+    api("POST", "/roteiros/pitch/reiniciar", "thiago")      # Google Sheets e Slack já integrados pelo Thiago
+    nav.get(BASE + "/")
+    abrir("/demo/planilha?perfil=thiago", "thiago", "Pedidos de troca", pausa=1.5)
+    clicar_texto("Abrir o StoneFalcon", "button")
+    nav.switch_to.frame(espera.until(EC.presence_of_element_located((By.ID, "sf-quadro"))))
+    espera.until(EC.presence_of_element_located((By.XPATH, "//*[contains(., 'a partir desta planilha')]")))
+    nav.switch_to.default_content()
+    time.sleep(1.5)
+    foto("14-atalho-extensao")
+
+    desc = "Ler a planilha de pedidos de troca de maquininha e tratar o primeiro pedido pendente. Levo uns 12 minutos."
+    nav.get(BASE + "/")
+    entrar("thiago")
+    nav.execute_script("sessionStorage.setItem('stonefalcon.rascunho', JSON.stringify({texto: arguments[0], fonte: {tipo: 'planilha', url: 'local:pedidos-troca'}}));", desc)
+    nav.get(BASE + "/estudio")
+    espera.until(EC.presence_of_element_located((By.XPATH, "//*[contains(., 'Como o agente vai trabalhar')]")))
+    time.sleep(2)
+    clicar_texto("Abrir chamado na logística")
+    time.sleep(1.5)
+    foto("15-estudio-multiprovedor")
+
+    sug = api("POST", "/estudio/sugerir", "thiago", {"descricao": desc, "fonte": {"tipo": "planilha", "url": "local:pedidos-troca"}})
+    ag = api("POST", "/agentes", "thiago", {"blueprint": sug["blueprint"], "nota": "captura v7"})["id"]
+    api("POST", "/agentes/%s/publicar" % ag, "thiago")
+    rot = api("POST", "/agentes/%s/rotinas" % ag, "thiago", {"frequencia": "semanal", "dia_semana": 0, "hora": 9, "minuto": 0,
+                                                            "entrada": {"planilha": "local:pedidos-troca"}})
+    exe = api("POST", "/rotinas/%s/rodar" % rot["id"], "thiago")["execucao"]
+    abrir("/execucoes/%s" % exe, "thiago", "Abrir chamado na logística", pausa=2)
+    clicar_texto("Abrir chamado na logística", "button")
+    time.sleep(1)
+    nav.execute_script("document.querySelectorAll('details').forEach((d) => d.open = true);")
+    time.sleep(1)
+    foto("16-trilha-balanceador")
+
+    api("POST", "/rotinas/relogio", "helena", {"avancar_horas": 24 * 7})
+    abrir("/mapa", "helena", "Mapa de IA", pausa=4)
+    foto("17-mapa-de-ia")
+    api("POST", "/balanceador/provedores/anthropic/falha", "helena", {"fora": True})
+    api("POST", "/balanceador/simular-carga", "helena", {"passos": 300})
+    abrir("/saude", "helena", "Balanceador de modelos", pausa=3)
+    foto("18-saude-balanceador-queda")
+    api("POST", "/balanceador/provedores/anthropic/falha", "helena", {"fora": False})
+    abrir("/financas", "helena", "por provedor", pausa=3)
+    foto("19-financas-por-provedor")
 finally:
     nav.quit()
     try:

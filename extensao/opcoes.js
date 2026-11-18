@@ -1,3 +1,7 @@
+// versão lida do manifesto: é a mesma que o Chrome mostra em chrome://extensions
+const _m = chrome.runtime.getManifest();
+document.getElementById('versao').textContent = _m.name + ' · versão ' + _m.version;
+
 const campo = document.getElementById('servidor');
 const resultado = document.getElementById('resultado');
 const dica = document.getElementById('dica');

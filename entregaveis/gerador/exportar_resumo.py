@@ -42,6 +42,6 @@ for linha in range(8, wp.max_row + 1):
                           "status": status, "fonte": fonte, "linha": linha})
 
 saida = {"numeros": numeros, "origem": origem, "g1": tabela("res_g1"), "g2": tabela("res_g2"), "g3": tabela("res_g3"),
-         "g4": tabela("res_g4"), "premissas": premissas}
+         "g4": tabela("res_g4"), "g5": tabela("res_g5"), "premissas": premissas}
 (AQUI / "resumo.json").write_text(json.dumps(saida, ensure_ascii=False, indent=1), encoding="utf-8")
 print("ok: %d números, %d premissas" % (len(numeros), len(premissas)))

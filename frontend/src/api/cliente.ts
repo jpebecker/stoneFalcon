@@ -61,7 +61,7 @@ export type Colaborador = { id: string; nome: string; area: string; eu: boolean 
 
 export type Passo = {
   id: string; titulo: string; tipo: "ferramenta" | "agente" | "aprovacao"; depende_de: string[];
-  instrucao: string; ferramentas: string[]; modelo: "auto" | "rapido" | "forte"; max_iteracoes: number;
+  instrucao: string; ferramentas: string[]; modelo: string; max_iteracoes: number;
   ferramenta: string | null; entrada: Record<string, unknown>;
 };
 
@@ -71,12 +71,13 @@ export type Blueprint = {
 };
 
 export type Risco = { nivel: "baixo" | "medio" | "alto"; motivos: string[]; exige_revisao_seguranca: boolean };
-export type Estimativa = { custo_por_execucao_brl: number; chamadas_modelo: number; por_passo: Record<string, { modelo: string | null; custo_brl: number }> };
+export type Estimativa = { custo_por_execucao_brl: number; chamadas_modelo: number; por_passo: Record<string, { modelo: string | null; custo_brl: number; modelo_chave?: string; provedor?: string; simulado?: boolean }> };
 export type Explicacao = { passo: string; titulo: string; explicacao: string };
 
 export type Sugestao = {
   blueprint: Blueprint; origem: string; explicacao: Explicacao[]; ferramentas_removidas: Record<string, string>;
   alertas: string[]; risco: Risco; estimativa: Estimativa; niveis: string[][]; custo_sugestao_brl: number;
+  entrada_sugerida?: Record<string, string>;
 };
 
 export type Validacao =
@@ -94,7 +95,7 @@ export type UsoFerramenta = { conector: string; ok: boolean; erro: string | null
 
 export type RegistroPasso = {
   id: string; titulo: string; tipo: string; status: string; saida: unknown; motivo: string | null; modelo: string | null;
-  motivos_modelo: string[]; reserva?: string; ferramentas: UsoFerramenta[]; iteracoes: number; custo_usd: number;
+  motivos_modelo: string[]; modelo_chave?: string | null; esforco?: string | null; balanceador?: DecisaoBalanceador | null; provedor?: string | null; modelo_simulado?: boolean | null; reserva?: string; ferramentas: UsoFerramenta[]; iteracoes: number; custo_usd: number;
   duracao_ms: number; duracao_estimada_ms: number;
   pendencia: Pendencia | null;
 };
@@ -108,8 +109,59 @@ export type Execucao = {
   tokens_saida: number; custo_usd: number; custo_brl: number; duracao_ms: number; duracao_estimada_ms: number;
   simulado: boolean; inicio: string; fim: string | null;
   resultado_tela?: string; passos_tela?: Record<string, RegistroPasso>;
+  rotina?: { rotina: string; origem: string } | null;
 };
 
+export type ModeloIA = {
+  chave: string; nome: string; provedor: string; provedor_nome: string; simulado: boolean; id_api: string;
+  preco_entrada: number; preco_saida: number; preco_cache_leitura: number; limite_preco_padrao: number | null;
+  capacidades: { ferramentas: boolean; contexto_longo: boolean; raciocinio: number; esforco_maximo: string };
+  fonte_preco: string; data_preco: string; apelidos: string[];
+};
+export type RegistroModelos = { provedores: { id: string; nome: string; real: boolean }[]; modelos: ModeloIA[] };
+export type Comparativo = {
+  dias: number; execucoes: number; atual_brl: number; tem_demo: boolean; aviso: string;
+  cenarios: { chave: string; modelo: string; provedor: string; provedor_nome: string; simulado: boolean; custo_brl: number; variacao_pct: number | null }[];
+};
+export type DecisaoBalanceador = {
+  esforco: string | null; modo: string; escolhido: string; provedor: string; motivo: string;
+  candidatos: { chave: string; nome: string; provedor: string; preco_ref_usd: number; simulado: boolean; descartado: string | null }[];
+};
+export type CargaBalanceador = {
+  passos: number; semente: number; fora: string[]; custo_brl: number; custo_tudo_forte_brl: number; economia_pct: number | null;
+  por_nivel: { nivel: string; rotulo: string; passos: number; custo_brl: number }[];
+  por_provedor: { provedor: string; nome: string; passos: number; custo_brl: number }[];
+  por_modelo: { chave: string; nome: string; provedor: string; passos: number; custo_brl: number }[];
+};
+export type PoliticaBalanceador = {
+  niveis: { id: string; rotulo: string; descricao: string; raciocinio_min: number;
+    escolha: { modelo: string; chave: string; provedor: string; modo: string; motivo: string; simulado: boolean } }[];
+  regras: { tolerancia_homologado: number; provedor_homologado: string; orcamento_apertado: number; limite_contexto_longo: number };
+  provedores: { id: string; nome: string; real: boolean; fora: boolean; modelos: string[] }[];
+  ultima_carga: CargaBalanceador | null; pode_simular: boolean; demonstracao: string;
+};
+export type ExecucaoRecenteMapa = {
+  id: string; agente_id: string; agente: string; status: string; quando: string; custo_brl: number; rotina: boolean;
+  modelos: string[]; demo: boolean; arestas: [string, string, number][];
+};
+export type NoMapa = {
+  id: string; tipo: "criador" | "agente" | "modelo" | "ferramenta" | "plugin" | "sistema";
+  provedor?: string; provedor_nome?: string; simulado?: boolean; chamadas?: number; coluna: string; rotulo: string;
+  detalhe?: string; area?: string; estado?: string; risco?: string; dono?: string; execucoes: number; custo_brl?: number;
+  rota?: string; usada_por?: number; integrado?: boolean; externo?: boolean; classificacao?: string; ferramentas?: string[] | number;
+};
+export type MapaIA = {
+  dias: number; colunas: { id: string; rotulo: string }[]; nos: NoMapa[]; ligacoes: { de: string; para: string; volume: number }[];
+  totais: { agentes: number; modelos: number; plugins: number; ferramentas: number; plataformas: number; execucoes: number }; tem_demo: boolean;
+  filtros: { area: string | null; provedor: string | null; areas: string[]; provedores: { id: string; nome: string }[] };
+  execucoes_recentes: ExecucaoRecenteMapa[];
+};
+export type Rotina = {
+  id: string; agente_id: string; agente_nome?: string; dono: string; frequencia: "diaria" | "semanal"; dia_semana: number | null;
+  hora: number; minuto: number; descricao: string; ativa: boolean; entrada: Record<string, string>; proxima_em: string | null;
+  ultima_em: string | null; ultima_execucao_id: string | null; ultimo_resultado: string | null; pode_gerir?: boolean; pode_rodar?: boolean;
+};
+export type RelogioRotinas = { agora: string; fator: number; demo: boolean; pode_mexer?: boolean; disparadas?: unknown[] };
 export type Saude = { ok: boolean; versao: string; modo: "real" | "simulado"; modelos: Record<string, string>; cotacao_dolar: number };
 
 export type Agente = {
@@ -163,8 +215,9 @@ export type ResumoFinancas = {
   dias: number; tem_demo: boolean; execucoes: number; custo_brl: number; custo_sem_roteador_brl: number;
   economia_roteador_pct: number | null; ganho_brl: number; roi_variavel: number | null;
   por_agente: FinancasAgente[]; por_area: { area: string; execucoes: number; custo_brl: number; ganho_brl: number }[];
-  por_modelo: { modelo: string; chamadas: number; custo_brl: number }[];
-  por_dia: { dia: string; execucoes: number; custo_brl: number; rapido_brl: number; forte_brl: number }[];
+  por_provedor: { provedor: string; provedor_nome: string; simulado: boolean; chamadas: number; custo_brl: number }[];
+  por_modelo: { chave: string; modelo: string; provedor: string; provedor_nome: string; simulado: boolean; chamadas: number; custo_brl: number }[];
+  por_dia: ({ dia: string; execucoes: number; custo_brl: number } & Record<string, number | string>)[];
   premissas?: Record<string, number | boolean>;
 };
 
@@ -191,7 +244,8 @@ export type Indicadores = {
 // ---------- roteiros e Perguntas da Ferramenta ----------
 export type PassoRoteiro = {
   id: string; titulo: string; perfil: string; rota: string; acao: string; fala: string;
-  preenche: { descricao?: string; entrada?: Record<string, string>; parecer?: string }; externa: boolean;
+  preenche: { descricao?: string; entrada?: Record<string, string>; parecer?: string; fonte?: { tipo: string; url: string };
+    frequencia?: "semanal" | "diaria"; dia_semana?: number; hora?: string }; externa: boolean;
 };
 
 export type AsIs = { minutos: number; hipotese: boolean; dor: string; passos: string[]; erros: string[] };
@@ -202,7 +256,7 @@ export type Roteiro = {
   as_is: AsIs; to_be: ToBe; valor: string[]; agente_nome: string | null; passos: PassoRoteiro[]; persona_dados: Persona;
 };
 
-export type ResumoRoteiro = { id: string; persona: string; titulo: string; processo: string; resumo: string; duracao_min: number; passos: number };
+export type ResumoRoteiro = { id: string; persona: string; titulo: string; processo: string; resumo: string; duracao_min: number; passos: number; apresentacao?: boolean };
 
 export type LinhaResultado = {
   criterio: string; unidade: string; as_is: number | null; to_be: number | null; delta_pct: number | null;
@@ -214,6 +268,7 @@ export type ResultadoRoteiro = {
   execucao: { id: string; status: string; custo_brl: number; duracao_min: number; simulado: boolean } | null;
   origem: "medido" | "estimado"; linhas: LinhaResultado[]; ganho_por_tarefa_brl: number; aviso: string | null;
   indicadores: { nome: string; valor: number | null; unidade: string; origem: string; detalhe: string }[];
+  rotina?: { agendas: string[]; execucoes_feitas: number; execucoes_por_mes: number; ganho_mensal_brl: number; origem: string } | null;
 };
 
 export type Consolidado = {

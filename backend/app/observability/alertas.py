@@ -10,6 +10,7 @@ Regras:
   conector_fora      — sistema integrado com erro ou fora do ar
   conector_lento     — sistema integrado respondendo devagar
   orcamento          — gasto do mês passou de 80% (atenção) ou 100% (corte) do orçamento
+  provedor_fora      — provedor de IA indisponível (queda simulada pelo CoE; o balanceador delega)
 """
 from __future__ import annotations
 
@@ -24,6 +25,7 @@ from ..audit import trilha
 from ..core.db import trava
 from ..core.identidade import ENGENHARIA_PLATAFORMA, GESTOR_IA, PERSONAS, Persona
 from ..core.relogio import agora
+from ..llm import balanceador, registro
 from ..runtime import modelos as rm
 from ..tools import executor
 from ..tools.catalogo import disponiveis
@@ -179,6 +181,14 @@ def avaliar(s: Session) -> dict:
                                     [a.dono] + _engenharia(), vistos)
             if not dependentes:
                 _abrir_ou_atualizar(s, abertos, "%s::%s" % (c["regra"], cid), c, None, _engenharia(), vistos)
+
+        for pid in sorted(balanceador.fora_do_ar()):   # queda de provedor de IA (simulada pelo CoE)
+            nome = registro.PROVEDORES[pid].nome
+            _abrir_ou_atualizar(s, abertos, "provedor_fora::" + pid, {
+                "regra": "provedor_fora", "severidade": ATENCAO, "titulo": "Provedor de IA indisponível: %s" % nome,
+                "detalhe": "%s está fora do ar (queda simulada). Os passos automáticos estão sendo delegados a outro provedor "
+                           "capaz; os passos com modelo fixado desse provedor continuam nele." % nome},
+                None, [p.id for p in PERSONAS.values() if p.tem(GESTOR_IA)] + _engenharia(), vistos)
 
         resolvidos = []
         for chave in antes - vistos:

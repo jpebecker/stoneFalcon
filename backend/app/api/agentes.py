@@ -16,6 +16,7 @@ from ..observability import avaliar_seguro
 from ..plugins import servico as plugins
 from ..runtime import motor
 from ..runtime.modelos import Execucao
+from ..rotinas import marcar as marcar_rotina
 from .execucoes import _publico as execucao_publica
 
 rotas = APIRouter(prefix="/api/v1", tags=["agentes"])
@@ -209,4 +210,4 @@ def execucoes(agente_id: str, limite: int = 50, pessoa: Persona = Depends(usuari
     _ver(pessoa, a)
     itens = s.exec(select(Execucao).where(Execucao.agente_id == a.id).order_by(Execucao.inicio.desc())
                    .limit(min(max(limite, 1), 500))).all()
-    return [execucao_publica(e) for e in itens]
+    return marcar_rotina(s, [execucao_publica(e) for e in itens])

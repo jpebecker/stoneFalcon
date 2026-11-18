@@ -6,6 +6,7 @@ os.environ.pop("ANTHROPIC_API_KEY", None)
 os.environ["STONEFALCON_DB"] = "sqlite://"
 os.environ["STONEFALCON_SEMEAR"] = "0"
 os.environ["STONEFALCON_VIGIA"] = "0"
+os.environ["STONEFALCON_AGENDADOR"] = "0"
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
@@ -14,9 +15,22 @@ from sqlmodel import Session, SQLModel  # noqa: E402
 from app.core import db  # noqa: E402
 
 
+@pytest.fixture(autouse=True)
+def _balanceador_limpo():
+    """Queda simulada de provedor é estado global: nenhum teste herda a do anterior (nem os que não usam o banco)."""
+    from app.llm import balanceador
+    balanceador.zerar()
+    yield
+    balanceador.zerar()
+
+
 @pytest.fixture()
 def motor():
+    from app import rotinas
+    from app.llm import balanceador
     from app.plugins import servico as plugins
+    balanceador.zerar()
+    rotinas.zerar()
     m = db.criar_motor("sqlite://")
     db.usar_motor(m)
     db.criar_tabelas()
@@ -24,6 +38,8 @@ def motor():
     yield m
     SQLModel.metadata.drop_all(m)
     plugins.zerar()
+    balanceador.zerar()
+    rotinas.zerar()
 
 
 @pytest.fixture()

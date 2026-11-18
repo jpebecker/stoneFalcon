@@ -16,7 +16,9 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+from ..llm import registro
 
 from ..tools.catalogo import CATALOGO
 
@@ -29,8 +31,16 @@ class Passo(BaseModel):
     # tipo "agente"
     instrucao: str = ""
     ferramentas: list[str] = Field(default_factory=list)
-    modelo: Literal["auto", "rapido", "forte"] = "auto"
+    modelo: str = "auto"   # "auto" (o balanceador decide) ou um modelo do registro (app/llm/registro.py)
     max_iteracoes: int = Field(default=6, ge=1, le=15)
+
+    @field_validator("modelo")
+    @classmethod
+    def _modelo_conhecido(cls, v: str) -> str:
+        if v != "auto" and not registro.existe(v):
+            raise ValueError("modelo desconhecido: %s" % v)
+        return v
+
     # tipo "ferramenta"
     ferramenta: str | None = None
     entrada: dict[str, Any] = Field(default_factory=dict)

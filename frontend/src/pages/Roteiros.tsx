@@ -43,7 +43,7 @@ export default function Roteiros() {
                 </div>
                 {ativo?.id === r.id && <span className="selo ml-auto bg-pedra-fundo text-pedra-forte">em andamento</span>}
               </div>
-              <h2 className="mt-3 text-base">{r.titulo}</h2>
+              <h2 className="mt-3 text-base">{r.titulo}{r.apresentacao && <span className="selo ml-2 bg-info-fundo text-info">pitch</span>}</h2>
               <p className="mt-1 flex-1 text-sm text-tinta-2">{r.resumo}</p>
               <p className="mt-2 text-xs text-tinta-3">{r.passos} passos · ≈ {r.duracao_min} min</p>
               <div className="mt-3 flex gap-2">

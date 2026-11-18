@@ -43,6 +43,7 @@ class Contexto:
     notificacao: dict | None = None
     slack: dict | None = None
     zendesk: dict | None = None
+    planilha: dict | None = None     # o que o plugin Google Sheets leu (colunas, linhas e a primeira linha pendente)
     instrucao: str = ""          # a tarefa do passo (o que o criador escreveu), para campos como o canal do Slack
     analise: str = ""            # conclusão de um passo anterior (texto)
     erros: list[str] = field(default_factory=list)
@@ -50,7 +51,9 @@ class Contexto:
     def absorver(self, obj) -> None:
         """Classifica um resultado de ferramenta pelo formato dos campos."""
         if isinstance(obj, dict):
-            if "cnpj" in obj and "plano" in obj:
+            if "colunas" in obj and "primeira" in obj:
+                self.planilha = obj
+            elif "cnpj" in obj and "plano" in obj:
                 self.lojista = obj
             elif "contestacoes" in obj:
                 self.chargebacks = obj
@@ -288,9 +291,10 @@ def campo_para_ferramenta(campo: str, ferramenta: str, ctx: Contexto, titulo: st
         if "sinais de risco relevantes" in ctx.analise and campo in ("titulo", "descricao"):
             achado = re.search(r"sinais de risco relevantes em ([^:]+):", ctx.analise)
             quem = achado.group(1) if achado else "lojista"
-            return ("Triagem de chargebacks: %s" % quem) if campo == "titulo" else                 ("Análise do agente: " + ctx.analise.strip()[:380])
+            return (("Triagem de chargebacks: %s" % quem) if campo == "titulo"
+                    else ("Análise do agente: " + ctx.analise.strip()[:380]))
         if e:
-            relato = str(ctx.entrada.get("relato") or "").strip()
+            relato = str(ctx.entrada.get("relato") or ((ctx.planilha or {}).get("primeira") or {}).get("relato") or "").strip()
             if campo == "titulo":
                 return "Troca de %s: %s" % (e["modelo"], nome)
             if campo == "descricao":

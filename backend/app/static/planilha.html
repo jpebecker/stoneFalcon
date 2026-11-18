@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Planilha fictícia · Pedidos de troca de maquininha</title>
+<style>
+  :root { --tinta:#1d2b36; --suave:#5b6b78; --linha:#d5dbe0; --fundo:#f8f9fa; --verde:#188038; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:14px/1.4 "Segoe UI", system-ui, sans-serif; color:var(--tinta); background:var(--fundo); }
+  header { background:#fff; border-bottom:1px solid var(--linha); padding:10px 18px; display:flex; align-items:center; gap:12px; }
+  header b { font-size:17px; }
+  header .selo { margin-left:auto; font-size:12px; color:var(--suave); background:#eef2f5; padding:3px 10px; border-radius:999px; }
+  main { padding:18px; transition:margin-right .2s; }
+  main.com-painel { margin-right:430px; }
+  table { border-collapse:collapse; background:#fff; width:100%; max-width:1100px; }
+  th, td { border:1px solid var(--linha); padding:5px 10px; text-align:left; white-space:nowrap; }
+  td.relato { white-space:normal; min-width:260px; }
+  thead th { background:#f1f3f4; color:var(--suave); font-weight:600; position:sticky; top:0; }
+  tbody th { background:#f1f3f4; color:var(--suave); width:34px; text-align:center; font-weight:400; }
+  tr.pendente td:last-child { color:var(--verde); font-weight:600; }
+  .dica { margin-top:14px; font-size:13px; color:var(--suave); max-width:760px; }
+  button.sf { background:#10201A; color:#fff; border:0; border-radius:8px; padding:7px 14px; font:600 13px "Segoe UI",sans-serif; cursor:pointer; }
+  /* painel de reserva: sem a extensão, esta página faz o papel dela (plano B, sem internet) */
+  #sf-reserva { position:fixed; right:0; top:0; width:430px; height:100vh; border-left:1px solid var(--linha); background:#fff; display:none; z-index:50; }
+  #sf-reserva iframe { width:100%; height:100%; border:0; }
+  #sf-reserva button { position:absolute; left:-74px; top:10px; z-index:2; border:0; background:#10201A; color:#fff; border-radius:6px; padding:3px 10px; cursor:pointer; }
+</style>
+</head>
+<body>
+<header>
+  <b>Pedidos de troca de maquininha</b><span>Planilha fictícia (ensaio sem internet)</span>
+  <button class="sf" id="sf-abrir" type="button">Abrir o StoneFalcon</button>
+  <span class="selo">Página de demonstração do StoneFalcon · dados fictícios</span>
+</header>
+<main id="principal">
+  <table aria-label="Pedidos de troca"><thead id="cab"></thead><tbody id="corpo"></tbody></table>
+  <p class="dica">No Google Sheets a grade é desenhada sem texto selecionável comum, então o StoneFalcon lê o <b>endereço</b> da planilha aberta
+  (e não as células). Esta página imita isso: abra o painel e use <b>Criar Agente de IA a partir desta planilha</b>.</p>
+</main>
+<aside id="sf-reserva" aria-label="Painel do StoneFalcon"><button id="sf-fechar" type="button">Fechar</button><iframe title="StoneFalcon" id="sf-quadro"></iframe></aside>
+<script>
+// Perfil: o mesmo em que o hub está logado neste navegador (mesma origem). Nunca vem do endereço: abrir
+// /demo/planilha?perfil=... não troca o perfil de ninguém, como no resto da plataforma.
+function perfilDoHub() { try { return localStorage.getItem("stonefalcon.perfil") || ""; } catch (e) { return ""; } }
+const fonte = { tipo: "planilha", url: location.origin + "/demo/planilha", titulo: document.title };
+fetch("/api/v1/demo/planilha").then((r) => r.json()).then((p) => {
+  const cab = document.getElementById("cab"), corpo = document.getElementById("corpo");
+  const tr = document.createElement("tr"); tr.appendChild(document.createElement("th"));
+  p.colunas.forEach((c) => { const th = document.createElement("th"); th.textContent = c; tr.appendChild(th); });
+  cab.appendChild(tr);
+  p.linhas.forEach((l, i) => {
+    const r = document.createElement("tr"); if (l.status === "pendente") r.className = "pendente";
+    const n = document.createElement("th"); n.textContent = String(i + 2); r.appendChild(n);
+    p.colunas.forEach((c) => { const td = document.createElement("td"); td.textContent = l[c]; if (c === "relato") td.className = "relato"; r.appendChild(td); });
+    corpo.appendChild(r);
+  });
+});
+
+const reserva = document.getElementById("sf-reserva"), quadro = document.getElementById("sf-quadro"), principal = document.getElementById("principal");
+let quadroPronto = false;
+function avisarPlanilha() { quadro.contentWindow.postMessage({ origem: "stonefalcon-extensao", planilha: fonte }, location.origin); }
+window.addEventListener("message", (e) => {
+  if (e.source !== quadro.contentWindow || e.origin !== location.origin) return;
+  const d = e.data;
+  if (!d || d.origem !== "stonefalcon-plataforma") return;
+  if (d.tipo === "pronto") { quadroPronto = true; avisarPlanilha(); }
+  // "Criar Agente de IA": sem a extensão, esta página faz o papel dela (passe de uso único, Estúdio numa aba nova)
+  if (d.tipo === "criar-agente") {
+    const perfil = perfilDoHub();
+    if (!perfil) { alert("Entre no StoneFalcon com o seu perfil (nesta mesma janela do navegador) e tente de novo."); return; }
+    fetch("/api/v1/extensao/passe", { method: "POST", headers: { "Content-Type": "application/json", "X-Usuario": perfil },
+      body: JSON.stringify({ trecho: String(d.trecho || "").slice(0, 8000), fonte: d.fonte || fonte }) })
+      .then((r) => r.ok ? r.json() : Promise.reject(r.status))
+      .then((x) => window.open("/via-extensao?passe=" + encodeURIComponent(x.passe), "_blank"))
+      .catch(() => alert("Não consegui abrir o Estúdio. Confira se o seu perfil cria agentes e se a plataforma está ligada."));
+  }
+});
+document.getElementById("sf-abrir").onclick = () => {
+  reserva.style.display = "block"; principal.classList.add("com-painel");
+  if (!quadro.src) quadro.src = "/extensao";   // a moldura usa o perfil do hub (mesma origem)
+  else if (quadroPronto) avisarPlanilha();
+};
+document.getElementById("sf-fechar").onclick = () => { reserva.style.display = "none"; principal.classList.remove("com-painel"); };
+</script>
+</body>
+</html>

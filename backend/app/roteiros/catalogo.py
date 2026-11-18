@@ -48,9 +48,10 @@ class Roteiro:
     sem: frozenset = frozenset()        # agentes da semente que a persona cria ao vivo
     preparar: str | None = None         # gancho que deixa o estado exato do roteiro
     duracao_min: int = 4
+    apresentacao: bool = False          # roteiro do pitch: só o CoE vê na lista (a persona entra por ele)
 
     def publico(self) -> dict:
-        return {"id": self.id, "persona": self.persona, "titulo": self.titulo, "processo": self.processo,
+        return {"id": self.id, "persona": self.persona, "apresentacao": self.apresentacao, "titulo": self.titulo, "processo": self.processo,
                 "resumo": self.resumo, "as_is": self.as_is, "to_be": self.to_be, "valor": self.valor,
                 "agente_nome": self.agente_nome, "duracao_min": self.duracao_min,
                 "passos": [p.publico() for p in self.passos]}
@@ -308,4 +309,69 @@ HELENA = Roteiro(
         _perguntas("helena"),
     ), duracao_min=4)
 
-ROTEIROS: dict[str, Roteiro] = {r.id: r for r in (MARINA, RAFAEL, CARLA, THIAGO, LUCAS, HELENA)}
+_PLANILHA = "local:pedidos-troca"
+_AGENTE_PLANILHA = "{agente:Troca de maquininha pela planilha}"
+
+PITCH = Roteiro(
+    id="pitch", persona="thiago", titulo="Pitch v7: da planilha do Thiago ao Mapa de IA da Helena",
+    processo="Troca de maquininha por planilha (rotina semanal)", agente_nome="Troca de maquininha pela planilha",
+    sem=frozenset(), preparar="pitch", apresentacao=True,
+    resumo="Uma planilha aberta no navegador vira agente pela extensão, ganha rotina semanal, aparece ao vivo no Mapa de IA e "
+           "mostra vários provedores de IA, a queda de um deles e o gasto por provedor em Finanças.",
+    as_is={"minutos": 12, "hipotese": True,
+           "dor": "Os pedidos de troca chegam numa planilha; alguém copia cada linha para cadastro, regra, estoque, chamado e aviso.",
+           "passos": ["Abre a planilha de pedidos", "Copia o lojista e o modelo da linha", "Confere cadastro, regra e estoque",
+                      "Abre o chamado na logística", "Avisa o lojista e o canal", "Repete toda segunda-feira"],
+           "erros": ["Linha esquecida na planilha", "Troca fora da regra", "Modelo sem estoque descoberto tarde"]},
+    to_be={"conferencia_min": 1.9,
+           "passos": ["A extensão cria o agente a partir da planilha aberta", "O balanceador escolhe o modelo de cada passo",
+                      "A rotina roda toda segunda às 9h, em nome do Thiago", "O Mapa de IA mostra tudo ao vivo para o CoE"],
+           "nota": "Conferência humana de ≈ %s min por pedido (hipótese); a rotina tira o disparo manual." % _min(1.9)},
+    valor=["Tempo por troca", "Rotina semanal sem disparo manual", "Gasto por provedor de IA"],
+    passos=(
+        Passo("contexto", "A dor: cada time cria IA sozinho", "helena", "/roteiro/pitch",
+              "Apresente o problema do CoE: não enxerga o que os times criam, quanto custa nem de qual fornecedor depende.",
+              "A Helena não vê o que os times estão criando, quanto custa nem de que fornecedor de IA depende. Hoje, um pedido de troca "
+              "de maquininha mora numa planilha e alguém copia linha por linha. Vamos ver isso mudar em oito minutos."),
+        Passo("planilha", "Abrir a planilha de pedidos", "thiago", "/demo/planilha",
+              "Mostre a planilha “Pedidos de troca de maquininha” no navegador (dados fictícios; abre em outra aba).",
+              "Esta é a planilha do Thiago, aberta no navegador. No Google Sheets a grade não é texto selecionável: a extensão lê o "
+              "endereço da planilha, não as células. Aqui, a versão local para ensaiar sem internet.", externa=True),
+        Passo("criar", "Criar o agente pela extensão", "thiago", "/estudio",
+              "No painel da extensão: “Criar Agente de IA a partir desta planilha”. Aqui o Estúdio já abre com a fonte; clique em “Montar meu agente”.",
+              "[v7: atalho na extensão] Um clique na extensão e o Estúdio abre no mesmo perfil, com a planilha como fonte. O Thiago não digita nada: "
+              "ler a planilha, validar cadastro, regra e estoque, abrir o chamado e avisar o lojista.",
+              {"descricao": "Ler a planilha de pedidos de troca de maquininha e tratar o primeiro pedido pendente: conferir cadastro, "
+                            "regra de troca e estoque, abrir o chamado na logística e avisar o lojista. Levo uns 12 minutos.",
+               "fonte": {"tipo": "planilha", "url": _PLANILHA}}),
+        Passo("testar", "Testar no sandbox e ver o balanceador", "thiago", "/estudio",
+              "Rode o teste e abra “Como o agente decidiu” num passo com IA: nível de esforço, candidatos e motivo.",
+              "[v7: vários provedores e balanceador] Cada passo com IA recebe um nível de esforço e vai ao modelo mais barato que dá conta, "
+              "de qualquer provedor. Só o Claude roda de verdade; os outros são simulados, com o selo na tela.",
+              {"entrada": {"planilha": _PLANILHA}}),
+        Passo("publicar", "Publicar", "thiago", "/estudio",
+              "Clique em “Publicar”: risco médio, vai ao ar direto.",
+              "Escrita em outro sistema é risco médio: publica direto, com guardrails e auditoria."),
+        Passo("rotina", "Agendar a rotina semanal", "thiago", "/agentes/" + _AGENTE_PLANILHA,
+              "Agende toda segunda às 9h (já preenchido) e clique em “Rodar agora”: a primeira execução leva o selo “rotina”.",
+              "[v7: tarefa de rotina] O agente agora roda sozinho toda segunda às 9h, em nome do Thiago, com as mesmas permissões, guardrails "
+              "e orçamento. Para ver agora, “Rodar agora”.",
+              {"frequencia": "semanal", "dia_semana": 0, "hora": "09:00", "entrada": {"planilha": _PLANILHA}}),
+        Passo("mapa", "Mapa de IA: o agente apareceu sozinho", "helena", "/mapa",
+              "No Mapa de IA, o agente novo já está no mapa. Avance o relógio da demo (+1 semana) e veja o pulso percorrer o caminho.",
+              "[v7: Mapa de IA ao vivo] Para a Helena, o agente do Thiago apareceu sozinho: quem criou, os modelos por provedor, o Slack e o "
+              "estoque. O pulso é a rotina rodando: planilha, modelos, ferramentas e plataformas."),
+        Passo("queda", "Simular a queda de um provedor", "helena", "/saude",
+              "Em Saúde, clique em “Simular queda” no Claude e depois em “Simular carga”: veja a distribuição por provedor e o custo.",
+              "[v7: queda de provedor] A Helena derruba o provedor principal. O balanceador delega a outro provedor capaz, abre o alerta e a "
+              "carga de teste mostra a distribuição e o custo mudando. Sem depender de um fornecedor só."),
+        Passo("financas", "Finanças por provedor", "helena", "/financas",
+              "Mostre o gasto por provedor e por modelo e o comparativo “e se tudo rodasse em um só modelo”.",
+              "[v7: contabilidade multimodelo] O gasto vem das execuções: por provedor, por modelo e o comparativo de quanto custaria rodar tudo "
+              "em um só."),
+        Passo("medir", "Medir: AS IS × TO BE com a rotina", "helena", "/roteiro/pitch?etapa=resultado",
+              "Abra o cartão AS IS × TO BE do Thiago: a rotina semanal conta no ganho.",
+              "Fechamos no cartão do Thiago: tempo medido do agente, a rotina semanal sem ninguém disparar e a origem de cada número."),
+    ), duracao_min=9)
+
+ROTEIROS: dict[str, Roteiro] = {r.id: r for r in (MARINA, RAFAEL, CARLA, THIAGO, LUCAS, HELENA, PITCH)}

@@ -24,15 +24,19 @@ import Perguntas from "./pages/Perguntas";
 import Revisoes from "./pages/Revisoes";
 import RoteiroPagina from "./pages/RoteiroPagina";
 import Roteiros from "./pages/Roteiros";
+import MapaIAPagina from "./pages/MapaIA";
 import PaginaSaude from "./pages/Saude";
+import ViaExtensao from "./pages/ViaExtensao";
 import { BarraRoteiro, ProvedorRoteiro } from "./roteiro/Controle";
 import { useEstadoRoteiro } from "./roteiro/estado";
+import { versaoCurta } from "./components/formato";
 
 // O menu e as rotas só leem `pessoa.abas`, que vem do back (a fonte da verdade do acesso por perfil).
 const NAV: { aba: string; para: string; rotulo: string }[] = [
   { aba: "inicio", para: "/", rotulo: "Início" },
   { aba: "roteiros", para: "/roteiros", rotulo: "Roteiros" },
   { aba: "painel", para: "/painel", rotulo: "Painel executivo" },
+  { aba: "mapa", para: "/mapa", rotulo: "Mapa de IA" },
   { aba: "estudio", para: "/estudio", rotulo: "Estúdio" },
   { aba: "agentes", para: "/agentes", rotulo: "Agentes" },
   { aba: "plugins", para: "/plugins", rotulo: "Plugins" },
@@ -132,6 +136,9 @@ export default function App() {
     return <Extensao pessoa={perfil && !eu.isError ? pessoa ?? null : null} aoEntrar={(id) => trocar(id)} aoSair={() => trocar(null)}
       erroPerfil={!!perfil && eu.isError} />;
   }
+  if (location.pathname === "/via-extensao") {
+    return <ProvedorRoteiro trocar={trocar}><ViaExtensao aoEntrar={trocar} /></ProvedorRoteiro>;
+  }
   if (!perfil || eu.isError) {
     return <ProvedorRoteiro trocar={trocar}><Entrar aoEntrar={trocar} /></ProvedorRoteiro>;
   }
@@ -151,6 +158,7 @@ export default function App() {
             ))}
           </nav>
           <p className="mt-auto text-xs leading-relaxed text-white/45">
+            <span className="mb-1 block font-semibold text-white/70" data-testid="versao">StoneFalcon {saude.data ? versaoCurta(saude.data.versao) : ""}</span>
             Protótipo acadêmico (UFSC) para o desafio StoneLab. Não é um produto oficial da Stone. Pessoas e dados são fictícios.
           </p>
         </aside>
@@ -182,6 +190,7 @@ export default function App() {
                 <Route path="/" element={<Inicio pessoa={pessoa} />} />
                 <Route path="/roteiros" element={<Guarda pessoa={pessoa} aba="roteiros"><Roteiros /></Guarda>} />
                 <Route path="/roteiro/:id" element={<RoteiroPagina pessoa={pessoa} />} />
+                <Route path="/mapa" element={<Guarda pessoa={pessoa} aba="mapa"><MapaIAPagina /></Guarda>} />
                 <Route path="/perguntas" element={<Guarda pessoa={pessoa} aba="perguntas"><Perguntas /></Guarda>} />
                 <Route path="/plugins" element={<Guarda pessoa={pessoa} aba="plugins"><Plugins /></Guarda>} />
                 <Route path="/plugins/:id" element={<Guarda pessoa={pessoa} aba="plugins"><PluginPagina pessoa={pessoa} /></Guarda>} />

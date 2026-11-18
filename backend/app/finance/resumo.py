@@ -16,13 +16,67 @@ from ..agents import modelos as am
 from ..audit.trilha import EventoAuditoria
 from ..core.identidade import GESTOR_IA, Persona
 from ..core.relogio import agora
-from ..llm import precos
+from ..llm import precos, registro
 from ..observability import metricas
 from ..runtime import modelos as rm
 from .calculadora import projetar
 from .premissas import Premissas
 
-NOME_MODELO = {"rapido": "Claude Haiku 5.5", "forte": "Claude Sonnet 5.5"}
+
+def _ficha_modelo(chave: str) -> dict:
+    """Linha de "gasto por modelo". Chaves de execuções antigas que saíram do registro aparecem como estão."""
+    if not registro.existe(chave):
+        return {"chave": chave, "modelo": chave, "provedor": "outro", "provedor_nome": "Outro", "simulado": True,
+                "chamadas": 0, "custo_brl": 0.0}
+    m = registro.obter(chave)
+    return {"chave": m.chave, "modelo": m.nome, "provedor": m.provedor, "provedor_nome": registro.PROVEDORES[m.provedor].nome,
+            "simulado": not registro.roda_de_verdade(m.chave), "chamadas": 0, "custo_brl": 0.0}
+
+
+def _por_provedor(fichas) -> list[dict]:
+    agrupado: dict[str, dict] = {}
+    for f in fichas:
+        g = agrupado.setdefault(f["provedor"], {"provedor": f["provedor"], "provedor_nome": f["provedor_nome"],
+                                                "simulado": f["simulado"], "chamadas": 0, "custo_brl": 0.0})
+        g["chamadas"] += f["chamadas"]
+        g["custo_brl"] = round(g["custo_brl"] + f["custo_brl"], 4)
+    return sorted(agrupado.values(), key=lambda x: -x["custo_brl"])
+
+
+def _custo_em(chave: str, e: rm.Execucao) -> float:
+    """Custo da execução `e` se todas as chamadas dela rodassem no modelo `chave`.
+
+    A faixa de preço (padrão ou "contexto longo") vale POR CHAMADA: cobrar os tokens somados da execução de uma vez
+    jogaria execuções com várias chamadas pequenas na faixa longa. Por isso refaz chamada a chamada, com a média de
+    tokens por chamada de cada modelo que a execução usou (é o que `por_modelo` guarda)."""
+    grupos = [v for v in (e.por_modelo or {}).values() if v.get("chamadas")]
+    if not grupos:   # execução sem detalhe por modelo: trata o total como as chamadas da execução
+        grupos = [{"chamadas": max(e.chamadas_modelo, 1), "tokens_entrada": e.tokens_entrada, "tokens_saida": e.tokens_saida}]
+    chamadas_total = sum(g["chamadas"] for g in grupos)
+    cache_por_chamada = (e.tokens_cache or 0) / chamadas_total
+    usd = 0.0
+    for g in grupos:
+        n = g["chamadas"]
+        usd += n * precos.custo_usd(chave, g.get("tokens_entrada", 0) / n, g.get("tokens_saida", 0) / n, cache_por_chamada)
+    return usd
+
+
+def comparativo(s: Session, p: Persona, dias: int = 30, modelo: str | None = None) -> dict:
+    """"E se tudo rodasse em X": o mesmo consumo (tokens) do período, cobrado pela tabela de cada modelo."""
+    agentes = _agentes_visiveis(s, p)
+    execs = [e for e in metricas.execucoes(s, horas=24 * dias) if e.agente_id in agentes]
+    atual = sum(e.custo_usd for e in execs)
+    alvos = [registro.obter(modelo)] if modelo else registro.todos()
+    cenarios = []
+    for m in alvos:
+        usd = sum(_custo_em(m.chave, e) for e in execs)
+        cenarios.append({"chave": m.chave, "modelo": m.nome, "provedor": m.provedor,
+                         "provedor_nome": registro.PROVEDORES[m.provedor].nome, "simulado": not registro.roda_de_verdade(m.chave),
+                         "custo_brl": round(brl(usd), 2),
+                         "variacao_pct": round(usd / atual - 1, 4) if atual else None})
+    return {"dias": dias, "execucoes": len(execs), "atual_brl": round(brl(atual), 2),
+            "cenarios": cenarios, "tem_demo": any(e.demo for e in execs),
+            "aviso": "Estimativa: o mesmo consumo de tokens do período, cobrado pela tabela pública de cada modelo."}
 
 
 def brl(usd: float) -> float:
@@ -56,7 +110,7 @@ def resumo(s: Session, p: Persona, dias: int = 30, premissas: Premissas | None =
     execs = [e for e in metricas.execucoes(s, horas=24 * dias) if e.agente_id in agentes]
     por_agente: dict[str, dict] = {}
     por_area: dict[str, dict] = defaultdict(lambda: {"execucoes": 0, "custo_brl": 0.0, "ganho_brl": 0.0})
-    por_modelo: dict[str, dict] = defaultdict(lambda: {"chamadas": 0, "custo_brl": 0.0})
+    por_modelo: dict[str, dict] = {}
     custo = tudo_forte = ganho = 0.0
     for a in agentes.values():
         minutos = _minutos(s, a)
@@ -83,17 +137,19 @@ def resumo(s: Session, p: Persona, dias: int = 30, premissas: Premissas | None =
     for e in execs:
         tudo_forte += brl(e.custo_tudo_forte_usd)
         for chave, v in (e.por_modelo or {}).items():
-            pm = por_modelo[NOME_MODELO.get(chave, chave)]
+            pm = por_modelo.setdefault(chave, _ficha_modelo(chave))
             pm["chamadas"] += v.get("chamadas", 0)
             pm["custo_brl"] = round(pm["custo_brl"] + brl(v.get("custo_usd", 0.0)), 4)
     dias_serie: dict[str, dict] = {}
     for e in execs:
-        d = dias_serie.setdefault(e.inicio[:10], {"dia": e.inicio[:10], "execucoes": 0, "custo_brl": 0.0,
-                                                  "rapido_brl": 0.0, "forte_brl": 0.0})
+        d = dias_serie.setdefault(e.inicio[:10], {"dia": e.inicio[:10], "execucoes": 0, "custo_brl": 0.0})
         d["execucoes"] += 1
         d["custo_brl"] = round(d["custo_brl"] + brl(e.custo_usd), 4)
-        for chave in ("rapido", "forte"):
-            d[chave + "_brl"] = round(d[chave + "_brl"] + brl((e.por_modelo or {}).get(chave, {}).get("custo_usd", 0.0)), 4)
+        for chave, v in (e.por_modelo or {}).items():   # uma coluna "<chave>_brl" por modelo e uma por provedor
+            custo_m = brl(v.get("custo_usd", 0.0))
+            d[chave + "_brl"] = round(d.get(chave + "_brl", 0.0) + custo_m, 4)
+            pid = _ficha_modelo(chave)["provedor"]
+            d[pid + "_brl"] = round(d.get(pid + "_brl", 0.0) + custo_m, 4)
     return {
         "dias": dias,
         "tem_demo": any(e.demo for e in execs),
@@ -105,7 +161,8 @@ def resumo(s: Session, p: Persona, dias: int = 30, premissas: Premissas | None =
         "roi_variavel": round((ganho - custo) / custo, 2) if custo else None,
         "por_agente": sorted(por_agente.values(), key=lambda x: -x["ganho_brl"]),
         "por_area": [{"area": k, **v} for k, v in sorted(por_area.items())],
-        "por_modelo": [{"modelo": k, **v} for k, v in sorted(por_modelo.items())],
+        "por_modelo": sorted(por_modelo.values(), key=lambda x: x["modelo"]),
+        "por_provedor": _por_provedor(por_modelo.values()),
         "por_dia": [dias_serie[k] for k in sorted(dias_serie)],
         "premissas": pr.model_dump(),
     }

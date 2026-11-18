@@ -40,8 +40,8 @@ def _acessivel(pessoa: Persona, roteiro_id: str):
 def listar(pessoa: Persona = Depends(usuario_atual)):
     """Só o roteiro do próprio perfil; a Helena vê todos."""
     return [{"id": r.id, "persona": r.persona, "titulo": r.titulo, "processo": r.processo, "resumo": r.resumo,
-             "duracao_min": r.duracao_min, "passos": len(r.passos)}
-            for r in ROTEIROS.values() if pessoa.tem(GESTOR_IA) or r.persona == pessoa.id]
+             "duracao_min": r.duracao_min, "passos": len(r.passos), "apresentacao": r.apresentacao}
+            for r in ROTEIROS.values() if pessoa.tem(GESTOR_IA) or (r.persona == pessoa.id and not r.apresentacao)]
 
 
 @rotas.get("/roteiros/consolidado")

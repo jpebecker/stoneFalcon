@@ -14,6 +14,7 @@ from .. import guardrails
 from ..agents.blueprint import Blueprint
 from ..core.db import sessao
 from ..core.identidade import CRIADOR, GESTOR_IA, Persona, exigir, usuario_atual
+from ..rotinas import marcar as marcar_rotina
 from ..observability import avaliar_seguro
 from ..runtime import modelos as m
 from ..runtime import motor
@@ -72,7 +73,7 @@ def listar(pendentes: bool = False, limite: int = 50, pessoa: Persona = Depends(
     if pendentes:
         q = q.where(m.Execucao.status == m.AGUARDANDO)
     itens = s.exec(q.order_by(m.Execucao.inicio.desc()).limit(min(max(limite, 1), 500))).all()
-    return [_publico(e) for e in itens]
+    return marcar_rotina(s, [_publico(e) for e in itens])
 
 
 @rotas.get("/execucoes/{execucao_id}")
@@ -81,7 +82,7 @@ def detalhe(execucao_id: str, pessoa: Persona = Depends(usuario_atual), s: Sessi
     if exe is None:
         raise HTTPException(status_code=404, detail="Execução não encontrada.")
     _pode_ver(pessoa, exe)
-    return _publico(exe)
+    return marcar_rotina(s, [_publico(exe)])[0]
 
 
 class PedidoDecisao(BaseModel):

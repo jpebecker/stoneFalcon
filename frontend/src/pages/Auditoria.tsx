@@ -11,6 +11,7 @@ const GRUPOS: Record<string, string[]> = {
   Execuções: ["execucao_iniciada", "execucao_concluida", "execucao_escalada", "execucao_aguardando_aprovacao", "aprovacao_concedida", "aprovacao_recusada", "execucao_negada"],
   Ferramentas: ["ferramenta_executada", "ferramenta_negada", "ferramenta_erro", "ferramenta_aguardando_aprovacao"],
   Plugins: ["plugin_integrado", "plugin_removido", "plugin_pedido_criado", "plugin_pedido_registrado", "plugin_pedido_aprovado", "plugin_pedido_recusado"],
+  Extensão: ["passe_extensao_emitido", "passe_extensao_usado"],
   Alertas: ["alerta_aberto", "alerta_resolvido", "conector_falha_injetada", "conector_normalizado"],
 };
 

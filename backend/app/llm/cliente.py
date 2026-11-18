@@ -12,6 +12,7 @@ from typing import Any, Callable, Protocol
 
 from ..core import config
 from ..texto.semelhanca import estimar_tokens
+from . import registro
 
 
 class ErroModelo(Exception):
@@ -51,9 +52,6 @@ class ClienteLLM(Protocol):
 # =============================================================
 # Modo real
 # =============================================================
-_ESFORCO = {"rapido": "low", "forte": "medium"}
-
-
 class ClienteAnthropic:
     def __init__(self) -> None:
         import anthropic
@@ -62,19 +60,19 @@ class ClienteAnthropic:
 
     def gerar(self, chave_modelo, sistema, mensagens, ferramentas=None, max_tokens=None):
         a = self._anthropic
-        m = config.MODELOS[chave_modelo]
+        m = registro.obter(chave_modelo)
         pedido: dict[str, Any] = {
-            "model": m["id"],
-            "max_tokens": max_tokens or m["max_tokens"],
+            "model": m.id_api,
+            "max_tokens": max_tokens or m.max_tokens,
             # instruções do agente se repetem a cada passo: cache barateia o loop
             "system": [{"type": "text", "text": sistema, "cache_control": {"type": "ephemeral"}}],
             "messages": mensagens,
-            "output_config": {"effort": _ESFORCO.get(chave_modelo, "medium")},
+            "output_config": {"effort": m.esforco_api or "medium"},
         }
         if ferramentas:
             pedido["tools"] = ferramentas
         try:
-            if chave_modelo == "forte":
+            if m.reserva_servidor:
                 # Sonnet 5.5: se um classificador de segurança recusar, a API refaz no modelo de reserva
                 r = self._cliente.beta.messages.create(
                     betas=["server-side-fallback-2026-07-01"], fallbacks="default", **pedido)
@@ -83,7 +81,7 @@ class ClienteAnthropic:
         except a.AuthenticationError:
             raise ErroModelo("A chave da API foi recusada. Confira o arquivo backend/.env.", fatal=True)
         except a.NotFoundError:
-            raise ErroModelo("O modelo %s não foi encontrado. Confira app/core/config.py." % m["id"], fatal=True)
+            raise ErroModelo("O modelo %s não foi encontrado. Confira app/llm/registro.py." % m.id_api, fatal=True)
         except a.RateLimitError:
             raise ErroModelo("Limite de uso da API atingido. Aguarde um pouco ou confira os créditos.")
         except a.APIStatusError as e:
@@ -139,7 +137,7 @@ class ClienteSimulado:
             if resposta is not None:
                 break
         if resposta is None:
-            nome = config.MODELOS[chave_modelo]["nome"]
+            nome = registro.obter(chave_modelo).nome
             resposta = RespostaLLM(chave_modelo=chave_modelo, texto=(
                 "Resposta simulada. Com a chave da API ligada, o %s responderia aqui de verdade. "
                 "Tokens e custo desta chamada foram estimados como no modo real." % nome))

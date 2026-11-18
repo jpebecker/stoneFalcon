@@ -10,6 +10,7 @@ import { registrarCtx, usePreenche } from "../roteiro/estado";
 import EditorPasso from "../components/EditorPasso";
 import LinhaDoTempo from "../components/LinhaDoTempo";
 import { COR_RISCO, reais } from "../components/formato";
+import { CHAVE_RASCUNHO } from "./ViaExtensao";
 
 type Padrao = { id: string; titulo: string; area: string; exemplo: string };
 
@@ -43,6 +44,24 @@ export default function Estudio({ pessoa }: { pessoa: Persona }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pre?.passoId]);
 
+  // chegada pela extensão: o trecho selecionado vira o rascunho da descrição, com a sugestão já calculada
+  useEffect(() => {
+    if (agenteId) return;
+    let texto = "";
+    let fonte: { tipo: string; url: string } | null = null;
+    try {
+      const guardado = sessionStorage.getItem(CHAVE_RASCUNHO);
+      sessionStorage.removeItem(CHAVE_RASCUNHO);
+      const d = guardado ? JSON.parse(guardado) : {};
+      texto = d.texto ?? "";
+      fonte = d.fonte?.tipo === "planilha" ? d.fonte : null;
+    } catch { /* sem armazenamento */ }
+    // vindo de uma planilha aberta no navegador: o Estúdio já monta o agente com a planilha como fonte
+    if (fonte && texto.trim().length < 15) texto = "Ler a planilha de pedidos de troca de maquininha e tratar o primeiro pedido pendente.";
+    if (texto.trim()) { setDescricao(texto); sugerir.mutate({ d: texto, fonte }); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // editando um agente existente: carrega a última versão
   const existente = useQuery({ queryKey: ["agente", agenteId], queryFn: () => api<AgenteDetalhe>("/agentes/" + agenteId), enabled: !!agenteId });
   useEffect(() => {
@@ -65,8 +84,9 @@ export default function Estudio({ pessoa }: { pessoa: Persona }) {
   const saude = useQuery({ queryKey: ["saude"], queryFn: () => api<Saude>("/saude") });
 
   const sugerir = useMutation({
-    mutationFn: (d: string) => api<Sugestao>("/estudio/sugerir", { descricao: d }),
-    onSuccess: (s) => { setSug(s); setBp(s.blueprint); setSel(null); setExe(null); setEntrada({}); },
+    mutationFn: ({ d, fonte }: { d: string; fonte?: { tipo: string; url: string } | null }) =>
+      api<Sugestao>("/estudio/sugerir", { descricao: d, fonte: fonte ?? null }),
+    onSuccess: (s) => { setSug(s); setBp(s.blueprint); setSel(null); setExe(null); setEntrada(s.entrada_sugerida ?? {}); },
   });
   const testar = useMutation({
     mutationFn: () => api<Execucao>("/estudio/testar", { blueprint: bp, entrada }),
@@ -82,7 +102,7 @@ export default function Estudio({ pessoa }: { pessoa: Persona }) {
 
   const valido = val?.valido ? val : null;
   const semPermissao = useMemo(() => new Set(Object.keys(valido?.sem_permissao ?? {})), [valido]);
-  const modelos = useMemo(() => Object.fromEntries(Object.entries(valido?.estimativa.por_passo ?? {}).map(([k, v]) => [k, v.modelo])), [valido]);
+  const modelos = useMemo(() => Object.fromEntries(Object.entries(valido?.estimativa.por_passo ?? {}).map(([k, v]) => [k, v.modelo && v.simulado ? v.modelo + " · simulado" : v.modelo])), [valido]);
   const passoSel = bp?.passos.find((p) => p.id === sel) ?? null;
 
   const mudarPasso = (novo: Passo) => bp && setBp({ ...bp, passos: bp.passos.map((p) => (p.id === novo.id ? novo : p)) });
@@ -119,7 +139,7 @@ export default function Estudio({ pessoa }: { pessoa: Persona }) {
           <div className="mt-3 flex items-center justify-between gap-3">
             <p className="text-xs text-tinta-3">Dados pessoais escritos aqui são removidos antes de qualquer envio.</p>
             <button className="botao-pedra" disabled={descricao.trim().length < 15 || sugerir.isPending}
-              onClick={() => sugerir.mutate(descricao)}>
+              onClick={() => sugerir.mutate({ d: descricao, fonte: pre?.fonte ?? null })}>
               {sugerir.isPending ? "Montando o agente…" : "Montar meu agente"}
             </button>
           </div>

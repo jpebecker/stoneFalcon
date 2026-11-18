@@ -7,7 +7,7 @@ import { api, type AnaliseTrecho, type Execucao, type Persona, type Saude } from
 import Avatar from "../components/Avatar";
 import CampoEntrada from "../components/CampoEntrada";
 import Marca from "../components/Marca";
-import { COR_STATUS, NOME_STATUS, ms, reais } from "../components/formato";
+import { COR_STATUS, NOME_STATUS, ms, reais, versaoCurta } from "../components/formato";
 
 type Item = { id: string; agente: string; quando: string; status: string; resultado: string; execId: string };
 const CHAVE_HIST = "stonefalcon.extensao.historico";
@@ -150,6 +150,7 @@ export default function Extensao({ pessoa, aoEntrar, aoSair, erroPerfil }: {
   const [historico, setHistorico] = useState<Item[]>(lerHistorico);
   const [verItem, setVerItem] = useState<string | null>(null);
   const [menu, setMenu] = useState(false);
+  const [planilha, setPlanilha] = useState<{ tipo: "planilha"; url: string; titulo?: string } | null>(null);   // a aba aberta é uma planilha?
 
   const saude = useQuery({ queryKey: ["saude"], queryFn: () => api<Saude>("/saude"), refetchInterval: 20000, retry: 0 });
   const perfis = useQuery({ queryKey: ["perfis"], queryFn: () => api<Persona[]>("/perfis"), enabled: menu });
@@ -169,6 +170,7 @@ export default function Extensao({ pessoa, aoEntrar, aoSair, erroPerfil }: {
       if (ev.source !== window.parent || window.parent === window) return;   // só a moldura que contém esta tela
       const d = ev.data;
       if (d?.origem !== "stonefalcon-extensao") return;
+      if ("planilha" in d) setPlanilha(d.planilha && d.planilha.tipo === "planilha" ? d.planilha : null);
       if (typeof d.trecho === "string") { setTrecho(d.trecho.slice(0, 8000)); setExe(null); setAgenteId(typeof d.agente === "string" ? d.agente : ""); }
     };
     window.addEventListener("message", ouvir);
@@ -238,6 +240,26 @@ export default function Extensao({ pessoa, aoEntrar, aoSair, erroPerfil }: {
       )}
 
       <div className="space-y-4 p-4">
+        {/* atalho para criar um agente: só para quem tem a aba Estúdio (a lista de abas vem do back) */}
+        {pessoa.abas.includes("estudio") ? (
+          <div className="space-y-2">
+            {planilha && (
+              <button className="botao-pedra w-full" onClick={() => avisarExtensao({ tipo: "criar-agente", trecho: "", fonte: planilha })}
+                title="Abre o Estúdio numa aba nova, com a planilha já configurada como fonte">
+                Criar Agente de IA a partir desta planilha
+              </button>
+            )}
+            <button className={planilha ? "botao-claro w-full" : "botao-pedra w-full"} onClick={() => avisarExtensao({ tipo: "criar-agente", trecho })}
+              title="Abre o Estúdio numa aba nova, já no seu perfil">
+              Criar Agente de IA{trecho ? " com este trecho" : ""}
+            </button>
+          </div>
+        ) : (
+          <p role="note" className="caixa p-3 text-sm text-tinta-2">
+            Seu perfil não cria agentes.{" "}
+            <a href="/" target="_blank" rel="noreferrer" className="font-semibold text-pedra-forte underline">Ir ao Início</a>
+          </p>
+        )}
         {trecho ? (
           <section className="caixa p-3 text-sm" aria-label="Trecho selecionado">
             <div className="flex items-center justify-between"><span className="rotulo mb-0">Trecho selecionado</span>
@@ -311,6 +333,7 @@ export default function Extensao({ pessoa, aoEntrar, aoSair, erroPerfil }: {
             </ul>
           </section>
         )}
+        {conectado && <p className="pt-2 text-center text-[11px] text-tinta-3">StoneFalcon {versaoCurta(saude.data!.versao)}</p>}
       </div>
     </div>
   );

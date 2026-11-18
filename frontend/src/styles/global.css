@@ -25,9 +25,13 @@
   --erro-fundo: 251 233 231;
   --info: 39 94 196;
   --info-fundo: 229 237 252;
-  /* séries de gráfico: paleta categórica validada (CVD) — Haiku = 1, Sonnet = 2 */
+  /* séries de gráfico: paleta categórica (1 e 2 validadas para daltonismo; 3 a 6 distinguem provedores no v7) */
   --serie-1: #2a78d6;
   --serie-2: #eb6834;
+  --serie-3: #1fb37a;
+  --serie-4: #e0428f;
+  --serie-5: #6b5bd0;
+  --serie-6: #8a8f98;
   color-scheme: light;
 }
 
@@ -68,3 +72,22 @@ h1, h2, h3 { @apply font-titulo font-semibold tracking-tight; }
 }
 .ext-tema .botao-pedra { color: #04150d; }
 @media (prefers-reduced-motion: reduce) { .animate-pulse { animation: none; } }
+
+
+/* Mapa de IA: entrada de nós novos, arestas recém-ligadas e o ponto "ao vivo". Com "reduzir movimento", vira destaque estático. */
+@keyframes mapa-entrada { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: scale(1); } }
+@keyframes mapa-pulso { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+.mapa-no-novo { animation: mapa-entrada .5s ease-out; box-shadow: 0 0 0 4px rgb(var(--pedra) / .25); }
+.mapa-aresta-nova path.react-flow__edge-path { stroke: rgb(var(--pedra)); stroke-width: 3; }
+.mapa-vivo { animation: mapa-pulso 2s ease-in-out infinite; }
+/* pulso da execução: um ponto percorre a aresta (offset-path), na cor do resultado */
+@keyframes mapa-percurso {
+  0% { offset-distance: 0%; opacity: 0; }
+  8% { opacity: 1; }
+  92% { opacity: 1; }
+  100% { offset-distance: 100%; opacity: 0; }
+}
+.mapa-pulso-ponto { offset-rotate: 0deg; opacity: 0; animation: mapa-percurso 520ms linear 1 both; filter: drop-shadow(0 0 3px currentColor); }
+@media (prefers-reduced-motion: reduce) {
+  .mapa-no-novo, .mapa-vivo, .mapa-pulso-ponto { animation: none; }
+}

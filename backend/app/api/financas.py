@@ -8,6 +8,7 @@ from ..core.db import sessao
 from ..core.identidade import GESTOR_IA, Persona, exigir, exigir_aba, usuario_atual
 from ..finance import calculadora, resumo
 from ..finance.premissas import Premissas
+from ..llm import registro
 from ..observability import avaliar_seguro
 from ..seed import historico
 
@@ -17,6 +18,15 @@ rotas = APIRouter(prefix="/api/v1", tags=["financas"])
 @rotas.get("/financas/resumo")
 def financas_resumo(dias: int = 30, pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
     return resumo.resumo(s, pessoa, min(max(dias, 1), 365))
+
+
+@rotas.get("/financas/comparativo")
+def financas_comparativo(modelo: str | None = None, dias: int = 30, pessoa: Persona = Depends(usuario_atual),
+                         s: Session = Depends(sessao)):
+    """"E se tudo rodasse em X?" (sem `modelo`, devolve o cenário de todos os modelos do registro)."""
+    if modelo and not registro.existe(modelo):
+        raise HTTPException(status_code=404, detail="Modelo desconhecido.")
+    return resumo.comparativo(s, pessoa, min(max(dias, 1), 365), modelo)
 
 
 @rotas.get("/financas/indicadores")

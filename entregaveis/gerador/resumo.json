@@ -29,7 +29,13 @@
   "piloto_tranche1": 908700,
   "piloto_meses": 3,
   "escalada_demo": 0.0593,
-  "minutos_demo": 12.021013597033374
+  "minutos_demo": 12.021013597033374,
+  "mm_modelos": 11,
+  "mm_provedores": 5,
+  "mm_claude_balanceado": 0.017074438071693447,
+  "mm_mais_barato": 0.0028923025957972802,
+  "mm_mais_caro": 0.2313842076637824,
+  "mm_razao": 13.5514976652367
  },
  "origem": {
   "investimento_inicial": {
@@ -181,6 +187,36 @@
    "rotulo": "Minutos à mão, média ponderada dos 3 agentes",
    "celula": "Resumo para slides!C34",
    "origem": "Benefícios!D12"
+  },
+  "mm_modelos": {
+   "rotulo": "Modelos no registro (v7)",
+   "celula": "Resumo para slides!C35",
+   "origem": "Multimodelo"
+  },
+  "mm_provedores": {
+   "rotulo": "Provedores de IA no registro (v7)",
+   "celula": "Resumo para slides!C36",
+   "origem": "Multimodelo"
+  },
+  "mm_claude_balanceado": {
+   "rotulo": "Mix da demo: Claude com balanceador (R$ por execução)",
+   "celula": "Resumo para slides!C37",
+   "origem": "Multimodelo"
+  },
+  "mm_mais_barato": {
+   "rotulo": "Mix da demo no modelo mais barato (R$ por execução)",
+   "celula": "Resumo para slides!C38",
+   "origem": "Multimodelo"
+  },
+  "mm_mais_caro": {
+   "rotulo": "Mix da demo no modelo mais caro (R$ por execução)",
+   "celula": "Resumo para slides!C39",
+   "origem": "Multimodelo"
+  },
+  "mm_razao": {
+   "rotulo": "Mais caro ÷ Claude com balanceador",
+   "celula": "Resumo para slides!C40",
+   "origem": "Multimodelo"
   }
  },
  "g1": [
@@ -573,6 +609,73 @@
    "Média ponderada pelo volume",
    0.017074438071693447,
    0.0578460519159456
+  ]
+ ],
+ "g5": [
+  [
+   "Modelo",
+   "R$ por execução",
+   "Provedor"
+  ],
+  [
+   "Claude Haiku 5.5",
+   0.0028923025957972802,
+   "Anthropic (Claude)"
+  ],
+  [
+   "Claude Sonnet 5.5",
+   0.0578460519159456,
+   "Anthropic (Claude)"
+  ],
+  [
+   "Gemini 3.5 Flash-Lite",
+   0.011273150061804696,
+   "Google (Gemini)"
+  ],
+  [
+   "Gemini 4 Carbon",
+   0.0578460519159456,
+   "Google (Gemini)"
+  ],
+  [
+   "GPT-6 Luna",
+   0.0028923025957972802,
+   "OpenAI (GPT)"
+  ],
+  [
+   "GPT-6.2 Sol",
+   0.0578460519159456,
+   "OpenAI (GPT)"
+  ],
+  [
+   "GPT-6.2 Astra",
+   0.2313842076637824,
+   "OpenAI (GPT)"
+  ],
+  [
+   "DeepSeek V4.1 Flash",
+   0.007898035105067983,
+   "DeepSeek"
+  ],
+  [
+   "DeepSeek V4 Pro",
+   0.03132431466007416,
+   "DeepSeek"
+  ],
+  [
+   "Grok 4.3",
+   0.0264178739184178,
+   "xAI (Grok)"
+  ],
+  [
+   "Grok 4.7",
+   0.047461082818294184,
+   "xAI (Grok)"
+  ],
+  [
+   "Claude + balanceador",
+   0.017074438071693447,
+   "Anthropic (política)"
   ]
  ],
  "premissas": [

@@ -1,3 +1,4 @@
+import SeloSimulado from "./SeloSimulado";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { api, type Execucao, type Persona, type RegistroPasso } from "../api/cliente";
@@ -16,7 +17,11 @@ function CartaoPasso({ r, cotacao }: { r: RegistroPasso; cotacao: number }) {
       <button className="flex w-full items-center gap-3 text-left" onClick={() => setAberto(!aberto)} aria-expanded={aberto}>
         <span className={"selo " + COR_STATUS[r.status]}>{NOME_STATUS[r.status] ?? r.status}</span>
         <span className="flex-1 font-medium">{r.titulo}</span>
-        <span className="text-xs text-tinta-3">{NOME_TIPO[r.tipo]}{r.modelo ? " · " + r.modelo : ""}</span>
+        <span className="flex items-center gap-1.5 text-xs text-tinta-3">
+          {NOME_TIPO[r.tipo]}{r.modelo ? " · " + r.modelo : ""}
+          {r.modelo && r.modelo_simulado && <SeloSimulado />}
+          {r.modelo && <span className="text-tinta-2">{reais(r.custo_usd * cotacao)}</span>}
+        </span>
         <span className="w-20 text-right text-xs text-tinta-3">{ms(r.duracao_estimada_ms)}</span>
       </button>
       {r.motivo && <p className="mt-2 text-sm text-falcao">{r.motivo}</p>}
@@ -37,6 +42,21 @@ function CartaoPasso({ r, cotacao }: { r: RegistroPasso; cotacao: number }) {
         <div className="mt-3 space-y-2 border-t border-linha pt-3">
           {r.motivos_modelo.length > 0 && (
             <p className="text-xs text-tinta-3">Por que este modelo: {r.motivos_modelo.join(", ")}.</p>
+          )}
+          {r.balanceador && r.balanceador.candidatos.length > 0 && (
+            <details className="rounded-lg bg-papel p-2 text-xs text-tinta-2">
+              <summary className="cursor-pointer font-semibold">
+                Como o agente decidiu · esforço {r.esforco}, {r.balanceador.candidatos.filter((c) => !c.descartado).length} candidato(s)
+              </summary>
+              <ul className="mt-1 space-y-0.5">
+                {r.balanceador.candidatos.map((c) => (
+                  <li key={c.chave} className={c.chave === r.balanceador!.escolhido ? "font-semibold text-pedra-forte" : c.descartado ? "text-tinta-3" : ""}>
+                    {c.chave === r.balanceador!.escolhido ? "✓ " : "· "}{c.nome}{c.simulado ? " (simulado)" : ""}
+                    {c.descartado ? ` — descartado: ${c.descartado}` : ` — US$ ${c.preco_ref_usd}/milhão (entrada+saída)`}
+                  </li>
+                ))}
+              </ul>
+            </details>
           )}
           <p className="text-xs text-tinta-3">{r.iteracoes} volta(s) de raciocínio · custo {reais(r.custo_usd * cotacao)}</p>
           <Saida valor={r.saida} />

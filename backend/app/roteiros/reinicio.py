@@ -5,6 +5,8 @@ from ..agents import ciclo
 from ..agents import modelos as am
 from ..agents.blueprint import Blueprint
 from ..core import db
+from .. import rotinas
+from ..llm import balanceador
 from ..core.identidade import PERSONAS
 from ..plugins import servico as plugins
 from ..runtime import motor
@@ -32,7 +34,14 @@ def _versao_em_revisao(s: Session) -> None:
     ciclo.publicar(s, rafael, agente.id)   # risco alto: vai para a revisão da Segurança
 
 
-PREPARAR = {"versao_em_revisao": _versao_em_revisao}
+def _pitch(s: Session) -> None:
+    """Pitch v7: os plugins que o agente da planilha usa (Google Sheets e Slack) já estão integrados pelo Thiago,
+    para a demonstração seguir direto ao ponto. Planilha local, agenda, balanceador e relógio nascem como no início."""
+    for plugin in ("sheets", "slack"):
+        plugins.integrar(s, PERSONAS["thiago"], plugin, "Preparado antes do pitch.")
+
+
+PREPARAR = {"versao_em_revisao": _versao_em_revisao, "pitch": _pitch}
 
 
 def reiniciar(s: Session | None = None, roteiro_id: str | None = None) -> dict:
@@ -47,6 +56,8 @@ def reiniciar(s: Session | None = None, roteiro_id: str | None = None) -> dict:
     plugins.zerar()
     executor.zerar_limites()
     motor.zerar_pendentes()
+    balanceador.zerar()   # desfaz a queda simulada de provedor e a carga de teste
+    rotinas.zerar()       # o relógio das rotinas volta ao normal (as agendas somem com o banco)
     with Session(db.motor()) as nova:
         semear(nova, sem=roteiro.sem if roteiro else frozenset())
         if roteiro and roteiro.preparar:

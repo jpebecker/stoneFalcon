@@ -1,9 +1,14 @@
-import type { Ferramenta, Passo } from "../api/cliente";
+import { useQuery } from "@tanstack/react-query";
+import { api, type Ferramenta, type Passo, type RegistroModelos } from "../api/cliente";
 import { NOME_TIPO } from "./formato";
 
 export default function EditorPasso({ passo, ferramentas, aoMudar, aoRemover }: {
   passo: Passo; ferramentas: Ferramenta[]; aoMudar: (p: Passo) => void; aoRemover: () => void;
 }) {
+  const registro = useQuery({ queryKey: ["modelos"], queryFn: () => api<RegistroModelos>("/modelos"), staleTime: 60_000 });
+  const modelos = registro.data?.modelos ?? [];
+  const atual = modelos.find((m) => m.chave === passo.modelo || m.apelidos.includes(passo.modelo))?.chave ?? passo.modelo;
+  const usd = (v: number) => v.toLocaleString("pt-BR", { maximumFractionDigits: 3 });
   const disponiveis = ferramentas.filter((f) => f.disponivel_para_mim);
   const nome = (id: string) => ferramentas.find((f) => f.id === id)?.nome ?? id;
   return (
@@ -26,15 +31,18 @@ export default function EditorPasso({ passo, ferramentas, aoMudar, aoRemover }: 
           </label>
           <div>
             <span className="rotulo">Modelo</span>
-            <div className="flex gap-1.5">
-              {(["auto", "rapido", "forte"] as const).map((m) => (
-                <button key={m} onClick={() => aoMudar({ ...passo, modelo: m })}
-                  className={"rounded-lg border px-3 py-1.5 text-xs font-semibold " +
-                    (passo.modelo === m ? "border-pedra bg-pedra-fundo text-pedra-forte" : "border-linha text-tinta-2")}>
-                  {{ auto: "Automático", rapido: "Rápido (Haiku)", forte: "Forte (Sonnet)" }[m]}
-                </button>
+            <select className="campo" value={atual} onChange={(ev) => aoMudar({ ...passo, modelo: ev.target.value })} aria-label="Modelo do passo">
+              <option value="auto">Automático (o balanceador escolhe o mais barato que dá conta)</option>
+              {registro.data?.provedores.map((p) => (
+                <optgroup key={p.id} label={p.nome + (p.real ? "" : " · simulado")}>
+                  {modelos.filter((m) => m.provedor === p.id).map((m) => (
+                    <option key={m.chave} value={m.chave}>
+                      {m.nome} · US$ {usd(m.preco_entrada)} / {usd(m.preco_saida)} por milhão{m.simulado ? " · simulado" : ""}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
-            </div>
+            </select>
             <p className="mt-1 text-xs text-tinta-3">No automático, a plataforma usa o modelo mais barato que dá conta do passo.</p>
           </div>
           <div>

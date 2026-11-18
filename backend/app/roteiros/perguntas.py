@@ -128,6 +128,18 @@ PERGUNTAS = [
     _q("helena-4", "helena", "processo", "Os números são reais?",
        "Cada número diz se é medido na execução, premissa ou hipótese. O AS IS vem de hipóteses a validar com a área em um piloto.",
        "helena", "/roteiro/helena?etapa=resultado", "Consolidado com a origem de cada número", passo="medir"),
+    _q("helena-6", "helena", "escala", "A plataforma depende de um único fornecedor de IA?",
+       "Não. O registro tem Claude, Gemini, GPT, DeepSeek e Grok, cada um com preço e capacidades, e o balanceador escolhe pelo esforço de cada "
+       "passo e troca de provedor quando um cai ou o orçamento aperta. Atenção: só o Claude roda de verdade; os demais são simulados nesta demonstração.",
+       "helena", "/saude", "Saúde: política do balanceador, queda de provedor e carga de teste", roteiro="pitch", passo="queda"),
+    _q("helena-7", "helena", "escala", "Como o CoE enxerga tudo o que os colaboradores criaram?",
+       "No Mapa de IA, só do CoE: quem criou, os agentes publicados, os modelos por provedor, os plugins e as plataformas, ao vivo. Um agente "
+       "publicado aparece sozinho em poucos segundos e cada execução acende um pulso pelo caminho dela.",
+       "helena", "/mapa", "Mapa de IA ao vivo", roteiro="pitch", passo="mapa"),
+    _q("thiago-6", "thiago", "processo", "O agente pode rodar sozinho, sem ninguém iniciar?",
+       "Pode, como rotina: o criador agenda (toda segunda às 9h, por exemplo) com uma entrada fixa. A rotina roda em nome de quem agendou, com "
+       "as mesmas permissões, guardrails e orçamento, e ação sensível continua esperando a confirmação de uma pessoa.",
+       "thiago", "/agentes/{agente:Troca de maquininha pela planilha}", "Página do agente: agenda e Rodar agora", roteiro="pitch", passo="rotina"),
     _q("helena-5", "helena", "escala", "Isso escala para %s colaboradores?" % format(_PR.usuarios, ",").replace(",", "."),
        "A calculadora usa o documento de custos da equipe (investimento, módulos e sustentação), %d colaboradores e rampa de adoção de %d meses; em produção, Postgres e SSO." % (_PR.usuarios, _PR.meses_rampa),
        "helena", "/financas/calculadora", "Calculadora com 6.000 colaboradores", passo="calculadora"),

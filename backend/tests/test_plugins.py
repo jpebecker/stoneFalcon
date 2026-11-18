@@ -50,8 +50,8 @@ def _executar_zendesk(api, pessoa="marina") -> tuple[str, dict]:
 @pytest.mark.parametrize("perfil", PERFIS)
 def test_vitrine_aparece_para_os_6_perfis(api, perfil):
     lista = api.get(f"{V1}/plugins", headers=como(perfil)).json()
-    assert [p["nome"] for p in lista] == ["Zendesk", "Salesforce", "Slack", "Jira", "Google Drive", "ServiceNow",
-                                          "SAP SuccessFactors", "Datadog"]
+    assert [p["nome"] for p in lista] == ["Zendesk", "Salesforce", "Slack", "Jira", "Google Drive", "Google Sheets",
+                                          "ServiceNow", "SAP SuccessFactors", "Datadog"]
     for p in lista:
         assert p["simulado"] is True and p["categoria"] and p["estado"] == "disponivel"
         assert p["ferramentas"] and all(f["acao"] in ("leitura", "escrita") and f["classificacao"] for f in p["ferramentas"])
@@ -64,12 +64,12 @@ def test_cada_cartao_diz_se_vale_para_a_area_de_quem_olha(api):
         return {p["id"] for p in api.get(f"{V1}/plugins", headers=como(perfil)).json() if p["vale_para_minha_area"]}
     assert vale("marina") == {"zendesk", "salesforce", "slack", "drive"}
     assert vale("carla") == {"slack", "drive", "sap"}
-    assert vale("thiago") == {"slack", "drive", "jira"}
+    assert vale("thiago") == {"slack", "drive", "jira", "sheets"}
     assert vale("lucas") == {"slack", "drive", "jira", "servicenow", "datadog"}
 
 
 def test_ferramentas_de_plugin_seguem_o_contrato_do_catalogo():
-    assert len(PLUGINS) == 8
+    assert len(PLUGINS) == 9
     base = CATALOGO["abrir_chamado"]
     for p in PLUGINS.values():
         assert p.ferramentas, p.id
@@ -94,7 +94,7 @@ def test_ferramentas_de_plugin_executam_e_validam_a_entrada(api):
         "slack_enviar_mensagem": {"canal": "#logistica", "mensagem": "Oi"}, "jira_abrir_item": {"projeto": "LOG", "titulo": "T", "descricao": "D"},
         "jira_consultar_status": {"item_id": "LOG-101"}, "drive_buscar_documento": {"consulta": "política de estorno"},
         "servicenow_abrir_incidente": {"titulo": "T", "descricao": "D"}, "sap_consultar_saldo_ferias": {"colaborador_id": "C501"},
-        "datadog_consultar_alerta": {"servico": "api-repasses"},
+        "datadog_consultar_alerta": {"servico": "api-repasses"}, "sheets_ler_planilha": {"fonte": "local:pedidos-troca"},
     }
     assert set(exemplos) == {f.id for p in PLUGINS.values() for f in p.ferramentas}
     for fid, entrada in exemplos.items():

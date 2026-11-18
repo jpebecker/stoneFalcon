@@ -1,5 +1,8 @@
 const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 4 });
 
+/** "7.0.0" -> "7.0", como a versão aparece para as pessoas. */
+export const versaoCurta = (v: string) => v.split(".").slice(0, 2).join(".");
+
 export const reais = (v: number) => moeda.format(v);
 export const ms = (v: number) => (v >= 1000 ? (v / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + " s" : v + " ms");
 export const quando = (iso: string) => new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
@@ -35,6 +38,7 @@ export const COR_ESTADO: Record<string, string> = {
 export const NOME_RISCO: Record<string, string> = { baixo: "Risco baixo", medio: "Risco médio", alto: "Risco alto" };
 
 export const NOME_EVENTO: Record<string, string> = {
+  passe_extensao_emitido: "Acesso pela extensão pedido", passe_extensao_usado: "Acesso pela extensão usado",
   agente_criado: "Criado", agente_modificado: "Modificado", agente_enviado_revisao: "Enviado para revisão da Segurança",
   revisao_aprovada: "Revisão aprovada", revisao_rejeitada: "Revisão rejeitada", agente_publicado: "Publicado",
   agente_pausado: "Pausado", agente_retomado: "Retomado", agente_depreciado: "Depreciado",

@@ -27,22 +27,20 @@ from sqlmodel import Session
 
 from .. import guardrails
 from ..agents.blueprint import Blueprint, Passo
+from ..agents.governanca import avaliar_risco
 from ..agents.modelos import PUBLICADO, Agente
 from ..audit import trilha
 from ..core import config, db
 from ..core.identidade import CURADOR, PERSONAS, Persona
 from ..core.relogio import agora
 from ..guardrails import injecao
-from ..llm import precos, roteador
+from ..llm import balanceador, precos, registro, roteador
 from ..llm.cliente import ClienteLLM, ClienteSimulado, ErroModelo, RespostaLLM, obter_cliente
 from ..texto.semelhanca import estimar_tokens
 from ..tools import executor
 from ..tools.catalogo import CATALOGO, Contexto
 from . import modelos as m
 from . import simulacao  # noqa: F401  (registra a política do modo simulado)
-
-# Velocidade típica para estimar duração no modo simulado (tokens de saída/s, latência fixa ms).
-_VELOCIDADE = {"rapido": (180, 400), "forte": (70, 900)}
 
 
 class Orcamento:
@@ -186,7 +184,8 @@ class _Ambiente:
 
 def _registro(passo: Passo, status: str, **campos) -> dict:
     r = {"id": passo.id, "titulo": passo.titulo, "tipo": passo.tipo, "status": status,
-         "saida": None, "motivo": None, "modelo": None, "motivos_modelo": [], "ferramentas": [],
+         "saida": None, "motivo": None, "modelo": None, "modelo_chave": None, "provedor": None,
+         "modelo_simulado": None, "esforco": None, "balanceador": None, "motivos_modelo": [], "ferramentas": [],
          "iteracoes": 0, "custo_usd": 0.0, "duracao_ms": 0, "duracao_estimada_ms": 0, "pendencia": None}
     r.update(campos)
     return r
@@ -225,34 +224,70 @@ def _conteudo_assistente(r: RespostaLLM) -> list:
     return blocos
 
 
+def _uso_do_orcamento(s: Session, agente_id: str | None) -> float:
+    """Quanto do orçamento mensal do agente já foi gasto (0 a 1+). Sem agente ou sem orçamento, 0."""
+    if not agente_id:
+        return 0.0
+    agente = s.get(Agente, agente_id)
+    if agente is None or not agente.orcamento_mensal_brl:
+        return 0.0
+    from ..finance.resumo import gasto_no_mes
+    return gasto_no_mes(s, agente_id) / agente.orcamento_mensal_brl
+
+
 def _passo_agente(s: Session, amb: _Ambiente, passo: Passo) -> dict:
     sistema = _sistema(amb.bp, passo)
     inicial = _mensagem_inicial(amb.bp, passo, amb.exe.entrada, amb.saidas())
     ferramentas = [CATALOGO[f].para_modelo() for f in passo.ferramentas]
+    uso = _uso_do_orcamento(s, amb.exe.agente_id)
     decisao = roteador.decidir(passo.modelo, passo.instrucao + "\n" + inicial,
-                               estimar_tokens(sistema) + estimar_tokens(inicial))
+                               estimar_tokens(sistema) + estimar_tokens(inicial), n_ferramentas=len(passo.ferramentas),
+                               risco=avaliar_risco(amb.bp).nivel, economia=uso >= balanceador.ORCAMENTO_APERTADO,
+                               so_reais=not amb.simulado)
+    if uso >= balanceador.ORCAMENTO_APERTADO and passo.modelo == "auto":
+        decisao.motivos.append("orçamento do mês em %.0f%%: economia ligada" % (uso * 100))
+    if passo.modelo != "auto" and registro.obter(passo.modelo).provedor in balanceador.fora_do_ar():
+        decisao.motivos.append("provedor indisponível, mas o criador fixou este modelo: mantido")
     msgs: list[dict] = [{"role": "user", "content": inicial}]
     usadas: list[dict] = []
     custo = 0.0
     estimado = 0
-    base = dict(modelo=decisao.nome_modelo, motivos_modelo=decisao.motivos)
+    base: dict = {}
+    cliente = amb.cliente
+
+    def preparar(d) -> None:
+        """Cliente e retrato do passo para a decisão atual (muda se o balanceador delegar a outro provedor)."""
+        nonlocal decisao, cliente
+        decisao = d
+        modelo = registro.obter(d.chave_modelo)
+        # só o Claude roda de verdade: os demais provedores passam pelo simulador, mesmo com chave
+        cliente = amb.cliente if registro.roda_de_verdade(modelo.chave) else obter_cliente(True)
+        base.update(modelo=d.nome_modelo, motivos_modelo=d.motivos, modelo_chave=modelo.chave, provedor=modelo.provedor,
+                    modelo_simulado=not registro.roda_de_verdade(modelo.chave), balanceador=d.trilha(), esforco=d.esforco)
+    preparar(decisao)
 
     for it in range(1, passo.max_iteracoes + 1):
         motivo = amb.orc.estourou()
         if motivo:
             return _registro(passo, "escalado", motivo=motivo, iteracoes=it - 1, ferramentas=usadas,
                              custo_usd=custo, duracao_estimada_ms=estimado, **base)
-        try:
-            r = amb.cliente.gerar(decisao.chave_modelo, sistema, msgs, ferramentas or None)
-        except ErroModelo as e:
-            if not (config.RESERVA_SIMULADA and not amb.simulado) or e.fatal:
-                return _registro(passo, "escalado", motivo=str(e), iteracoes=it, ferramentas=usadas,
-                                 custo_usd=custo, duracao_estimada_ms=estimado, **base)
-            # modo real, modelo fora do ar: a resposta pré-determinada do roteiro entra como reserva
-            r = obter_cliente(True).gerar(decisao.chave_modelo, sistema, msgs, ferramentas or None)
-            base["reserva"] = "Modelo indisponível (%s); usei a resposta de reserva." % e
+        r = None
+        while r is None:
+            try:
+                r = cliente.gerar(decisao.chave_modelo, sistema, msgs, ferramentas or None)
+            except ErroModelo as e:
+                if passo.modelo == "auto" and not e.fatal and decisao.modo != "emergencia":
+                    # o balanceador troca de provedor quando o escolhido falha (cada volta tira um provedor)
+                    preparar(roteador.delegar(decisao, registro.obter(decisao.chave_modelo).provedor, str(e)))
+                    continue
+                if not (config.RESERVA_SIMULADA and not amb.simulado) or e.fatal:
+                    return _registro(passo, "escalado", motivo=str(e), iteracoes=it, ferramentas=usadas,
+                                     custo_usd=custo, duracao_estimada_ms=estimado, **base)
+                # modo real, modelo fora do ar: a resposta pré-determinada do roteiro entra como reserva
+                r = obter_cliente(True).gerar(decisao.chave_modelo, sistema, msgs, ferramentas or None)
+                base["reserva"] = "Modelo indisponível (%s); usei a resposta de reserva." % e
         custo += amb.orc.somar(r)
-        vel, lat = _VELOCIDADE[decisao.chave_modelo]
+        vel, lat = registro.obter(decisao.chave_modelo).velocidade
         estimado += lat + int(r.tokens_saida / vel * 1000)
 
         if r.parada == "refusal":

@@ -6,6 +6,7 @@ import CampoEntrada from "../components/CampoEntrada";
 import LinhaDoTempo from "../components/LinhaDoTempo";
 import { usePreenche } from "../roteiro/estado";
 import ListaMudancas from "../components/ListaMudancas";
+import PainelRotina from "../components/PainelRotina";
 import { COR_ESTADO, COR_RISCO, NOME_ESTADO, NOME_EVENTO, NOME_RISCO, quando, reais } from "../components/formato";
 
 export default function AgenteDetalhe({ pessoa }: { pessoa: Persona }) {
@@ -98,6 +99,10 @@ export default function AgenteDetalhe({ pessoa }: { pessoa: Persona }) {
               {executar.isError && <p className="mt-2 text-sm text-erro">{(executar.error as Error).message}</p>}
               {exe && <div className="mt-5 border-t border-linha pt-5"><LinhaDoTempo exe={exe} pessoa={pessoa} cotacao={saude.data?.cotacao_dolar ?? 5.52} aoMudar={setExe} /></div>}
             </section>
+          )}
+
+          {a.estado === "publicado" && publicada && (
+            <PainelRotina agenteId={a.id} campos={campos} pessoa={pessoa} editor={editor && a.pode_executar} />
           )}
 
           <section className="caixa p-5">

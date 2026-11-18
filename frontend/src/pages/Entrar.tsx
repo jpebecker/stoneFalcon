@@ -10,7 +10,7 @@ const PAPEL: Record<string, string> = {
   engenharia: "mantém o catálogo", gestor_ia: "vê custos e auditoria",
 };
 
-export default function Entrar({ aoEntrar }: { aoEntrar: (id: string) => void }) {
+export default function Entrar({ aoEntrar, aviso }: { aoEntrar: (id: string) => void; aviso?: string }) {
   const perfis = useQuery({ queryKey: ["perfis"], queryFn: () => api<Persona[]>("/perfis") });
   const { iniciar } = useControle();
   const [iniciando, setIniciando] = useState<string | null>(null);
@@ -26,6 +26,7 @@ export default function Entrar({ aoEntrar }: { aoEntrar: (id: string) => void })
     <div className="flex min-h-full items-center justify-center px-6 py-14">
       <div className="w-full max-w-5xl">
         <Marca />
+        {aviso && <p role="alert" className="mt-6 rounded-caixa border border-alerta/40 bg-alerta-fundo p-3 text-sm text-alerta">{aviso}</p>}
         <h1 className="mt-8 text-4xl">Quem é você hoje?</h1>
         <p className="mt-3 max-w-2xl text-tinta-2">
           Cada pessoa vê a plataforma pelo seu trabalho: o que cria, o que governa, o que mede. Escolha um perfil para entrar,
