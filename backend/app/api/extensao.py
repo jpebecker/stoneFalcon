@@ -5,17 +5,21 @@ os agentes que a pessoa pode executar pela semelhança com o trecho. Quem roda o
 plataforma, com as permissões de quem está logado.
 """
 import re
+import secrets
+import threading
+import time
 import unicodedata
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
 from ..agents import ciclo
 from ..agents import modelos as am
 from ..agents.blueprint import Blueprint
+from ..audit import trilha
 from ..core.db import sessao
-from ..core.identidade import CONSULTA_COLABORADORES, Persona, usuario_atual
+from ..core.identidade import CONSULTA_COLABORADORES, PERSONAS, Persona, exigir_aba, usuario_atual
 from ..texto.semelhanca import Indice
 from ..tools import dados_ficticios as fx
 
@@ -113,3 +117,57 @@ def analisar(pedido: PedidoAnalise, pessoa: Persona = Depends(usuario_atual), s:
     sim = similaridade.get(saida[0]["id"], 0) if saida else 0
     sugerido = saida[0]["id"] if saida and (sim >= 0.1 or (sim > 0 and lojista)) else None
     return {"agentes": saida, "sugerido": sugerido, "lojista": lojista, "colaborador": colaborador}
+
+
+# ---------- passe de uso único: a extensão abre o hub já logada no mesmo perfil ----------
+# A extensão pede à plataforma um passe curto (60 s, vale uma vez) para o perfil dela e abre o hub com ele.
+# O hub troca o passe pela pessoa. Digitar ?perfil= num endereço direto continua não trocando o perfil de ninguém.
+# O trecho selecionado viaja no corpo do pedido (nunca no endereço, que iria para os logs) e volta na troca.
+PASSE_VALIDADE_S = 60
+_MAX_PASSES = 500
+_relogio = time.monotonic          # trocável nos testes para controlar o tempo
+_passes: dict[str, dict] = {}      # um processo só, como o resto do protótipo (em produção: SSO / cofre com expiração)
+_trava = threading.Lock()
+
+
+def zerar_passes() -> None:
+    with _trava:
+        _passes.clear()
+
+
+class PedidoPasse(BaseModel):
+    trecho: str = Field(default="", max_length=8000)
+    fonte: dict | None = None      # reservado: de onde veio o trecho (ex.: uma planilha aberta, ticket 10)
+
+
+class PedidoTroca(BaseModel):
+    passe: str = Field(max_length=200)
+
+
+@rotas.post("/passe")
+def emitir_passe(pedido: PedidoPasse, pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
+    exigir_aba(pessoa, "estudio")        # só quem tem a aba Estúdio cria agentes (a regra é a mesma lista de abas)
+    agora = _relogio()
+    with _trava:
+        for k in [k for k, v in _passes.items() if v["expira"] <= agora]:
+            del _passes[k]
+        if len(_passes) >= _MAX_PASSES:
+            raise HTTPException(status_code=429, detail="Muitos acessos pendentes. Espere um minuto e tente de novo.")
+        passe = secrets.token_urlsafe(24)
+        _passes[passe] = {"pessoa": pessoa.id, "expira": agora + PASSE_VALIDADE_S,
+                          "trecho": pedido.trecho.strip(), "fonte": pedido.fonte}
+    trilha.registrar(s, "passe_extensao_emitido", pessoa.id, None, {"com_trecho": bool(pedido.trecho.strip())})
+    return {"passe": passe, "valido_por_s": PASSE_VALIDADE_S}
+
+
+@rotas.post("/passe/trocar")
+def trocar_passe(pedido: PedidoTroca, s: Session = Depends(sessao)):
+    """Sem X-Usuario: o passe é a credencial. Vale uma vez; usado ou vencido, volta 410."""
+    with _trava:
+        dados = _passes.pop(pedido.passe, None)
+    if not dados or dados["expira"] <= _relogio():
+        raise HTTPException(status_code=410, detail="Este acesso pela extensão já foi usado ou venceu (vale uma vez e por "
+                            "%d segundos). Escolha seu perfil abaixo ou peça de novo pela extensão." % PASSE_VALIDADE_S)
+    pessoa = PERSONAS[dados["pessoa"]]
+    trilha.registrar(s, "passe_extensao_usado", pessoa.id, None, {})
+    return {"pessoa": pessoa.publico(), "rascunho": dados["trecho"], "fonte": dados["fonte"]}

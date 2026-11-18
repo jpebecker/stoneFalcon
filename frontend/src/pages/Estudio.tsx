@@ -10,6 +10,7 @@ import { registrarCtx, usePreenche } from "../roteiro/estado";
 import EditorPasso from "../components/EditorPasso";
 import LinhaDoTempo from "../components/LinhaDoTempo";
 import { COR_RISCO, reais } from "../components/formato";
+import { CHAVE_RASCUNHO } from "./ViaExtensao";
 
 type Padrao = { id: string; titulo: string; area: string; exemplo: string };
 
@@ -42,6 +43,19 @@ export default function Estudio({ pessoa }: { pessoa: Persona }) {
     if (pre?.passoId === "testar" && pre.entrada) setEntrada(pre.entrada);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pre?.passoId]);
+
+  // chegada pela extensão: o trecho selecionado vira o rascunho da descrição, com a sugestão já calculada
+  useEffect(() => {
+    if (agenteId) return;
+    let texto = "";
+    try {
+      const guardado = sessionStorage.getItem(CHAVE_RASCUNHO);
+      sessionStorage.removeItem(CHAVE_RASCUNHO);
+      texto = guardado ? (JSON.parse(guardado).texto ?? "") : "";
+    } catch { /* sem armazenamento */ }
+    if (texto.trim()) { setDescricao(texto); sugerir.mutate(texto); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // editando um agente existente: carrega a última versão
   const existente = useQuery({ queryKey: ["agente", agenteId], queryFn: () => api<AgenteDetalhe>("/agentes/" + agenteId), enabled: !!agenteId });

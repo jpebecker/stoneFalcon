@@ -68,6 +68,8 @@ async function abrir() {
   const r = await sfTestar(endereco);
   if (!r.ok) { semConexao(r); return; }
   origem = new URL(endereco).origin;
+  const aviso = (await chrome.storage.session.get('atalhoErro')).atalhoErro;   // o menu do botão direito não conseguiu abrir o Estúdio
+  if (aviso && Date.now() - aviso.quando < 15000) { chrome.storage.session.remove('atalhoErro'); semConexao(aviso); return; }
   const dados = await chrome.storage.session.get('trecho');
   const trecho = dados.trecho && Date.now() - dados.trecho.quando < 15000 ? dados.trecho : null;
   if (trecho) chrome.storage.session.remove('trecho');
@@ -85,6 +87,7 @@ function enviar(trecho) {
 
 // novo trecho selecionado com o painel já aberto
 chrome.storage.session.onChanged.addListener((mudancas) => {
+  if (mudancas.atalhoErro && mudancas.atalhoErro.newValue) { abrir(); return; }
   const novo = mudancas.trecho && mudancas.trecho.newValue;
   if (!novo || !novo.texto) return;
   if (pronto) { enviar(novo); chrome.storage.session.remove('trecho'); }
@@ -98,6 +101,9 @@ window.addEventListener('message', (ev) => {
   if (d && d.origem === 'stonefalcon-plataforma' && d.tipo === 'pronto') {   // a tela registrou o ouvinte de mensagens
     pronto = true;
     if (pendente) { enviar(pendente); pendente = null; }
+  }
+  if (d && d.origem === 'stonefalcon-plataforma' && d.tipo === 'criar-agente') {   // botão "Criar Agente de IA" do painel
+    sfCriarAgente(typeof d.trecho === 'string' ? d.trecho : '').then((r) => { if (!r.ok) semConexao(r); });
   }
   if (d && d.origem === 'stonefalcon-plataforma' && d.tipo === 'perfil' && typeof d.perfil === 'string' && /^[a-z]{3,20}$/.test(d.perfil)) {
     chrome.storage.local.set({ perfil: d.perfil });

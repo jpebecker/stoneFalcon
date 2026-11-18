@@ -238,6 +238,18 @@ export default function Extensao({ pessoa, aoEntrar, aoSair, erroPerfil }: {
       )}
 
       <div className="space-y-4 p-4">
+        {/* atalho para criar um agente: só para quem tem a aba Estúdio (a lista de abas vem do back) */}
+        {pessoa.abas.includes("estudio") ? (
+          <button className="botao-pedra w-full" onClick={() => avisarExtensao({ tipo: "criar-agente", trecho })}
+            title="Abre o Estúdio numa aba nova, já no seu perfil">
+            Criar Agente de IA{trecho ? " com este trecho" : ""}
+          </button>
+        ) : (
+          <p role="note" className="caixa p-3 text-sm text-tinta-2">
+            Seu perfil não cria agentes.{" "}
+            <a href="/" target="_blank" rel="noreferrer" className="font-semibold text-pedra-forte underline">Ir ao Início</a>
+          </p>
+        )}
         {trecho ? (
           <section className="caixa p-3 text-sm" aria-label="Trecho selecionado">
             <div className="flex items-center justify-between"><span className="rotulo mb-0">Trecho selecionado</span>

@@ -25,6 +25,7 @@ import Revisoes from "./pages/Revisoes";
 import RoteiroPagina from "./pages/RoteiroPagina";
 import Roteiros from "./pages/Roteiros";
 import PaginaSaude from "./pages/Saude";
+import ViaExtensao from "./pages/ViaExtensao";
 import { BarraRoteiro, ProvedorRoteiro } from "./roteiro/Controle";
 import { useEstadoRoteiro } from "./roteiro/estado";
 import { versaoCurta } from "./components/formato";
@@ -132,6 +133,9 @@ export default function App() {
     if (perfil && eu.isPending) return <div className="ext-tema min-h-full bg-papel p-6 text-sm text-tinta-2" aria-busy="true">Conectando…</div>;
     return <Extensao pessoa={perfil && !eu.isError ? pessoa ?? null : null} aoEntrar={(id) => trocar(id)} aoSair={() => trocar(null)}
       erroPerfil={!!perfil && eu.isError} />;
+  }
+  if (location.pathname === "/via-extensao") {
+    return <ProvedorRoteiro trocar={trocar}><ViaExtensao aoEntrar={trocar} /></ProvedorRoteiro>;
   }
   if (!perfil || eu.isError) {
     return <ProvedorRoteiro trocar={trocar}><Entrar aoEntrar={trocar} /></ProvedorRoteiro>;

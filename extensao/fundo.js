@@ -6,6 +6,8 @@ importScripts('comum.js');
 const MENU_RAIZ = 'sf-raiz';
 const MENU_GERAL = 'sf-geral';
 const PREFIXO_AGENTE = 'sf-agente:';
+const MENU_CRIAR_TRECHO = 'sf-criar-trecho';
+const MENU_CRIAR = 'sf-criar';
 
 // montarMenu pode ser pedido várias vezes ao mesmo tempo (instalação, perfil, endereço): uma por vez,
 // senão duas execuções criam o mesmo id e o Chrome recusa a segunda.
@@ -38,6 +40,18 @@ async function agentesDoPerfil() {
   }
 }
 
+// Só quem tem a aba Estúdio cria agentes; a lista de abas vem da plataforma (fonte única das permissões).
+async function criaAgentes() {
+  const perfil = await sfPerfil();
+  if (!perfil) return false;
+  try {
+    const resp = await fetch((await sfEndereco()) + '/api/v1/eu', { headers: { 'X-Usuario': perfil } });
+    return resp.ok && ((await resp.json()).abas || []).includes('estudio');
+  } catch (e) {
+    return false;
+  }
+}
+
 function criar(item) {
   chrome.contextMenus.create(item, () => void chrome.runtime.lastError);   // lê o erro para o Chrome não reclamar
 }
@@ -50,6 +64,18 @@ async function montar() {
   for (const a of agentes) {
     criar({ id: PREFIXO_AGENTE + a.id, parentId: MENU_RAIZ, title: 'Responder com: ' + a.nome, contexts: ['selection'] });
   }
+  if (await criaAgentes()) {
+    criar({ id: MENU_CRIAR_TRECHO, parentId: MENU_RAIZ, title: 'Criar Agente de IA com este trecho', contexts: ['selection'] });
+    criar({ id: MENU_CRIAR, title: 'StoneFalcon: Criar Agente de IA', contexts: ['page', 'action'] });
+  }
+}
+
+// Abre o Estúdio (passe de uso único). Se falhar, o painel lateral mostra o diagnóstico.
+async function criarAgente(tab, trecho) {
+  const r = await sfCriarAgente(trecho);
+  if (r.ok) return;
+  await chrome.storage.session.set({ atalhoErro: Object.assign({ quando: Date.now() }, r) });
+  if (tab && tab.id !== undefined) abrirPainel(tab.id);
 }
 
 function guardarTrecho(texto, agente) {
@@ -67,7 +93,12 @@ function abrirPainel(tabId) {
 
 // clique com o botão direito em um texto selecionado
 chrome.contextMenus.onClicked.addListener((info, tab) => {
-  if (!tab || typeof info.menuItemId !== 'string') return;
+  if (typeof info.menuItemId !== 'string') return;
+  if (info.menuItemId === MENU_CRIAR_TRECHO || info.menuItemId === MENU_CRIAR) {
+    criarAgente(tab, info.menuItemId === MENU_CRIAR_TRECHO ? info.selectionText : '');
+    return;
+  }
+  if (!tab) return;
   const id = info.menuItemId;
   if (id !== MENU_GERAL && !id.startsWith(PREFIXO_AGENTE)) return;
   guardarTrecho(info.selectionText, id.startsWith(PREFIXO_AGENTE) ? id.slice(PREFIXO_AGENTE.length) : '');

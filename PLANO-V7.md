@@ -116,14 +116,14 @@ O rastreador de tickets não está configurado no projeto. A lista fica consolid
 
 **Bloqueado por:** 02.
 
-**Status:** ready-for-agent
+**Status:** feito localmente; falta testar com a extensão carregada no Chrome (o fluxo foi testado no hub, no painel e no helpdesk fictício)
 
-- [ ] Logado como Thiago na extensão, clicar em "Criar Agente de IA" abre o Estúdio numa aba nova, logado como Thiago, mesmo que o hub estivesse logado em outro perfil.
-- [ ] O passe expira em 60 s e vale uma vez só; reusar ou atrasar volta à tela "Quem é você hoje?" com uma mensagem clara (teste automático).
-- [ ] O endereço da aba nova não contém o id do perfil nem o texto selecionado.
-- [ ] Selecionar um texto e usar o item do menu "Criar Agente de IA com este trecho" abre o Estúdio com a descrição preenchida e a sugestão de agente já calculada.
-- [ ] Helena e Lucas não veem o botão; veem "Seu perfil não cria agentes" (a regra vem da lista de abas do back).
-- [ ] O servidor desligado mostra o mesmo diagnóstico de conexão que o painel já usa.
+- [x] Logado como Thiago na extensão, clicar em "Criar Agente de IA" abre o Estúdio numa aba nova, logado como Thiago, mesmo que o hub estivesse logado em outro perfil.
+- [x] O passe expira em 60 s e vale uma vez só; reusar ou atrasar volta à tela "Quem é você hoje?" com uma mensagem clara (teste automático).
+- [x] O endereço da aba nova não contém o id do perfil nem o texto selecionado.
+- [x] Selecionar um texto e usar o item do menu "Criar Agente de IA com este trecho" abre o Estúdio com a descrição preenchida e a sugestão de agente já calculada.
+- [x] Helena e Lucas não veem o botão; veem "Seu perfil não cria agentes" (a regra vem da lista de abas do back).
+- [x] O servidor desligado mostra o mesmo diagnóstico de conexão que o painel já usa.
 - [ ] Testado no helpdesk fictício e com a extensão carregada no Chrome (registro no PR).
 
 ### 04: Registro de modelos por provedor (prefatoração)

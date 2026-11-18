@@ -49,3 +49,34 @@ async function sfTestar(endereco) {
     clearTimeout(relogio);
   }
 }
+
+// Atalho "Criar Agente de IA": pede à plataforma um passe de uso único (60 s) para o perfil desta extensão e abre o
+// Estúdio numa aba nova. Nem o perfil nem o texto selecionado vão no endereço: o texto vai no corpo do pedido.
+// Devolve { ok: true } ou { ok: false, tipo, mensagem, dica } (o mesmo formato de sfTestar).
+async function sfCriarAgente(trecho) {
+  const endereco = await sfEndereco();
+  const teste = await sfTestar(endereco);                    // servidor desligado, endereço errado, demora: mesmo diagnóstico do painel
+  if (!teste.ok) return teste;
+  const perfil = await sfPerfil();
+  if (!perfil) {
+    return { ok: false, tipo: 'perfil', mensagem: 'Você ainda não escolheu o seu perfil.', dica: 'Abra o painel do StoneFalcon, entre com o seu perfil e tente de novo.' };
+  }
+  let resp;
+  try {
+    resp = await fetch(endereco + '/api/v1/extensao/passe', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Usuario': perfil },
+      body: JSON.stringify({ trecho: (trecho || '').slice(0, 8000) }),
+    });
+  } catch (e) {
+    return { ok: false, tipo: 'recusou', mensagem: 'Não consegui falar com a plataforma.', dica: 'Confira se ela continua ligada e tente de novo.' };
+  }
+  if (resp.status === 403) {
+    return { ok: false, tipo: 'sem_estudio', mensagem: 'Seu perfil não cria agentes.', dica: 'Só quem tem o Estúdio cria agentes. O Início da plataforma continua disponível.' };
+  }
+  if (!resp.ok) {
+    return { ok: false, tipo: 'http', mensagem: 'A plataforma respondeu com erro ' + resp.status + '.', dica: 'Tente de novo em instantes.' };
+  }
+  const dados = await resp.json();
+  await chrome.tabs.create({ url: endereco + '/via-extensao?passe=' + encodeURIComponent(dados.passe) });
+  return { ok: true };
+}
