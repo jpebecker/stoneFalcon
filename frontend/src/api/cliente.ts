@@ -138,14 +138,21 @@ export type PoliticaBalanceador = {
   provedores: { id: string; nome: string; real: boolean; fora: boolean; modelos: string[] }[];
   ultima_carga: CargaBalanceador | null; pode_simular: boolean; demonstracao: string;
 };
+export type ExecucaoRecenteMapa = {
+  id: string; agente_id: string; agente: string; status: string; quando: string; custo_brl: number; rotina: boolean;
+  modelos: string[]; demo: boolean; arestas: [string, string, number][];
+};
 export type NoMapa = {
-  id: string; tipo: "criador" | "agente" | "ferramenta" | "plugin" | "sistema"; coluna: string; rotulo: string;
+  id: string; tipo: "criador" | "agente" | "modelo" | "ferramenta" | "plugin" | "sistema";
+  provedor?: string; provedor_nome?: string; simulado?: boolean; chamadas?: number; coluna: string; rotulo: string;
   detalhe?: string; area?: string; estado?: string; risco?: string; dono?: string; execucoes: number; custo_brl?: number;
   rota?: string; usada_por?: number; integrado?: boolean; externo?: boolean; classificacao?: string; ferramentas?: string[] | number;
 };
 export type MapaIA = {
   dias: number; colunas: { id: string; rotulo: string }[]; nos: NoMapa[]; ligacoes: { de: string; para: string; volume: number }[];
-  totais: { agentes: number; plugins: number; ferramentas: number; plataformas: number; execucoes: number }; tem_demo: boolean;
+  totais: { agentes: number; modelos: number; plugins: number; ferramentas: number; plataformas: number; execucoes: number }; tem_demo: boolean;
+  filtros: { area: string | null; provedor: string | null; areas: string[]; provedores: { id: string; nome: string }[] };
+  execucoes_recentes: ExecucaoRecenteMapa[];
 };
 export type Saude = { ok: boolean; versao: string; modo: "real" | "simulado"; modelos: Record<string, string>; cotacao_dolar: number };
 

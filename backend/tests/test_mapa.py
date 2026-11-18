@@ -26,6 +26,22 @@ def _ids(m: dict, tipo: str) -> set[str]:
     return {n["id"] for n in m["nos"] if n["tipo"] == tipo}
 
 
+def _alcanca(m: dict, de: str, para: str) -> bool:
+    """Existe um caminho (por qualquer número de ligações) de `de` até `para`?"""
+    adj: dict[str, set[str]] = {}
+    for l in m["ligacoes"]:
+        adj.setdefault(l["de"], set()).add(l["para"])
+    visto, fila = set(), [de]
+    while fila:
+        x = fila.pop()
+        if x == para:
+            return True
+        if x not in visto:
+            visto.add(x)
+            fila += adj.get(x, ())
+    return False
+
+
 @pytest.mark.parametrize("perfil", PERFIS)
 def test_mapa_so_para_a_helena(api, perfil):
     r = api.get(f"{V1}/mapa", headers=como(perfil))
@@ -42,17 +58,19 @@ def test_mapa_mostra_os_agentes_publicados_da_semente_ligados_a_tudo(api, sessao
     m = api.get(f"{V1}/mapa", headers=como("helena")).json()
     nomes = {n["rotulo"] for n in m["nos"] if n["tipo"] == "agente"}
     assert {"Triagem de chargebacks", "Resposta a dúvidas de lojistas", "Orientação de férias"} <= nomes
-    assert [c["id"] for c in m["colunas"]] == ["criadores", "agentes", "ferramentas", "plataformas"]
-    # cada agente tem um criador, ferramentas e, por elas, plataformas
+    assert [c["id"] for c in m["colunas"]] == ["criadores", "agentes", "modelos", "ferramentas", "plataformas"]
+    # cada agente tem um criador, modelos, ferramentas e, por elas, plataformas
     liga = {(l["de"], l["para"]) for l in m["ligacoes"]}
     por_destino = {l["para"]: l["de"] for l in m["ligacoes"] if l["de"].startswith("criador:")}
     for n in m["nos"]:
         if n["tipo"] == "agente":
             assert por_destino[n["id"]] == "criador:" + n["dono"]
-            assert any(d == n["id"] for d, _ in liga)
+            assert any(d == n["id"] and p.startswith("modelo:") for d, p in liga)
     for n in m["nos"]:
         if n["tipo"] == "ferramenta":
             assert any(p == n["id"] for _, p in liga) and any(d == n["id"] for d, _ in liga)
+        if n["tipo"] == "modelo":
+            assert any(p == n["id"] for _, p in liga)
 
 
 def test_mapa_e_coerente_com_o_catalogo_e_os_agentes_publicados(api, sessao):
@@ -69,7 +87,8 @@ def test_mapa_e_coerente_com_o_catalogo_e_os_agentes_publicados(api, sessao):
     assert {n["rotulo"] for n in m["nos"] if n["tipo"] == "agente"} == publicados
     assert m["totais"]["agentes"] == len(publicados)
     # colunas coerentes com o tipo
-    coluna = {"criador": "criadores", "agente": "agentes", "ferramenta": "ferramentas", "plugin": "ferramentas", "sistema": "plataformas"}
+    coluna = {"criador": "criadores", "agente": "agentes", "modelo": "modelos", "ferramenta": "ferramentas",
+              "plugin": "ferramentas", "sistema": "plataformas"}
     assert all(n["coluna"] == coluna[n["tipo"]] for n in m["nos"])
 
 
@@ -85,7 +104,8 @@ def test_publicar_um_agente_novo_faz_ele_aparecer_no_mapa(api, sessao):
     assert "criador:thiago" in _ids(depois, "criador")
     liga = {(l["de"], l["para"]) for l in depois["ligacoes"]}
     assert ("criador:thiago", "agente:" + aid) in liga
-    assert ("agente:" + aid, "ferramenta:consultar_estoque") in liga and ("agente:" + aid, "plugin:slack") in liga
+    assert _alcanca(depois, "agente:" + aid, "ferramenta:consultar_estoque") and _alcanca(depois, "agente:" + aid, "plugin:slack")
+    assert ("agente:" + aid, "modelo:rapido") in liga and ("modelo:rapido", "plugin:slack") in liga
     assert ("plugin:slack", "sistema:ext:slack") in liga and ("ferramenta:consultar_estoque", "sistema:estoque") in liga
     assert depois["totais"]["agentes"] == antes["totais"]["agentes"] + 1
 
@@ -111,7 +131,7 @@ def test_agente_que_depende_de_plugin_removido_continua_no_mapa_marcado(api, ses
     api.delete(f"{V1}/plugins/slack/integracao", headers=como("thiago"))
     m = api.get(f"{V1}/mapa", headers=como("helena")).json()
     slack = next(n for n in m["nos"] if n["id"] == "plugin:slack")
-    assert slack["integrado"] is False and ("agente:" + aid, "plugin:slack") in {(l["de"], l["para"]) for l in m["ligacoes"]}
+    assert slack["integrado"] is False and _alcanca(m, "agente:" + aid, "plugin:slack")
 
 
 def test_cada_no_clicavel_aponta_para_a_pagina_dele(api, sessao):

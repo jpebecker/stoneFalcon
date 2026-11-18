@@ -192,14 +192,14 @@ O rastreador de tickets não está configurado no projeto. A lista fica consolid
 
 **Bloqueado por:** 05, 07.
 
-**Status:** ready-for-agent
+**Status:** feito (fluidez medida no painel do app: p50 36 ms e p95 54 ms por quadro com queda de provedor, carga e 3 execuções simultâneas; navegador do app em segundo plano)
 
-- [ ] Rodar um agente faz um pulso percorrer o caminho certo no mapa em poucos segundos, na cor do resultado.
-- [ ] A camada de modelos mostra os provedores usados de fato no período, com custo por provedor.
-- [ ] Filtros por área e por provedor funcionam e se combinam.
-- [ ] Sem execuções recentes, o mapa fica parado e legível (sem animação em laço).
-- [ ] Com "reduzir movimento" ligado no sistema, os pulsos viram destaque estático.
-- [ ] O mapa continua fluido com a carga simulada do ticket 06 ligada (registro no PR).
+- [x] Rodar um agente faz um pulso percorrer o caminho certo no mapa em poucos segundos, na cor do resultado.
+- [x] A camada de modelos mostra os provedores usados de fato no período, com custo por provedor.
+- [x] Filtros por área e por provedor funcionam e se combinam.
+- [x] Sem execuções recentes, o mapa fica parado e legível (sem animação em laço).
+- [x] Com "reduzir movimento" ligado no sistema, os pulsos viram destaque estático.
+- [x] O mapa continua fluido com a carga simulada do ticket 06 ligada (registro no PR).
 
 ### 09: Tarefa de rotina (agente com agenda)
 

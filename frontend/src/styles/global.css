@@ -80,6 +80,14 @@ h1, h2, h3 { @apply font-titulo font-semibold tracking-tight; }
 .mapa-no-novo { animation: mapa-entrada .5s ease-out; box-shadow: 0 0 0 4px rgb(var(--pedra) / .25); }
 .mapa-aresta-nova path.react-flow__edge-path { stroke: rgb(var(--pedra)); stroke-width: 3; }
 .mapa-vivo { animation: mapa-pulso 2s ease-in-out infinite; }
+/* pulso da execução: um ponto percorre a aresta (offset-path), na cor do resultado */
+@keyframes mapa-percurso {
+  0% { offset-distance: 0%; opacity: 0; }
+  8% { opacity: 1; }
+  92% { opacity: 1; }
+  100% { offset-distance: 100%; opacity: 0; }
+}
+.mapa-pulso-ponto { offset-rotate: 0deg; opacity: 0; animation: mapa-percurso 520ms linear 1 both; filter: drop-shadow(0 0 3px currentColor); }
 @media (prefers-reduced-motion: reduce) {
-  .mapa-no-novo, .mapa-vivo { animation: none; }
+  .mapa-no-novo, .mapa-vivo, .mapa-pulso-ponto { animation: none; }
 }
