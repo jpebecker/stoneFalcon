@@ -71,7 +71,7 @@ export type Blueprint = {
 };
 
 export type Risco = { nivel: "baixo" | "medio" | "alto"; motivos: string[]; exige_revisao_seguranca: boolean };
-export type Estimativa = { custo_por_execucao_brl: number; chamadas_modelo: number; por_passo: Record<string, { modelo: string | null; custo_brl: number }> };
+export type Estimativa = { custo_por_execucao_brl: number; chamadas_modelo: number; por_passo: Record<string, { modelo: string | null; custo_brl: number; modelo_chave?: string; provedor?: string; simulado?: boolean }> };
 export type Explicacao = { passo: string; titulo: string; explicacao: string };
 
 export type Sugestao = {
@@ -94,7 +94,7 @@ export type UsoFerramenta = { conector: string; ok: boolean; erro: string | null
 
 export type RegistroPasso = {
   id: string; titulo: string; tipo: string; status: string; saida: unknown; motivo: string | null; modelo: string | null;
-  motivos_modelo: string[]; reserva?: string; ferramentas: UsoFerramenta[]; iteracoes: number; custo_usd: number;
+  motivos_modelo: string[]; modelo_chave?: string | null; provedor?: string | null; modelo_simulado?: boolean | null; reserva?: string; ferramentas: UsoFerramenta[]; iteracoes: number; custo_usd: number;
   duracao_ms: number; duracao_estimada_ms: number;
   pendencia: Pendencia | null;
 };
@@ -117,6 +117,10 @@ export type ModeloIA = {
   fonte_preco: string; data_preco: string; apelidos: string[];
 };
 export type RegistroModelos = { provedores: { id: string; nome: string; real: boolean }[]; modelos: ModeloIA[] };
+export type Comparativo = {
+  dias: number; execucoes: number; atual_brl: number; tem_demo: boolean; aviso: string;
+  cenarios: { chave: string; modelo: string; provedor: string; provedor_nome: string; simulado: boolean; custo_brl: number; variacao_pct: number | null }[];
+};
 export type Saude = { ok: boolean; versao: string; modo: "real" | "simulado"; modelos: Record<string, string>; cotacao_dolar: number };
 
 export type Agente = {
@@ -170,6 +174,7 @@ export type ResumoFinancas = {
   dias: number; tem_demo: boolean; execucoes: number; custo_brl: number; custo_sem_roteador_brl: number;
   economia_roteador_pct: number | null; ganho_brl: number; roi_variavel: number | null;
   por_agente: FinancasAgente[]; por_area: { area: string; execucoes: number; custo_brl: number; ganho_brl: number }[];
+  por_provedor: { provedor: string; provedor_nome: string; simulado: boolean; chamadas: number; custo_brl: number }[];
   por_modelo: { chave: string; modelo: string; provedor: string; provedor_nome: string; simulado: boolean; chamadas: number; custo_brl: number }[];
   por_dia: ({ dia: string; execucoes: number; custo_brl: number } & Record<string, number | string>)[];
   premissas?: Record<string, number | boolean>;

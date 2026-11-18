@@ -18,8 +18,23 @@ from ..audit import trilha
 from ..core.db import trava
 from ..core.identidade import PERSONAS
 from ..core.relogio import agora
-from ..llm import precos
+from ..llm import precos, registro
 from ..runtime import modelos as rm
+
+# Parte das execuções do histórico roda em outros provedores (todos simulados), para os gráficos de Finanças
+# não nascerem só com o Claude. Cada nível troca por um modelo de capacidade parecida de outro provedor.
+FRACAO_OUTROS_PROVEDORES = 0.35
+EQUIVALENTES = {
+    "rapido": ["gemini-flash-lite", "gpt-luna", "deepseek-flash", "grok-43"],
+    "forte": ["gemini-carbon", "gpt-sol", "deepseek-pro", "grok-47"],
+}
+
+
+def _tokens_do_custo(chave: str, custo_usd: float) -> tuple[int, int]:
+    """Tokens coerentes com o custo e a tabela do modelo (metade do gasto em entrada, metade em saída)."""
+    m = registro.obter(chave)
+    return int(custo_usd * 0.5 / m.preco_entrada * 1_000_000), int(custo_usd * 0.5 / m.preco_saida * 1_000_000)
+
 
 VOLUME_DIA = {"atendimento": 22, "risco": 9, "pessoas": 12, "logistica": 10}   # execuções por dia útil
 
@@ -34,8 +49,8 @@ def gerar(s: Session, dias: int = 30, semente: int = 7) -> int:
         bp = Blueprint.model_validate(v.blueprint)
         est = estimar_custo(bp)
         pessoas = [p.id for p in PERSONAS.values() if p.area == a.area] or [a.dono]
-        modelos_usados = [x["modelo"] for x in est.por_passo.values() if x["modelo"]]
-        chave = "forte" if any("Sonnet" in x for x in modelos_usados) else "rapido"
+        modelos_usados = [x["modelo_chave"] for x in est.por_passo.values() if x.get("modelo_chave")]
+        chave = "forte" if "forte" in modelos_usados else "rapido"
         for d in range(dias, 0, -1):
             dia = hoje - timedelta(days=d)
             if dia.weekday() >= 5:
@@ -52,15 +67,21 @@ def gerar(s: Session, dias: int = 30, semente: int = 7) -> int:
                     status, motivo = rm.CONCLUIDA, None
                 custo_brl = est.custo_brl * rnd.uniform(0.75, 1.3) * (0.4 if status == rm.ESCALADA else 1)
                 custo_usd = custo_brl / precos.usd_para_brl(1.0)
-                fator_forte = 1.0 if chave == "forte" and len(modelos_usados) == 1 else rnd.uniform(3.5, 6.0)
+                fator_forte = 1.0 if chave == "forte" and len(set(modelos_usados)) == 1 else rnd.uniform(3.5, 6.0)
+                usado, tudo_forte_usd = chave, custo_usd * fator_forte   # a referência "tudo no forte" não muda
+                if rnd.random() < FRACAO_OUTROS_PROVEDORES:   # outro provedor: o custo muda pela razão das tabelas
+                    usado = rnd.choice(EQUIVALENTES[chave])
+                    custo_usd *= registro.obter(usado).peso / registro.obter(chave).peso
+                t_in, t_out = _tokens_do_custo(usado, custo_usd)
                 criadas.append(rm.Execucao(
                     id=uuid.uuid4().hex[:12], agente_id=a.id, versao=a.versao_publicada, agente_nome=a.nome, area=a.area,
                     persona=rnd.choice(pessoas), status=status, motivo=motivo, entrada={}, blueprint=bp.model_dump(),
                     passos={}, resultado=None if status != rm.CONCLUIDA else "(histórico de demonstração)",
                     chamadas_modelo=est.chamadas_modelo, custo_usd=round(custo_usd, 8),
-                    custo_tudo_forte_usd=round(custo_usd * fator_forte, 8),
-                    por_modelo={chave: {"chamadas": est.chamadas_modelo, "custo_usd": round(custo_usd, 8),
-                                        "tokens_entrada": 0, "tokens_saida": 0}},
+                    custo_tudo_forte_usd=round(tudo_forte_usd, 8),
+                    tokens_entrada=t_in, tokens_saida=t_out,
+                    por_modelo={usado: {"chamadas": est.chamadas_modelo, "custo_usd": round(custo_usd, 8),
+                                        "tokens_entrada": t_in, "tokens_saida": t_out}},
                     duracao_estimada_ms=int(rnd.uniform(2500, 9000) * (2.5 if ruim else 1)),
                     simulado=True, demo=True, inicio=inicio.isoformat(), fim=inicio.isoformat()))
     with trava:

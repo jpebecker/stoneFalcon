@@ -183,7 +183,8 @@ class _Ambiente:
 
 def _registro(passo: Passo, status: str, **campos) -> dict:
     r = {"id": passo.id, "titulo": passo.titulo, "tipo": passo.tipo, "status": status,
-         "saida": None, "motivo": None, "modelo": None, "motivos_modelo": [], "ferramentas": [],
+         "saida": None, "motivo": None, "modelo": None, "modelo_chave": None, "provedor": None,
+         "modelo_simulado": None, "motivos_modelo": [], "ferramentas": [],
          "iteracoes": 0, "custo_usd": 0.0, "duracao_ms": 0, "duracao_estimada_ms": 0, "pendencia": None}
     r.update(campos)
     return r
@@ -232,7 +233,11 @@ def _passo_agente(s: Session, amb: _Ambiente, passo: Passo) -> dict:
     usadas: list[dict] = []
     custo = 0.0
     estimado = 0
-    base = dict(modelo=decisao.nome_modelo, motivos_modelo=decisao.motivos)
+    modelo = registro.obter(decisao.chave_modelo)
+    # só o Claude roda de verdade: os demais provedores passam pelo simulador, mesmo com chave
+    cliente = amb.cliente if registro.roda_de_verdade(modelo.chave) else obter_cliente(True)
+    base = dict(modelo=decisao.nome_modelo, motivos_modelo=decisao.motivos, modelo_chave=modelo.chave,
+                provedor=modelo.provedor, modelo_simulado=not registro.roda_de_verdade(modelo.chave))
 
     for it in range(1, passo.max_iteracoes + 1):
         motivo = amb.orc.estourou()
@@ -240,7 +245,7 @@ def _passo_agente(s: Session, amb: _Ambiente, passo: Passo) -> dict:
             return _registro(passo, "escalado", motivo=motivo, iteracoes=it - 1, ferramentas=usadas,
                              custo_usd=custo, duracao_estimada_ms=estimado, **base)
         try:
-            r = amb.cliente.gerar(decisao.chave_modelo, sistema, msgs, ferramentas or None)
+            r = cliente.gerar(decisao.chave_modelo, sistema, msgs, ferramentas or None)
         except ErroModelo as e:
             if not (config.RESERVA_SIMULADA and not amb.simulado) or e.fatal:
                 return _registro(passo, "escalado", motivo=str(e), iteracoes=it, ferramentas=usadas,

@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { api, type Persona, type ResumoFinancas } from "../api/cliente";
+import { api, type Comparativo, type Persona, type ResumoFinancas } from "../api/cliente";
+import SeloSimulado from "../components/SeloSimulado";
 import { BarrasEmpilhadas } from "../components/Graficos";
 import { num, pct, reais, reaisCurto } from "../components/formato";
 
@@ -12,6 +13,43 @@ function Tile({ rotulo, valor, nota }: { rotulo: string; valor: string; nota?: s
       <div className="mt-1 font-titulo text-2xl font-semibold">{valor}</div>
       {nota && <div className="mt-0.5 text-xs text-tinta-3">{nota}</div>}
     </div>
+  );
+}
+
+const CORES_PROVEDOR: Record<string, string> = {
+  anthropic: "var(--serie-1)", google: "var(--serie-2)", openai: "var(--serie-3)", deepseek: "var(--serie-4)", xai: "var(--serie-5)",
+};
+
+/** "E se tudo rodasse em X?": o mesmo consumo do período, cobrado pela tabela do modelo escolhido. */
+function ECompara({ dias }: { dias: number }) {
+  const [alvo, setAlvo] = useState("");
+  const q = useQuery({ queryKey: ["financas", "comparativo", dias], queryFn: () => api<Comparativo>("/financas/comparativo?dias=" + dias) });
+  const c = q.data;
+  const cenario = c?.cenarios.find((x) => x.chave === alvo);
+  return (
+    <section className="caixa p-5">
+      <h2 className="text-lg">E se tudo rodasse em um só modelo?</h2>
+      <p className="mt-1 text-sm text-tinta-2">Mesmo consumo de tokens dos últimos {dias} dias, cobrado pela tabela pública de cada modelo.</p>
+      {c && (
+        <>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <label className="text-sm" htmlFor="alvo-modelo">Modelo</label>
+            <select id="alvo-modelo" className="campo w-auto" value={alvo} onChange={(e) => setAlvo(e.target.value)}>
+              <option value="">Escolha…</option>
+              {c.cenarios.map((x) => <option key={x.chave} value={x.chave}>{x.modelo} ({x.provedor_nome}){x.simulado ? " · simulado" : ""}</option>)}
+            </select>
+            {cenario && (
+              <p className="text-sm" aria-live="polite">
+                Custo no período: <b>{reais(cenario.custo_brl)}</b> contra <b>{reais(c.atual_brl)}</b> de hoje
+                {cenario.variacao_pct !== null && <> ({cenario.variacao_pct <= 0 ? "" : "+"}{(cenario.variacao_pct * 100).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}%)</>}
+                {cenario.simulado && <SeloSimulado className="ml-2" />}
+              </p>
+            )}
+          </div>
+          <p className="mt-2 text-xs text-tinta-3">{c.aviso}</p>
+        </>
+      )}
+    </section>
   );
 }
 
@@ -90,11 +128,33 @@ export default function Financas({ pessoa }: { pessoa: Persona }) {
             <BarrasEmpilhadas titulo="Custo por dia, por modelo" dados={r.por_dia}
               rotulo={(d) => d.dia.slice(8, 10) + "/" + d.dia.slice(5, 7)} formatar={(v) => reais(v)}
               formatarEixo={(v) => "R$ " + v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              series={r.por_modelo.map((m, i) => ({ chave: m.chave + "_brl", nome: m.modelo, cor: `var(--serie-${(i % 6) + 1})` }))} />
-            <p className="mt-3 text-xs text-tinta-3">
-              {r.por_modelo.map((m) => `${m.modelo}: ${num(m.chamadas)} chamadas, ${reais(m.custo_brl)}`).join(" · ")}
-            </p>
+              series={r.por_provedor.map((p) => ({ chave: p.provedor + "_brl", nome: p.provedor_nome + (p.simulado ? " (simulado)" : ""), cor: CORES_PROVEDOR[p.provedor] ?? "var(--serie-6)" }))} />
           </section>
+
+          <section className="caixa overflow-x-auto">
+            <table className="w-full text-sm">
+              <caption className="px-4 pt-4 text-left text-lg font-semibold">Gasto no período, por provedor e por modelo</caption>
+              <thead className="text-left text-xs uppercase tracking-wide text-tinta-3">
+                <tr><th className="px-4 py-2.5">Provedor · modelo</th><th className="px-4 py-2.5 text-right">Chamadas</th><th className="px-4 py-2.5 text-right">Custo</th></tr>
+              </thead>
+              <tbody className="divide-y divide-linha">
+                {r.por_provedor.map((p) => (
+                  <tr key={p.provedor} className="bg-papel/60 font-semibold">
+                    <td className="px-4 py-2">{p.provedor_nome}{p.simulado && <SeloSimulado className="ml-2" />}</td>
+                    <td className="px-4 py-2 text-right">{num(p.chamadas)}</td><td className="px-4 py-2 text-right">{reais(p.custo_brl)}</td>
+                  </tr>
+                ))}
+                {r.por_modelo.map((m) => (
+                  <tr key={m.chave}>
+                    <td className="px-4 py-2 pl-8 text-tinta-2">{m.modelo}</td>
+                    <td className="px-4 py-2 text-right text-tinta-2">{num(m.chamadas)}</td><td className="px-4 py-2 text-right text-tinta-2">{reais(m.custo_brl)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+
+          <ECompara dias={dias} />
 
           <section className="caixa overflow-x-auto">
             <table className="w-full text-sm">

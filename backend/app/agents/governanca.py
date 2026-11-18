@@ -89,7 +89,9 @@ def estimar_custo(bp: Blueprint) -> Estimativa:
             custo += precos.custo_usd(decisao.chave_modelo, t_in, _SAIDA if v == voltas - 1 else 120)
         total_usd += custo
         chamadas += voltas
-        por_passo[p.id] = {"modelo": decisao.nome_modelo, "custo_brl": round(precos.usd_para_brl(custo), 5)}
+        mod = registro.obter(decisao.chave_modelo)
+        por_passo[p.id] = {"modelo": decisao.nome_modelo, "custo_brl": round(precos.usd_para_brl(custo), 5),
+                           "modelo_chave": mod.chave, "provedor": mod.provedor, "simulado": not registro.roda_de_verdade(mod.chave)}
     return Estimativa(round(precos.usd_para_brl(total_usd), 5), chamadas, por_passo)
 
 

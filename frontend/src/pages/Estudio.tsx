@@ -96,7 +96,7 @@ export default function Estudio({ pessoa }: { pessoa: Persona }) {
 
   const valido = val?.valido ? val : null;
   const semPermissao = useMemo(() => new Set(Object.keys(valido?.sem_permissao ?? {})), [valido]);
-  const modelos = useMemo(() => Object.fromEntries(Object.entries(valido?.estimativa.por_passo ?? {}).map(([k, v]) => [k, v.modelo])), [valido]);
+  const modelos = useMemo(() => Object.fromEntries(Object.entries(valido?.estimativa.por_passo ?? {}).map(([k, v]) => [k, v.modelo && v.simulado ? v.modelo + " · simulado" : v.modelo])), [valido]);
   const passoSel = bp?.passos.find((p) => p.id === sel) ?? null;
 
   const mudarPasso = (novo: Passo) => bp && setBp({ ...bp, passos: bp.passos.map((p) => (p.id === novo.id ? novo : p)) });

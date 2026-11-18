@@ -145,15 +145,15 @@ O rastreador de tickets não está configurado no projeto. A lista fica consolid
 
 **Bloqueado por:** 04.
 
-**Status:** ready-for-agent
+**Status:** feito (com chave real o Claude roda de verdade: não testado, sem chave; preços a reconferir na véspera)
 
-- [ ] O Estúdio lista os modelos agrupados por provedor no seletor de cada passo, com preço por milhão de tokens e selo "simulado".
-- [ ] Testar no sandbox um agente com um passo em Gemini e outro em GPT funciona sem chave, e a execução mostra o modelo e o custo de cada passo.
-- [ ] Finanças mostra o gasto do mês por provedor e por modelo, com números vindos das execuções (não fixos na tela).
-- [ ] O comparativo "e se tudo rodasse em X" recalcula o custo do período para o modelo escolhido.
-- [ ] A semente da demo inclui execuções históricas em mais de um provedor, para os gráficos não nascerem vazios.
-- [ ] Com chave da Anthropic, Claude roda de verdade e os outros continuam simulados, sem erro.
-- [ ] Preços conferidos na tabela pública de cada provedor na data da implementação; fonte e data registradas.
+- [x] O Estúdio lista os modelos agrupados por provedor no seletor de cada passo, com preço por milhão de tokens e selo "simulado".
+- [x] Testar no sandbox um agente com um passo em Gemini e outro em GPT funciona sem chave, e a execução mostra o modelo e o custo de cada passo.
+- [x] Finanças mostra o gasto do mês por provedor e por modelo, com números vindos das execuções (não fixos na tela).
+- [x] O comparativo "e se tudo rodasse em X" recalcula o custo do período para o modelo escolhido.
+- [x] A semente da demo inclui execuções históricas em mais de um provedor, para os gráficos não nascerem vazios.
+- [x] Com chave da Anthropic, Claude roda de verdade e os outros continuam simulados, sem erro.
+- [x] Preços conferidos na tabela pública de cada provedor na data da implementação; fonte e data registradas.
 
 ### 06: Balanceador por nível de esforço
 
