@@ -12,7 +12,8 @@ rc=0; python3 scripts/iniciar_ajuda.py front || rc=$?
 if [ "$rc" -eq 10 ]; then
   command -v npm >/dev/null 2>&1 || { echo "Falta compilar as telas: instale o Node.js LTS (https://nodejs.org) e rode de novo."; exit 1; }
   echo "Compilando as telas (primeira vez ou depois de atualizar)..."
-  npm --prefix frontend install --no-audit --no-fund && npm --prefix frontend run build || exit 1
+  # npm roda DE DENTRO de frontend (subshell): o npm 10.9 ignora --prefix no install e procura o package.json na raiz
+  ( cd frontend && npm install --no-audit --no-fund && npm run build ) || exit 1
   python3 scripts/iniciar_ajuda.py marcar-front || exit 1
 elif [ "$rc" -ne 0 ]; then
   exit 1

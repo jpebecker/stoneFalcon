@@ -106,3 +106,15 @@ def test_versao_divergente_do_front_e_do_pacote_do_back_falha(tmp_path):
     t.write_text(t.read_text(encoding="utf-8").replace('version = "7.0.0"', 'version = "4.0.0"'), encoding="utf-8")
     problemas = v.verificar(raiz)
     assert any("package.json" in x for x in problemas) and any("pyproject" in x for x in problemas)
+
+
+def test_npm_roda_de_dentro_do_frontend_e_nunca_com_prefix():
+    """O npm 10.9 (o do Node 22 na esteira) ignora --prefix em install/ci e procura o package.json na raiz do repositório:
+    a fumaça do Windows quebrou assim. Scripts de início e esteira rodam o npm de dentro de frontend."""
+    for nome in ("iniciar.bat", "iniciar.sh", ".github/workflows/ci.yml"):
+        texto = (RAIZ / nome).read_text(encoding="utf-8")
+        comandos = [l for l in texto.splitlines() if "npm " in l and not l.lstrip().startswith(("rem ", "#"))]
+        assert comandos, nome
+        assert not any("--prefix" in l for l in comandos), nome
+    assert "pushd frontend" in (RAIZ / "iniciar.bat").read_text(encoding="utf-8")
+    assert "cd frontend" in (RAIZ / "iniciar.sh").read_text(encoding="utf-8")

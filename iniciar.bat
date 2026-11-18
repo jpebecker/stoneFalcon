@@ -25,8 +25,11 @@ if errorlevel 10 (
     goto :erro
   )
   echo   Compilando as telas - primeira vez ou depois de atualizar...
-  call npm --prefix frontend install --no-audit --no-fund || goto :erro
-  call npm --prefix frontend run build || goto :erro
+  rem npm roda DE DENTRO de frontend: o npm 10.9 ignora --prefix no install e procura o package.json na raiz
+  pushd frontend || goto :erro
+  call npm install --no-audit --no-fund || (popd & goto :erro)
+  call npm run build || (popd & goto :erro)
+  popd
   python scripts\iniciar_ajuda.py marcar-front || goto :erro
 ) else if errorlevel 1 (
   goto :erro
