@@ -1,5 +1,7 @@
 # StoneFalcon
 
+[![CI](https://github.com/jpebecker/stoneFalcon/actions/workflows/ci.yml/badge.svg)](https://github.com/jpebecker/stoneFalcon/actions/workflows/ci.yml)
+
 **A fábrica governada de agentes de IA.** Qualquer colaborador descreve um processo em português e recebe um agente pronto, ligado só às ferramentas que o seu papel permite, com guardrails, monitoramento e custo sob controle. Engenharia e Segurança governam o catálogo, não cada agente.
 
 > **Stone** (empresa patrocinadora) + **Falcon** (grupo PinkFalcon de empreendedorismo).
@@ -35,6 +37,16 @@ cd backend && uv run pytest -q                   # 180 testes, sem chave nem int
 - **Botão direito** sobre um texto: “StoneFalcon → Responder com: *agente*”, com os agentes que o seu perfil pode usar.
 - **Painel lateral** em tema escuro: sugere o agente pelo trecho, preenche os campos que detectou (lojista citado, “eu mesmo” para colaborador), mostra os passos, pede a confirmação de ações sensíveis ali mesmo e guarda o histórico da sessão.
 - A extensão não tem lógica nem chave: roda tudo na plataforma, com as permissões de quem está logado. Para ensaiar sem a extensão, abra `http://localhost:8765/demo/helpdesk`: um helpdesk fictício que abre o mesmo painel dentro da própria página.
+
+## Como contribuir
+
+- **Um ticket = um branch = um PR.** Branch `v7/NN-nome-curto` saindo de `main`; PR para `main` com o número do ticket no título e os critérios de aceite como checklist (o plano está em [PLANO-V7.md](PLANO-V7.md)).
+- **A esteira de CI** (`.github/workflows/ci.yml`) roda em todo PR e em `main` e precisa estar verde para juntar:
+  1. **Back:** `pytest` em Python 3.11 e 3.14, em modo simulado (sem chave da API).
+  2. **Front:** checagem de tipos e compilação de produção (`npm run build`).
+  3. **Extensão:** manifesto válido e arquivos citados existem (`scripts/verifica_extensao.py`).
+- Para rodar o mesmo na sua máquina: `cd backend && uv run pytest -q`, `cd frontend && npm run build` e `python scripts/verifica_extensao.py`.
+- Configuração do repositório (feita no GitHub, fora do código): em *Settings → Branches*, proteger `main` exigindo os três jobs da esteira verdes antes de juntar.
 
 ## O que o desafio pede e onde está
 
