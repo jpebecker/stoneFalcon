@@ -57,3 +57,15 @@ def api(motor):
 
 def como(pessoa: str) -> dict:
     return {"X-Usuario": pessoa}
+
+
+@pytest.fixture()
+def legado():
+    """Bancos da v7 têm agentes de vários passos; um agente novo só pode ter um (v8/09). Os testes que exercitam o ciclo de vida,
+    a saúde, os plugins... com fluxos de vários passos como dado de exemplo pedem este fixture, que desliga só a regra do
+    "uma tarefa só" (os testes da regra, em test_contrato_agentes.py, não o usam)."""
+    from app.agents.ciclo import TIPO_AGENTE
+    original = TIPO_AGENTE.normalizar
+    object.__setattr__(TIPO_AGENTE, "normalizar", None)
+    yield
+    object.__setattr__(TIPO_AGENTE, "normalizar", original)

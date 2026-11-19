@@ -7,6 +7,8 @@ from app.core.identidade import PERSONAS
 from app.tools import dados_ficticios, executor
 from tests.conftest import como
 
+pytestmark = pytest.mark.usefixtures("legado")   # v7: usa fluxos de vários passos como dado de exemplo (veja o fixture)
+
 P = PERSONAS
 
 

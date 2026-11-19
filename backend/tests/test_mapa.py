@@ -8,6 +8,8 @@ from app.seed.demo import semear
 from app.tools.catalogo import CATALOGO
 from tests.conftest import como
 
+pytestmark = pytest.mark.usefixtures("legado")   # v7: usa fluxos de vários passos como dado de exemplo (veja o fixture)
+
 V1 = "/api/v1"
 PERFIS = list(PERSONAS)
 

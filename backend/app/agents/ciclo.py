@@ -51,13 +51,21 @@ def _salvar(s: Session, *objs) -> None:
             s.refresh(o)
 
 
+def _normalizar_agente(s: Session, p: Persona, bp: Blueprint) -> Blueprint:
+    """v8: uma versão nova de agente é UM trabalhador (uma tarefa). Fluxos de vários passos são processos."""
+    if len(bp.passos) > 1:
+        raise ErroCiclo("Um agente faz uma tarefa só (%d passos não cabem). Para encadear passos, aprovações e ações em outros "
+                        "sistemas, monte um processo na aba Processos e use este agente como um bloco dele." % len(bp.passos), 422)
+    return bp.model_copy(update={"area": p.area})
+
+
 # O tipo AGENTE: como se avalia, se compara e se executa o blueprint dele.
 TIPO_AGENTE = registrar_tipo(TipoDono(
     nome=AGENTE, entidade=m.Agente, versao_cls=m.VersaoAgente, fk="agente_id", modelo=Blueprint, slug_padrao="agente",
     risco=lambda s, bp: avaliar_risco(bp),
     sem_permissao=lambda s, p, bp: ferramentas_sem_permissao(p, bp),
     comparar=comparar, ferramentas_novas=ferramentas_novas,
-    executavel=lambda s, p, dono, bp: Blueprint.model_validate(bp),
+    executavel=lambda s, p, dono, bp: Blueprint.model_validate(bp), normalizar=_normalizar_agente,
 ))
 
 

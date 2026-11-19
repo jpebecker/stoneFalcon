@@ -7,7 +7,6 @@ from sqlmodel import Session
 from app import rotinas
 from app.core import db
 from app.core.relogio import FUSO
-from app.seed.agentes_exemplo import TRIAGEM_CHARGEBACK
 from app.tools import dados_ficticios as fx
 from tests.conftest import como
 
@@ -35,15 +34,6 @@ def relogio_parado(motor):          # depois do `motor`, que zera o relógio no 
 def _agente(api, perfil="thiago", bp=ESTOQUE) -> str:
     aid = api.post(f"{V1}/agentes", json={"blueprint": bp, "nota": "rotina"}, headers=como(perfil)).json()["id"]
     assert api.post(f"{V1}/agentes/{aid}/publicar", headers=como(perfil)).json()["estado"] == "publicado"
-    return aid
-
-
-def _triagem(api) -> str:
-    """Fluxo de vários passos (formato antigo) publicado pelo Rafael e aprovado pelo Lucas: a rotina de agente ainda o roda."""
-    h = como("rafael")
-    aid = api.post(f"{V1}/agentes", json={"blueprint": TRIAGEM_CHARGEBACK.model_dump(), "nota": "rotina"}, headers=h).json()["id"]
-    assert api.post(f"{V1}/agentes/{aid}/publicar", headers=h).json()["estado"] == "em_revisao"
-    assert api.post(f"{V1}/agentes/{aid}/revisao", json={"aprovar": True, "parecer": "Aprovado."}, headers=como("lucas")).status_code == 200
     return aid
 
 
@@ -105,13 +95,13 @@ def test_so_agente_publicado_tem_rotina(api):
 
 
 # ---------- quem pode ----------
-def test_so_criador_com_acesso_ao_agente_agenda(api, sessao):
-    triagem = _triagem(api)
+def test_so_criador_com_acesso_ao_processo_agenda(api, sessao):
+    triagem = _processo_triagem(api)
     corpo = {"entrada": {"lojista_id": "L1001"}}
-    assert _criar(api, triagem, "marina", **corpo).status_code == 403          # outra área, agente não compartilhado
-    assert _criar(api, triagem, "helena", **corpo).status_code == 403          # sem papel de criador
-    assert _criar(api, triagem, "lucas", **corpo).status_code == 403
-    assert _criar(api, triagem, "rafael", **corpo).status_code == 200
+    assert _criar_processo(api, triagem, "marina", **corpo).status_code == 403          # outra área, agente não compartilhado
+    assert _criar_processo(api, triagem, "helena", **corpo).status_code == 403          # sem papel de criador
+    assert _criar_processo(api, triagem, "lucas", **corpo).status_code == 403
+    assert _criar_processo(api, triagem, "rafael", **corpo).status_code == 200
 
 
 # ---------- relógio controlado ----------
@@ -195,9 +185,9 @@ def test_rotina_roda_em_nome_de_quem_agendou(api):
 
 # ---------- mesmas permissões, guardrails e orçamento ----------
 def test_rotina_nao_roda_ferramenta_que_quem_agendou_nao_poderia(api, sessao):
-    triagem = _triagem(api)
-    assert api.post(f"{V1}/agentes/{triagem}/compartilhar", json={"areas": ["atendimento"]}, headers=como("rafael")).status_code == 200
-    rid = _criar(api, triagem, "marina", entrada={"lojista_id": "L1003"}).json()["id"]          # Marina só tem acesso interno
+    triagem = _processo_triagem(api)
+    assert api.post(f"{V1}/processos/{triagem}/compartilhar", json={"areas": ["atendimento"]}, headers=como("rafael")).status_code == 200
+    rid = _criar_processo(api, triagem, "marina", entrada={"lojista_id": "L1003"}).json()["id"]          # Marina só tem acesso interno
     r = api.post(f"{V1}/rotinas/{rid}/rodar", headers=como("marina")).json()
     exe = api.get(f"{V1}/execucoes/{r['execucao']}", headers=como("marina")).json()
     assert exe["status"] == "escalada" and not fx.BLOQUEIOS
@@ -207,8 +197,8 @@ def test_rotina_nao_roda_ferramenta_que_quem_agendou_nao_poderia(api, sessao):
 
 
 def test_acao_sensivel_dentro_da_rotina_espera_confirmacao_humana(api, sessao):
-    triagem = _triagem(api)
-    rid = _criar(api, triagem, "rafael", entrada={"lojista_id": "L1003"}).json()["id"]
+    triagem = _processo_triagem(api)
+    rid = _criar_processo(api, triagem, "rafael", entrada={"lojista_id": "L1003"}).json()["id"]
     feitas = _tick(SEGUNDA_9H)
     assert feitas and feitas[0]["status"] == "aguardando_aprovacao"
     assert not fx.BLOQUEIOS                                           # nada executou sozinho

@@ -19,6 +19,19 @@ def _agente(api, perfil="helena") -> dict | None:
     return next((a for a in api.get(f"{V1}/agentes", headers=como(perfil)).json() if a["nome"] == NOME_AGENTE), None)
 
 
+def _processo(api, perfil="helena") -> dict | None:
+    return next((p for p in api.get(f"{V1}/processos", headers=como(perfil)).json() if p["nome"] == NOME_AGENTE), None)
+
+
+def _montar(api, sug: dict, perfil="thiago") -> tuple[str, dict]:
+    """O fluxo da planilha vira processo: o Estúdio cria um agente trabalhador por passo de IA (publicados aqui) e o fluxo de blocos."""
+    conv = api.post(f"{V1}/estudio/em-processo", json={"blueprint": sug["blueprint"]}, headers=como(perfil)).json()
+    for a in conv["agentes"]:
+        assert api.post(f"{V1}/agentes/{a['id']}/publicar", headers=como(perfil)).json()["estado"] == "publicado"
+    pid = api.post(f"{V1}/processos", json={"blueprint": conv["processo"], "nota": "pitch"}, headers=como(perfil)).json()["id"]
+    return pid, conv["processo"]
+
+
 def _iniciar(api):
     assert api.post(f"{V1}/roteiros/pitch/reiniciar", headers=como("thiago")).status_code == 200
 
@@ -27,7 +40,7 @@ def test_o_roteiro_roda_do_inicio_ao_fim_sem_digitar_e_sem_chave(api):
     _iniciar(api)
     estado_inicial = api.get(f"{V1}/plugins/sheets", headers=como("thiago")).json()["estado"]
     assert estado_inicial == "integrado" and api.get(f"{V1}/plugins/slack", headers=como("thiago")).json()["estado"] == "integrado"
-    assert _agente(api) is None and api.get(f"{V1}/rotinas", headers=como("helena")).json() == []
+    assert _agente(api) is None and _processo(api) is None and api.get(f"{V1}/rotinas", headers=como("helena")).json() == []
 
     # 3. criar: o Estúdio abre com a fonte e monta o agente da planilha (a mesma chamada do botão "Montar meu agente")
     criar = _passo("criar").preenche
@@ -36,19 +49,20 @@ def test_o_roteiro_roda_do_inicio_ao_fim_sem_digitar_e_sem_chave(api):
     assert "slack_enviar_mensagem" in str(sug["blueprint"]["passos"])               # o aviso ao canal entra (Slack integrado)
 
     # 4. testar: sem chave, com a entrada pré-determinada; o balanceador explica cada passo com IA
-    exe = api.post(f"{V1}/estudio/testar", json={"blueprint": sug["blueprint"], "entrada": _passo("testar").preenche["entrada"]},
+    pid, pbp = _montar(api, sug)
+    exe = api.post(f"{V1}/processos/testar", json={"blueprint": pbp, "entrada": _passo("testar").preenche["entrada"]},
                    headers=como("thiago")).json()
     assert exe["status"] == "concluida" and exe["simulado"] is True
     ia = [p for p in exe["passos"].values() if p["tipo"] == "agente"]
     assert ia and all(p["esforco"] and p["balanceador"]["candidatos"] and p["balanceador"]["motivo"] for p in ia)
 
     # 5. publicar
-    aid = api.post(f"{V1}/agentes", json={"blueprint": sug["blueprint"], "nota": "pitch"}, headers=como("thiago")).json()["id"]
-    assert api.post(f"{V1}/agentes/{aid}/publicar", headers=como("thiago")).json()["estado"] == "publicado"
+    aid = pid
+    assert api.post(f"{V1}/processos/{aid}/publicar", headers=como("thiago")).json()["estado"] == "publicado"
 
     # 6. rotina semanal + Rodar agora
     rot = _passo("rotina").preenche
-    r = api.post(f"{V1}/agentes/{aid}/rotinas", headers=como("thiago"),
+    r = api.post(f"{V1}/processos/{aid}/rotinas", headers=como("thiago"),
                  json={"frequencia": rot["frequencia"], "dia_semana": rot["dia_semana"], "hora": 9, "minuto": 0, "entrada": rot["entrada"]})
     assert r.status_code == 200 and r.json()["descricao"] == "toda segunda às 09:00"
     rodou = api.post(f"{V1}/rotinas/{r.json()['id']}/rodar", headers=como("thiago")).json()
@@ -56,7 +70,7 @@ def test_o_roteiro_roda_do_inicio_ao_fim_sem_digitar_e_sem_chave(api):
 
     # 7. mapa (Helena): o agente apareceu sozinho, com o selo da rotina na última execução
     mapa = api.get(f"{V1}/mapa", headers=como("helena")).json()
-    assert "agente:" + aid in {n["id"] for n in mapa["nos"]}
+    assert "processo:" + aid in {n["id"] for n in mapa["nos"]}
     assert any(e["id"] == rodou["execucao"] and e["rotina"] for e in mapa["execucoes_recentes"])
     # o relógio da demo avança uma semana e a rotina dispara sozinha (o pulso do mapa)
     sozinha = api.post(f"{V1}/rotinas/relogio", json={"avancar_horas": 24 * 7}, headers=como("helena")).json()["disparadas"]
@@ -84,9 +98,9 @@ def test_reiniciar_devolve_planilha_plugin_agenda_e_balanceador_ao_estado_inicia
     _iniciar(api)
     sug = api.post(f"{V1}/estudio/sugerir", json={"descricao": _passo("criar").preenche["descricao"], "fonte": _passo("criar").preenche["fonte"]},
                    headers=como("thiago")).json()
-    aid = api.post(f"{V1}/agentes", json={"blueprint": sug["blueprint"], "nota": "p"}, headers=como("thiago")).json()["id"]
-    api.post(f"{V1}/agentes/{aid}/publicar", headers=como("thiago"))
-    api.post(f"{V1}/agentes/{aid}/rotinas", headers=como("thiago"),
+    aid, _ = _montar(api, sug)
+    api.post(f"{V1}/processos/{aid}/publicar", headers=como("thiago"))
+    api.post(f"{V1}/processos/{aid}/rotinas", headers=como("thiago"),
              json={"frequencia": "semanal", "dia_semana": 0, "hora": 9, "minuto": 0, "entrada": {"planilha": "local:pedidos-troca"}})
     api.post(f"{V1}/rotinas/relogio", json={"avancar_horas": 48}, headers=como("helena"))
     api.post(f"{V1}/balanceador/provedores/google/falha", json={"fora": True}, headers=como("helena"))
@@ -95,7 +109,7 @@ def test_reiniciar_devolve_planilha_plugin_agenda_e_balanceador_ao_estado_inicia
     api.delete(f"{V1}/plugins/sheets/integracao", headers=como("thiago"))
 
     assert api.post(f"{V1}/roteiros/pitch/reiniciar", headers=como("helena")).status_code == 200
-    assert _agente(api) is None and api.get(f"{V1}/rotinas", headers=como("helena")).json() == []
+    assert _agente(api) is None and _processo(api) is None and api.get(f"{V1}/rotinas", headers=como("helena")).json() == []
     assert not balanceador.fora_do_ar() and balanceador.ultima_carga() is None
     assert plugins_estado.integrado("sheets") and plugins_estado.integrado("slack")
     assert rotinas.relogio.fator == 1.0

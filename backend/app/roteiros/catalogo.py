@@ -9,7 +9,7 @@ com a área (cada um está marcado). O que é medido na execução (tempo do age
 vem das execuções reais do roteiro; a conferência humana é premissa.
 
 Cada passo diz ao front: quem é a pessoa (`perfil`), em que tela estamos (`rota`), o que fazer (`acao`),
-o que o apresentador pode dizer (`fala`) e o que já vem preenchido (`preenche`). Na rota, `{agente:Nome}`
+o que o apresentador pode dizer (`fala`) e o que já vem preenchido (`preenche`). Na rota, `{agente:Nome}` ou `{processo:Nome}`
 é resolvido pelo front para o agente com esse nome.
 """
 from __future__ import annotations
@@ -144,7 +144,7 @@ HELENA = Roteiro(
     ), duracao_min=4)
 
 _PLANILHA = "local:pedidos-troca"
-_AGENTE_PLANILHA = "{agente:Troca de maquininha pela planilha}"
+_AGENTE_PLANILHA = "{processo:Troca de maquininha pela planilha}"
 
 PITCH = Roteiro(
     id="pitch", persona="thiago", titulo="Pitch v7: da planilha do Thiago ao Mapa de IA da Helena",
@@ -186,7 +186,7 @@ PITCH = Roteiro(
         Passo("publicar", "Publicar", "thiago", "/estudio",
               "Clique em “Publicar”: risco médio, vai ao ar direto.",
               "Escrita em outro sistema é risco médio: publica direto, com guardrails e auditoria."),
-        Passo("rotina", "Agendar a rotina semanal", "thiago", "/agentes/" + _AGENTE_PLANILHA,
+        Passo("rotina", "Agendar a rotina semanal", "thiago", "/processos/" + _AGENTE_PLANILHA,
               "Agende toda segunda às 9h (já preenchido) e clique em “Rodar agora”: a primeira execução leva o selo “rotina”.",
               "[v7: tarefa de rotina] O agente agora roda sozinho toda segunda às 9h, em nome do Thiago, com as mesmas permissões, guardrails "
               "e orçamento. Para ver agora, “Rodar agora”.",

@@ -137,7 +137,7 @@ def _indicadores_governanca(s: Session, r: Roteiro) -> list[dict]:
 EXECUCOES_POR_MES = {"semanal": 52 / 12, "diaria": 365 / 12}     # premissa: a rotina roda em todas as semanas e dias
 
 
-def _rotina(s: Session, agente: am.Agente | None, ganho_por_tarefa: float) -> dict | None:
+def _rotina(s: Session, agente: "am.Agente | pm.Processo | None", ganho_por_tarefa: float) -> dict | None:
     """A rotina semanal conta no ganho: cada disparo sozinho é uma tarefa feita sem ninguém iniciar (premissa a validar)."""
     if agente is None:
         return None
@@ -193,7 +193,7 @@ def resultado(s: Session, r: Roteiro, agente_id: str | None = None) -> dict:
         "execucao": ({"id": exe.id, "status": exe.status, "custo_brl": round(exe.custo_usd * precos.usd_para_brl(1.0), 4),
                       "duracao_min": round(n["agente_min"], 3), "simulado": exe.simulado} if exe else None),
         "origem": n["origem"], "linhas": linhas, "ganho_por_tarefa_brl": round(ganho, 2), "indicadores": [],
-        "rotina": _rotina(s, n["agente"] if isinstance(n["agente"], am.Agente) else None, ganho),
+        "rotina": _rotina(s, n["agente"], ganho),
         "aviso": ("Números medidos no modo simulado: o tempo é o caminho crítico das latências típicas e os tokens são estimados."
                   if (exe is not None and exe.simulado) else None),
     }

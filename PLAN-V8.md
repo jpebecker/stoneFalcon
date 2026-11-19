@@ -213,13 +213,13 @@ v7 gave the platform a live AI Map, multiple model providers and scheduled tasks
 
 **Blocked by:** 07, 08
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Saving an agent version with more than one step is rejected with a plain-language message pointing to Processes.
-- [ ] Legacy multi-step agents loaded from an older database run, are read-only, and show "Convert to process".
-- [ ] No front-end screen or back-end route still builds multi-step agents; unused code removed.
-- [ ] A v7 database opens in v8 without errors (tested with a v7 fixture).
-- [ ] Full back-end suite green; front-end build green.
+- [x] Saving an agent version with more than one step is rejected with a plain-language message pointing to Processes.
+- [x] Legacy multi-step agents loaded from an older database run, are read-only, and show "Convert to process".
+- [x] No front-end screen or back-end route still builds multi-step agents; unused code removed.
+- [x] A v7 database opens in v8 without errors (tested with a v7 fixture).
+- [x] Full back-end suite green; front-end build green.
 
 ### 10: Files & Sheets — the real plugin
 

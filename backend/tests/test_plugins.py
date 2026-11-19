@@ -10,6 +10,8 @@ from app.tools.catalogo import CATALOGO, Especificacao, disponiveis
 from app.tools.executor import validar
 from tests.conftest import como
 
+pytestmark = pytest.mark.usefixtures("legado")   # v7: usa fluxos de vários passos como dado de exemplo (veja o fixture)
+
 V1 = "/api/v1"
 PERFIS = list(PERSONAS)
 

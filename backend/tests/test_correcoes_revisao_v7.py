@@ -19,7 +19,7 @@ from app.runtime import modelos as rm
 from app.seed.demo import semear
 from app.studio import sugestao
 from tests.conftest import como
-from tests.test_rotinas import SEGUNDA_9H, SEXTA, _agente, _criar, _triagem
+from tests.test_rotinas import SEGUNDA_9H, SEXTA, _agente, _criar, _criar_processo, _processo_triagem
 
 V1 = "/api/v1"
 
@@ -86,9 +86,9 @@ def relogio_na_sexta(motor):
 
 # ---------- 5. "Rodar agora" só por quem agendou (a execução usa o acesso dessa pessoa) ----------
 def test_rodar_agora_so_quem_agendou(api, sessao, relogio_na_sexta):
-    triagem = _triagem(api)
-    assert api.post(f"{V1}/agentes/{triagem}/compartilhar", json={"areas": ["atendimento"]}, headers=como("rafael")).status_code == 200
-    rid = _criar(api, triagem, "marina", entrada={"lojista_id": "L1003"}).json()["id"]
+    triagem = _processo_triagem(api)
+    assert api.post(f"{V1}/processos/{triagem}/compartilhar", json={"areas": ["atendimento"]}, headers=como("rafael")).status_code == 200
+    rid = _criar_processo(api, triagem, "marina", entrada={"lojista_id": "L1003"}).json()["id"]
     lista = {r["id"]: r for r in api.get(f"{V1}/rotinas", headers=como("rafael")).json()}
     assert lista[rid]["pode_gerir"] is True and lista[rid]["pode_rodar"] is False
     r = api.post(f"{V1}/rotinas/{rid}/rodar", headers=como("rafael"))          # dono do agente, mas não agendou

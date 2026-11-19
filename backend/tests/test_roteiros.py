@@ -315,12 +315,12 @@ def test_estrutura_dos_roteiros(api, rid):
 
 def test_reiniciar_roteiro_devolve_o_estado_inicial(api):
     def foto():
-        return sorted(a["nome"] for a in api.get(f"{V1}/agentes", headers=como("helena")).json())
+        return (sorted(a["nome"] for a in api.get(f"{V1}/agentes", headers=como("helena")).json()),
+                sorted(p["nome"] for p in api.get(f"{V1}/processos", headers=como("helena")).json()))
     _iniciar(api, "marina")
     inicial = foto()
-    bp, _ = _criar(api, "marina", "marina", "duvida_lojista")
-    aid = _salvar(api, "marina", bp)
-    _publicar(api, "marina", aid)
+    aid, pbp, _ = _agente_e_processo(api, "marina", "marina", "duvida", "duvida_lojista")
+    _publicar_processo(api, "marina", _salvar_processo(api, "marina", pbp))
     assert foto() != inicial
     _iniciar(api, "marina")
     assert foto() == inicial and not fx.CHAMADOS
@@ -406,11 +406,11 @@ def test_resultado_nao_vaza_agente_de_outra_area(api):
 
 def test_erros_diz_o_tamanho_da_amostra(api):
     _iniciar(api, "marina")
-    bp, _ = _criar(api, "marina", "marina", "duvida_lojista")
-    aid = _salvar(api, "marina", bp)
-    _publicar(api, "marina", aid)
-    _executar(api, "marina", aid, _passo("marina", "usar").preenche["entrada"])
-    linha = next(l for l in _fim(api, "marina", aid)["linhas"] if l["criterio"].startswith("Erros"))
+    aid, pbp, _ = _agente_e_processo(api, "marina", "marina", "duvida", "duvida_lojista")
+    pid = _salvar_processo(api, "marina", pbp)
+    _publicar_processo(api, "marina", pid)
+    _executar_processo(api, "marina", pid, _passo("marina", "usar").preenche["entrada"])
+    linha = next(l for l in _fim(api, "marina", pid)["linhas"] if l["criterio"].startswith("Erros"))
     assert linha["to_be"] == 0.0 and "1 execução" in linha["origem_to_be"] and "amostra pequena" in linha["origem_to_be"]
     assert linha["origem_as_is"].startswith("premissa")
 

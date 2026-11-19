@@ -11,6 +11,9 @@ from app.core.identidade import PERSONAS
 from app.runtime import modelos as rm
 from app.runtime import motor as rt
 from app.seed.agentes_exemplo import DUVIDA_LOJISTA
+import pytest
+
+pytestmark = pytest.mark.usefixtures("legado")   # v7: usa fluxos de vários passos como dado de exemplo (veja o fixture)
 
 P = PERSONAS
 
