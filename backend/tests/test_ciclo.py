@@ -148,8 +148,8 @@ def test_diff_descreve_mudancas_para_quem_revisa():
 def test_semente_da_demo_publica_agentes_e_mantem_trilha_integra(sessao):
     assert semear(sessao) and not semear(sessao)
     estados = {a.nome: (a.estado, a.versao_publicada) for a in sessao.exec(__import__("sqlmodel").select(m.Agente))}
-    assert estados["Triagem de chargebacks"] == (m.PUBLICADO, 1)
-    assert len(estados) == 3 and trilha.verificar(sessao)["integra"]
+    assert estados["Analista de risco de chargebacks"] == (m.PUBLICADO, 1)
+    assert len(estados) == 4 and trilha.verificar(sessao)["integra"]
 
 
 def test_api_publicar_revisar_executar(api):

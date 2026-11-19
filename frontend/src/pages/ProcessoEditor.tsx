@@ -12,6 +12,7 @@ import LinhaDoTempo from "../components/LinhaDoTempo";
 import PainelBloco from "../components/PainelBloco";
 import PaletaBlocos from "../components/PaletaBlocos";
 import { BLOCOS, COR_RISCO, NOME_RISCO, ms, reais } from "../components/formato";
+import { registrarCtx, usePreenche } from "../roteiro/estado";
 
 const VAZIO: ProcessoBlueprint = {
   nome: "Novo processo", objetivo: "Descreva em uma frase o que este processo resolve.", area: "", campos: [], blocos: [],
@@ -51,6 +52,24 @@ export default function ProcessoEditor({ pessoa }: { pessoa: Persona }) {
   const cat = useQuery({ queryKey: ["ferramentas"], queryFn: () => api<{ ferramentas: Ferramenta[] }>("/ferramentas") });
   const asIs = useQuery({ queryKey: ["processos", "as-is"], queryFn: () => api<{ roteiro_id: string; processo: string }[]>("/processos/as-is") });
 
+  // roteiro guiado: "montar" traz os blocos do processo (o agente vem pelo nome: troca pelo id do que a pessoa acabou de criar)
+  const pre = usePreenche(["montar", "testar"]);
+  useEffect(() => {
+    if (id || pre?.passoId !== "montar" || !pre.processo || !agentes.data) return;
+    const { blocos, ...resto } = pre.processo;
+    setBp((atual) => {
+      if (atual && atual.blocos.length > 0) return atual;
+      return {
+        ...(atual ?? VAZIO), ...resto, area: pessoa.area,
+        blocos: blocos.map(({ agente_nome, ...b }) => ({
+          ...b, ramo: b.ramo ?? null, agente_id: agente_nome ? [...agentes.data].reverse().find((a) => a.nome === agente_nome)?.id ?? null : b.agente_id ?? null,
+          ferramenta: b.ferramenta ?? null, regra: b.regra ?? null, texto: b.texto ?? "",
+        })),
+      } as ProcessoBlueprint;
+    });
+  }, [pre?.passoId, agentes.data]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (pre?.passoId === "testar" && pre.entrada) setEntrada(pre.entrada); }, [pre?.passoId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // validação ao vivo enquanto a pessoa monta o fluxo
   useEffect(() => {
     if (!bp) return;
@@ -66,7 +85,7 @@ export default function ProcessoEditor({ pessoa }: { pessoa: Persona }) {
       if (publicarDepois) await api(`/processos/${pid}/publicar`, {});
       return pid;
     },
-    onSuccess: (pid) => { qc.invalidateQueries({ queryKey: ["processos"] }); qc.invalidateQueries({ queryKey: ["processo", pid] }); navegar("/processos/" + pid); },
+    onSuccess: (pid) => { registrarCtx({ agenteId: pid }); qc.invalidateQueries({ queryKey: ["processos"] }); qc.invalidateQueries({ queryKey: ["processo", pid] }); navegar("/processos/" + pid); },
   });
   const testar = useMutation({
     mutationFn: () => api<Execucao>("/processos/testar", { blueprint: bp, entrada }),

@@ -28,13 +28,13 @@ def eh_trabalhador(bp: Blueprint) -> bool:
 
 
 def trabalhador_do_fluxo(bp: Blueprint) -> Blueprint:
-    """Resume um fluxo de vários passos num ÚNICO agente trabalhador: as ferramentas dos passos viram ferramentas que ele
-    pode usar, e as instruções dos passos de IA viram o que ele deve fazer."""
+    """Resume um fluxo de vários passos num ÚNICO agente trabalhador: o trabalhador LÊ e raciocina (as ferramentas de leitura dos
+    passos viram ferramentas dele) e as instruções dos passos de IA viram o que ele deve fazer. Quem AGE em outro sistema (abrir
+    chamado, avisar, reter repasse) é o processo, onde a aprovação humana fica à vista: veja `acoes_do_fluxo`."""
     ferramentas: list[str] = []
-    for p in bp.passos:
-        for f in ([p.ferramenta] if p.ferramenta else []) + list(p.ferramentas):
-            if f not in ferramentas:
-                ferramentas.append(f)
+    for f in _ferramentas_do_fluxo(bp):
+        if CATALOGO[f].acao == "leitura" and f not in ferramentas:
+            ferramentas.append(f)
     instrucoes = [p.instrucao.strip() for p in bp.passos if p.tipo == "agente" and p.instrucao.strip()]
     modelos = {p.modelo for p in bp.passos if p.tipo == "agente"}
     modelo = modelos.pop() if len(modelos) == 1 else "auto"
@@ -49,6 +49,15 @@ def trabalhador_do_fluxo(bp: Blueprint) -> Blueprint:
         passos=[Passo(id="trabalho", titulo=bp.nome[:120], tipo="agente", modelo=modelo, ferramentas=ferramentas,
                       instrucao=instrucao, max_iteracoes=max((p.max_iteracoes for p in bp.passos if p.tipo == "agente"), default=6))],
         limites=bp.limites, minutos_manual=bp.minutos_manual)
+
+
+def _ferramentas_do_fluxo(bp: Blueprint) -> list[str]:
+    return [f for p in bp.passos for f in ([p.ferramenta] if p.ferramenta else []) + list(p.ferramentas)]
+
+
+def acoes_do_fluxo(bp: Blueprint) -> list[str]:
+    """Nomes das ações em outros sistemas que o fluxo faz: ficam de fora do agente e entram como blocos do processo."""
+    return sorted({CATALOGO[f].nome for f in _ferramentas_do_fluxo(bp) if CATALOGO[f].acao != "leitura"})
 
 
 def eh_multipasso(bp: Blueprint) -> bool:

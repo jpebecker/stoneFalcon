@@ -184,14 +184,14 @@ v7 gave the platform a live AI Map, multiple model providers and scheduled tasks
 
 **Blocked by:** 05, 06
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Seed creates worker agents and processes equivalent to the former multi-step agents; 30 days of generated history are attributed to processes (and to the agents inside them).
-- [ ] Marina, Rafael, Carla and Thiago scripts walk through agent → process; Lucas and Helena scripts reference processes where they referenced agents.
-- [ ] AS IS × TO BE numbers are computed from process executions, with the same "measured / estimated / premise / hypothesis" labels.
-- [ ] Script steps resolve processes by name, like they resolve agents today.
-- [ ] Reset demo returns the exact initial state (tested).
-- [ ] Every script runs end to end in simulated mode (back-end script tests updated and green).
+- [x] Seed creates worker agents and processes equivalent to the former multi-step agents; 30 days of generated history are attributed to processes (and to the agents inside them).
+- [x] Marina, Rafael, Carla and Thiago scripts walk through agent → process; Lucas and Helena scripts reference processes where they referenced agents.
+- [x] AS IS × TO BE numbers are computed from process executions, with the same "measured / estimated / premise / hypothesis" labels.
+- [x] Script steps resolve processes by name, like they resolve agents today.
+- [x] Reset demo returns the exact initial state (tested).
+- [x] Every script runs end to end in simulated mode (back-end script tests updated and green).
 
 ### 08: Scheduled tasks, extension, AI Map and Finances understand processes
 

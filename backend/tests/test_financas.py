@@ -135,7 +135,7 @@ def test_indicadores_da_banca(sessao):
     i = resumo.indicadores(sessao, P["helena"])
     assert 0 < i["tempo_execucao"]["agente_min"] < i["tempo_execucao"]["manual_min"]
     assert i["custo_operacional"]["agente_brl"] < i["custo_operacional"]["manual_brl"]
-    assert i["produtividade"]["tarefas_concluidas"] > 0 and i["produtividade"]["agentes_ativos"] == 3
+    assert i["produtividade"]["tarefas_concluidas"] > 0 and i["produtividade"]["agentes_ativos"] == 4
     assert 0 < i["taxa_erros"]["agente"] < 0.2
     assert i["roi"]["projecao_payback_mes"] is not None
 
@@ -159,5 +159,5 @@ def test_premissas_trazem_medidas_e_demo_reinicia(api):
     assert api.post("/api/v1/demo/reiniciar", headers=h).json()["ok"]
     p = api.get("/api/v1/financas/premissas", headers=h).json()
     assert p["medidas"]["minutos_por_tarefa"] > 0 and p["medidas_demo"]
-    assert len(api.get("/api/v1/agentes", headers=h).json()) == 3
+    assert len(api.get("/api/v1/agentes", headers=h).json()) == 4
     assert api.get("/api/v1/auditoria/verificar", headers=h).json()["integra"]

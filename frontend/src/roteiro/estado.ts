@@ -67,15 +67,16 @@ export function usePreenche(idPasso?: string | string[]) {
   return { passoId: passo.id, ...passo.preenche };
 }
 
-/** `{agente:Nome}` na rota vira o endereço do agente com esse nome (o mais recente). */
+/** `{agente:Nome}` ou `{processo:Nome}` na rota vira o endereço do agente ou do processo com esse nome (o mais recente). */
 export async function resolverRota(rota: string): Promise<string> {
-  const m = rota.match(/\{agente:([^}]+)\}/);
+  const m = rota.match(/\{(agente|processo):([^}]+)\}/);
   if (!m) return rota;
+  const base = m[1] === "agente" ? "/agentes" : "/processos";
   try {
-    const agentes = await api<{ id: string; nome: string }[]>("/agentes");
-    const achado = agentes.find((a) => a.nome === m[1]);
-    return achado ? rota.replace(m[0], achado.id) : "/agentes";
+    const itens = await api<{ id: string; nome: string }[]>(base);
+    const achado = itens.find((a) => a.nome === m[2]);
+    return achado ? rota.replace(m[0], achado.id) : base;
   } catch {
-    return "/agentes";
+    return base;
   }
 }

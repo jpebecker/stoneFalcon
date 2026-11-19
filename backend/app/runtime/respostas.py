@@ -204,6 +204,16 @@ def _chamado_troca(ctx: Contexto) -> str:
     return texto.strip() or "Chamado de troca registrado."
 
 
+def _resumo_troca(ctx: Contexto) -> str:
+    """O agente trabalhador do processo de trocas: só lê e resume o pedido (quem abre o chamado é o processo)."""
+    l, e = ctx.lojista or {}, ctx.estoque or {}
+    baixo = " (estoque baixo: ofereça um modelo equivalente se preciso)" if int(e["disponivel"]) < 10 else ""
+    relato = str(ctx.entrada.get("relato") or "").strip()
+    return ("Pedido de troca de %s: %s%s. Há %s unidades do %s em estoque no %s%s; o envio sai em até %s dia(s) útil(eis) para %s." % (
+        l.get("nome", "o lojista"), e["modelo"], (" — " + relato) if relato else "", e["disponivel"], e["modelo"],
+        e["centro"], baixo, e["prazo_envio_dias"], l.get("cidade", "o endereço cadastrado")))
+
+
 def _aviso_lojista(ctx: Contexto) -> str:
     l = ctx.lojista or {}
     texto = "Avisei %s por e-mail" % l.get("nome", "o lojista")
@@ -235,6 +245,8 @@ def compor(ctx: Contexto, titulo: str, tools_passo: list[str], usou_ferramentas:
         return _aviso_lojista(ctx)
     if "abrir_chamado" in f and ctx.estoque is not None:
         return _chamado_troca(ctx)
+    if "consultar_estoque" in f and ctx.estoque is not None and not f & {"abrir_chamado", "bloquear_repasse"}:
+        return _resumo_troca(ctx)
     if f & {"abrir_chamado", "bloquear_repasse"}:
         return _encaminhamento(ctx)
     if ctx.chargebacks is not None and ctx.lojista is not None:

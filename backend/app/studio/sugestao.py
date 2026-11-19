@@ -46,9 +46,10 @@ class Sugestao:
     entrada_sugerida: dict = field(default_factory=dict)   # valores prontos para o teste (ex.: a planilha da fonte)
 
     def publico(self) -> dict:
-        from ..processos.conversao import eh_multipasso, trabalhador_do_fluxo
+        from ..processos.conversao import acoes_do_fluxo, eh_multipasso, trabalhador_do_fluxo
         t = trabalhador_do_fluxo(self.blueprint)
         return {
+            "acoes_no_processo": acoes_do_fluxo(self.blueprint),
             # `blueprint` é o FLUXO sugerido (vários passos); `trabalhador` é o agente único que o Estúdio cria a partir dele
             "trabalhador": t.model_dump(), "multipasso": eh_multipasso(self.blueprint),
             "blueprint": self.blueprint.model_dump(), "origem": self.origem, "explicacao": self.explicacao,

@@ -17,6 +17,7 @@ from ..audit.trilha import EventoAuditoria
 from ..core.identidade import GESTOR_IA, Persona
 from ..core.relogio import agora
 from ..llm import precos, registro
+from ..processos import modelos as pm
 from ..observability import metricas
 from ..runtime import modelos as rm
 from .calculadora import projetar
@@ -64,7 +65,7 @@ def _custo_em(chave: str, e: rm.Execucao) -> float:
 def comparativo(s: Session, p: Persona, dias: int = 30, modelo: str | None = None) -> dict:
     """"E se tudo rodasse em X": o mesmo consumo (tokens) do período, cobrado pela tabela de cada modelo."""
     agentes = _agentes_visiveis(s, p)
-    execs = [e for e in metricas.execucoes(s, horas=24 * dias) if e.agente_id in agentes]
+    execs = [e for e in metricas.execucoes(s, horas=24 * dias) if _dono_da(e) in agentes]
     atual = sum(e.custo_usd for e in execs)
     alvos = [registro.obter(modelo)] if modelo else registro.todos()
     cenarios = []
@@ -98,34 +99,45 @@ def gasto_no_mes(s: Session, dono_id: str, tipo: str = "agente") -> float:
     return round(brl(sum(e.custo_usd for e in execs)), 4)
 
 
-def _agentes_visiveis(s: Session, p: Persona) -> dict[str, am.Agente]:
+def _agentes_visiveis(s: Session, p: Persona) -> dict[str, "am.Agente | pm.Processo"]:
+    """Os donos (agentes e processos) que a pessoa enxerga, por id. As execuções de processo valem pelo processo."""
     from ..agents import ciclo
-    return {a.id: a for a in s.exec(select(am.Agente)) if ciclo.pode_ver(p, a)}
+    donos: dict[str, am.Agente | pm.Processo] = {a.id: a for a in s.exec(select(am.Agente)) if ciclo.pode_ver(p, a)}
+    donos.update({x.id: x for x in s.exec(select(pm.Processo)) if ciclo.pode_ver(p, x)})
+    return donos
 
 
-def _minutos(s: Session, a: am.Agente) -> float:
+def _dono_da(e: rm.Execucao) -> str | None:
+    return e.dono_id or e.agente_id
+
+
+def _tipo_do(d) -> str:
+    return "processo" if isinstance(d, pm.Processo) else "agente"
+
+
+def _minutos(s: Session, a) -> float:
     n = a.versao_publicada or a.ultima_versao
-    v = s.get(am.VersaoAgente, "%s-v%d" % (a.id, n))
+    v = s.get(pm.VersaoProcesso if isinstance(a, pm.Processo) else am.VersaoAgente, "%s-v%d" % (a.id, n))
     return float((v.blueprint if v else {}).get("minutos_manual", 0))
 
 
 def resumo(s: Session, p: Persona, dias: int = 30, premissas: Premissas | None = None) -> dict:
     pr = premissas or Premissas()
     agentes = _agentes_visiveis(s, p)
-    execs = [e for e in metricas.execucoes(s, horas=24 * dias) if e.agente_id in agentes]
+    execs = [e for e in metricas.execucoes(s, horas=24 * dias) if _dono_da(e) in agentes]
     por_agente: dict[str, dict] = {}
     por_area: dict[str, dict] = defaultdict(lambda: {"execucoes": 0, "custo_brl": 0.0, "ganho_brl": 0.0})
     por_modelo: dict[str, dict] = {}
     custo = tudo_forte = ganho = 0.0
     for a in agentes.values():
         minutos = _minutos(s, a)
-        meus = [e for e in execs if e.agente_id == a.id]
+        meus = [e for e in execs if _dono_da(e) == a.id]
         concl = [e for e in meus if e.status == rm.CONCLUIDA]
         c = brl(sum(e.custo_usd for e in meus))
         g = len(concl) * max(minutos - pr.minutos_revisao_humana, 0) / 60 * pr.custo_hora * pr.aproveitamento
-        mes = gasto_no_mes(s, a.id)
+        mes = gasto_no_mes(s, a.id, _tipo_do(a))
         por_agente[a.id] = {
-            "id": a.id, "nome": a.nome, "area": a.area, "estado": a.estado, "minutos_manual": minutos,
+            "id": a.id, "tipo": _tipo_do(a), "nome": a.nome, "area": a.area, "estado": a.estado, "minutos_manual": minutos,
             "execucoes": len(meus), "concluidas": len(concl), "custo_brl": round(c, 4), "ganho_brl": round(g, 2),
             "horas_liberadas": round(len(concl) * max(minutos - pr.minutos_revisao_humana, 0) / 60, 1),
             "roi": round((g - c) / c, 2) if c else None,
@@ -178,10 +190,10 @@ def indicadores(s: Session, p: Persona, dias: int = 30) -> dict:
     pr = Premissas()
     r = resumo(s, p, dias, pr)
     agentes = _agentes_visiveis(s, p)
-    execs = [e for e in metricas.execucoes(s, horas=24 * dias) if e.agente_id in agentes and e.status != rm.AGUARDANDO]
+    execs = [e for e in metricas.execucoes(s, horas=24 * dias) if _dono_da(e) in agentes and e.status != rm.AGUARDANDO]
     concl = [e for e in execs if e.status == rm.CONCLUIDA]
     minutos = {aid: _minutos(s, a) for aid, a in agentes.items()}
-    tempo_manual = (sum(minutos[e.agente_id] for e in concl) / len(concl)) if concl else 0.0
+    tempo_manual = (sum(minutos[_dono_da(e)] for e in concl) / len(concl)) if concl else 0.0
     # tempo com agente = execução + a conferência humana do resultado (premissa)
     tempo_agente_min = ((metricas.percentil([e.duracao_estimada_ms for e in concl], 0.5) / 60_000) + pr.minutos_revisao_humana)         if concl else 0.0
     custo_manual_op = tempo_manual / 60 * pr.custo_hora
@@ -204,8 +216,8 @@ def indicadores(s: Session, p: Persona, dias: int = 30) -> dict:
         "custo_operacional": {"manual_brl": round(custo_manual_op, 2), "agente_brl": round(custo_agente_op, 4),
                               "economia_por_operacao_brl": round(custo_manual_op - custo_agente_op, 2),
                               "economia_roteador_pct": r["economia_roteador_pct"]},
-        "produtividade": {"tarefas_concluidas": len(concl), "horas_liberadas": round(sum(max(minutos[e.agente_id] - pr.minutos_revisao_humana, 0) for e in concl) / 60, 1),
-                          "agentes_ativos": sum(1 for a in agentes.values() if a.estado == am.PUBLICADO)},
+        "produtividade": {"tarefas_concluidas": len(concl), "horas_liberadas": round(sum(max(minutos[_dono_da(e)] - pr.minutos_revisao_humana, 0) for e in concl) / 60, 1),
+                          "agentes_ativos": sum(1 for a in agentes.values() if a.estado == am.PUBLICADO and _tipo_do(a) == "agente")},
         "taxa_erros": {"agente": round(taxa_erro, 4) if taxa_erro is not None else None, "manual_premissa": pr.taxa_erro_manual,
                        "escaladas_ou_falhas": ruins, "acessos_bloqueados": bloqueios, "dados_mascarados": mascarados},
         "roi": {"periodo_ganho_brl": r["ganho_brl"], "periodo_custo_brl": r["custo_brl"], "periodo_roi_variavel": r["roi_variavel"],

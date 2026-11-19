@@ -279,9 +279,12 @@ export type Indicadores = {
 
 
 // ---------- roteiros e Perguntas da Ferramenta ----------
+/** Fluxo de blocos do roteiro: o agente vem pelo NOME (`agente_nome`) e a tela troca pelo id do agente que a pessoa acabou de criar. */
+export type ProcessoPronto = Omit<ProcessoBlueprint, "blocos"> & { blocos: (Omit<Bloco, "agente_id"> & { agente_id?: string | null; agente_nome?: string })[] };
+
 export type PassoRoteiro = {
   id: string; titulo: string; perfil: string; rota: string; acao: string; fala: string;
-  preenche: { descricao?: string; entrada?: Record<string, string>; parecer?: string; fonte?: { tipo: string; url: string };
+  preenche: { descricao?: string; nome_agente?: string; processo?: ProcessoPronto; entrada?: Record<string, string>; parecer?: string; fonte?: { tipo: string; url: string };
     frequencia?: "semanal" | "diaria"; dia_semana?: number; hora?: string }; externa: boolean;
 };
 
@@ -301,7 +304,7 @@ export type LinhaResultado = {
 };
 
 export type ResultadoRoteiro = {
-  roteiro: string; titulo: string; processo: string; agente: { id: string; nome: string; estado: string } | null;
+  roteiro: string; titulo: string; processo: string; agente: { id: string; nome: string; estado: string; tipo?: "agente" | "processo" } | null;
   execucao: { id: string; status: string; custo_brl: number; duracao_min: number; simulado: boolean } | null;
   origem: "medido" | "estimado"; linhas: LinhaResultado[]; ganho_por_tarefa_brl: number; aviso: string | null;
   indicadores: { nome: string; valor: number | null; unidade: string; origem: string; detalhe: string }[];

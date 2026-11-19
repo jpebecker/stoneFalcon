@@ -35,7 +35,7 @@ function Resultado({ roteiro, gestor }: { roteiro: Roteiro; gestor: boolean }) {
     <section className="caixa space-y-4 p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-xl">AS IS × TO BE medido</h2>
-        {r.agente && <Link to={"/agentes/" + r.agente.id} className="text-sm font-semibold text-pedra-forte">Agente: {r.agente.nome} →</Link>}
+        {r.agente && <Link to={(r.agente.tipo === "processo" ? "/processos/" : "/agentes/") + r.agente.id} className="text-sm font-semibold text-pedra-forte">{r.agente.tipo === "processo" ? "Processo" : "Agente"}: {r.agente.nome} →</Link>}
       </div>
       {!r.execucao && (
         <p className="rounded-lg bg-alerta-fundo p-3 text-sm text-alerta">

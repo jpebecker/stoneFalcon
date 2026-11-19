@@ -17,6 +17,9 @@ from ..agents.blueprint import Blueprint
 from ..agents.governanca import estimar_custo, estimar_duracao_ms
 from ..finance.premissas import Premissas
 from ..llm import precos
+from ..processos import modelos as pm
+from ..processos.blueprint import ProcessoBlueprint
+from ..processos.compilar import compilar
 from ..runtime import modelos as rm
 from ..seed.agentes_exemplo import DUVIDA_LOJISTA, TRIAGEM_CHARGEBACK
 from ..studio.modelos_prontos import por_id
@@ -34,16 +37,27 @@ def _padrao(roteiro_id: str) -> Blueprint:
             "pitch": Blueprint.model_validate(blueprint_planilha("local:pedidos-troca"))}[roteiro_id]
 
 
-def _agente(s: Session, r: Roteiro, agente_id: str | None) -> am.Agente | None:
-    if agente_id:
-        return s.get(am.Agente, agente_id)
+def _agente(s: Session, r: Roteiro, dono_id: str | None) -> am.Agente | pm.Processo | None:
+    """O dono do cartão: o PROCESSO ligado ao roteiro (v8) ou, no pitch, o agente de vários passos que ele cria."""
+    if dono_id:
+        return s.get(pm.Processo, dono_id) or s.get(am.Agente, dono_id)
+    if r.id != "pitch":
+        return s.exec(select(pm.Processo).where(pm.Processo.roteiro_id == r.id).where(pm.Processo.estado != am.DEPRECIADO)
+                      .order_by(pm.Processo.criado_em.desc())).first()
     if not r.agente_nome:
         return None
     return s.exec(select(am.Agente).where(am.Agente.nome == r.agente_nome).order_by(am.Agente.criado_em.desc())).first()
 
 
-def _ultima_execucao(s: Session, agente_id: str) -> rm.Execucao | None:
-    execs = s.exec(select(rm.Execucao).where(rm.Execucao.agente_id == agente_id).where(rm.Execucao.demo == False)  # noqa: E712
+def _execucoes_do(dono) -> tuple:
+    """Filtro das execuções de um agente ou de um processo."""
+    if isinstance(dono, pm.Processo):
+        return (rm.Execucao.dono_tipo == "processo", rm.Execucao.dono_id == dono.id)
+    return (rm.Execucao.agente_id == dono.id,)
+
+
+def _ultima_execucao(s: Session, dono) -> rm.Execucao | None:
+    execs = s.exec(select(rm.Execucao).where(*_execucoes_do(dono)).where(rm.Execucao.demo == False)  # noqa: E712
                    .order_by(rm.Execucao.inicio.desc())).all()
     boas = [e for e in execs if e.status in (rm.CONCLUIDA, rm.AGUARDANDO)]
     return (boas or execs or [None])[0]
@@ -62,12 +76,15 @@ def numeros(s: Session, r: Roteiro, agente_id: str | None = None) -> dict:
     pr = Premissas()
     agente = _agente(s, r, agente_id)
     bp = None
-    if agente:
+    if isinstance(agente, pm.Processo):
+        v = s.get(pm.VersaoProcesso, "%s-v%d" % (agente.id, agente.versao_publicada or agente.ultima_versao))
+        bp = compilar(s, ProcessoBlueprint.model_validate(v.blueprint), None, "ultima")
+    elif agente:
         v = ciclo.versao(s, agente.id, agente.versao_publicada or agente.ultima_versao)
         bp = Blueprint.model_validate(v.blueprint)
     bp = bp or _padrao(r.id)
-    exe = _ultima_execucao(s, agente.id) if agente else None
-    todas = s.exec(select(rm.Execucao).where(rm.Execucao.agente_id == agente.id).where(rm.Execucao.demo == False)  # noqa: E712
+    exe = _ultima_execucao(s, agente) if agente else None
+    todas = s.exec(select(rm.Execucao).where(*_execucoes_do(agente)).where(rm.Execucao.demo == False)  # noqa: E712
                    .where(rm.Execucao.status != rm.AGUARDANDO)).all() if agente else []
     escaladas = sum(1 for e in todas if e.status in (rm.ESCALADA, rm.FALHOU))
     if exe is not None and exe.duracao_estimada_ms:
@@ -91,16 +108,17 @@ def _indicadores_governanca(s: Session, r: Roteiro) -> list[dict]:
     from datetime import datetime
 
     from ..observability.alertas import Alerta
-    publicados = s.exec(select(am.Agente).where(am.Agente.estado == am.PUBLICADO)).all()
-    revisadas = [v for v in s.exec(select(am.VersaoAgente)).all() if v.revisor and v.revisada_em]
+    publicados = (s.exec(select(am.Agente).where(am.Agente.estado == am.PUBLICADO)).all()
+                  + s.exec(select(pm.Processo).where(pm.Processo.estado == am.PUBLICADO)).all())
+    revisadas = [v for v in (s.exec(select(am.VersaoAgente)).all() + s.exec(select(pm.VersaoProcesso)).all()) if v.revisor and v.revisada_em]
     alertas = s.exec(select(Alerta)).all()
     if r.id == "lucas":
         tempos = [(datetime.fromisoformat(v.revisada_em) - datetime.fromisoformat(v.criada_em)).total_seconds() / 60 for v in revisadas]
         return [
-            {"nome": "Agentes publicados sem código novo", "valor": len(publicados), "unidade": "agentes",
+            {"nome": "Agentes e processos publicados sem código novo", "valor": len(publicados), "unidade": "itens",
              "origem": "medido", "detalhe": "Cada um foi criado no Estúdio, sem fila de Engenharia."},
             {"nome": "Revisões de segurança feitas", "valor": len(revisadas), "unidade": "revisões",
-             "origem": "medido", "detalhe": "Só os agentes de risco alto passam pelos quatro olhos."},
+             "origem": "medido", "detalhe": "Só os agentes e processos de risco alto passam pelos quatro olhos."},
             {"nome": "Tempo médio de revisão", "valor": round(sum(tempos) / len(tempos), 1) if tempos else None, "unidade": "min",
              "origem": "medido", "detalhe": "Entre o envio e o parecer; no AS IS, a fila leva semanas (hipótese)."},
             {"nome": "Incidentes detectados pelo alerta", "valor": len(alertas), "unidade": "alertas",
@@ -170,11 +188,12 @@ def resultado(s: Session, r: Roteiro, agente_id: str | None = None) -> dict:
         ]
     return {
         "roteiro": r.id, "titulo": r.titulo, "processo": r.processo,
-        "agente": {"id": n["agente"].id, "nome": n["agente"].nome, "estado": n["agente"].estado} if n["agente"] else None,
+        "agente": {"id": n["agente"].id, "nome": n["agente"].nome, "estado": n["agente"].estado,
+                   "tipo": "processo" if isinstance(n["agente"], pm.Processo) else "agente"} if n["agente"] else None,
         "execucao": ({"id": exe.id, "status": exe.status, "custo_brl": round(exe.custo_usd * precos.usd_para_brl(1.0), 4),
                       "duracao_min": round(n["agente_min"], 3), "simulado": exe.simulado} if exe else None),
         "origem": n["origem"], "linhas": linhas, "ganho_por_tarefa_brl": round(ganho, 2), "indicadores": [],
-        "rotina": _rotina(s, n["agente"], ganho),
+        "rotina": _rotina(s, n["agente"] if isinstance(n["agente"], am.Agente) else None, ganho),
         "aviso": ("Números medidos no modo simulado: o tempo é o caminho crítico das latências típicas e os tokens são estimados."
                   if (exe is not None and exe.simulado) else None),
     }

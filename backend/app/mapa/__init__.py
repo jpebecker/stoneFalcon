@@ -18,12 +18,16 @@ from ..llm import precos, registro
 from ..observability import metricas
 from ..plugins import catalogo as plugins_catalogo
 from ..plugins import estado as plugins_estado
+from ..processos import modelos as pm
+from ..processos.blueprint import ProcessoBlueprint
+from ..processos.compilar import compilar
 from ..rotinas import ligacoes as ligacoes_rotina
 from ..runtime import modelos as rm
 from ..tools.catalogo import CATALOGO
 
 COLUNAS = [
     {"id": "criadores", "rotulo": "Quem criou"},
+    {"id": "processos", "rotulo": "Processos publicados"},
     {"id": "agentes", "rotulo": "Agentes publicados"},
     {"id": "modelos", "rotulo": "Modelos"},
     {"id": "ferramentas", "rotulo": "Plugins e ferramentas"},
@@ -70,28 +74,39 @@ def _modelos_do_agente(feitas: list[rm.Execucao], bp: Blueprint) -> dict[str, di
 
 def grafo(s: Session, dias: int = 7, area: str | None = None, provedor: str | None = None) -> dict:
     execs = metricas.execucoes(s, horas=24 * dias)
-    por_agente: dict[str, list[rm.Execucao]] = defaultdict(list)
+    por_agente: dict[str, list[rm.Execucao]] = defaultdict(list)   # por dono (agente ou processo)
     for e in execs:
-        if e.agente_id:
-            por_agente[e.agente_id].append(e)
+        if e.dono_id or e.agente_id:
+            por_agente[e.dono_id or e.agente_id].append(e)
 
-    todos = [a for a in s.exec(select(am.Agente).order_by(am.Agente.nome))
-             if a.estado in (am.PUBLICADO, am.PAUSADO) and a.versao_publicada is not None]
+    agentes = [a for a in s.exec(select(am.Agente).order_by(am.Agente.nome))
+               if a.estado in (am.PUBLICADO, am.PAUSADO) and a.versao_publicada is not None]
+    processos = [x for x in s.exec(select(pm.Processo).order_by(pm.Processo.nome))
+                 if x.estado in (am.PUBLICADO, am.PAUSADO) and x.versao_publicada is not None]
+    todos = agentes + processos
     areas = sorted({a.area for a in todos})
     nos: dict[str, dict] = {}
     ligacoes: dict[tuple[str, str], int] = defaultdict(int)
     caminho_do_agente: dict[str, dict] = {}     # para montar o caminho de cada execução
+    chamadas: list[tuple] = []                  # processo -> agente trabalhador (-> modelos que o processo usou)
 
     def ligar(de: str, para: str, volume: int) -> None:
         ligacoes[(de, para)] += volume
 
-    for a in todos:
+    for a in sorted(todos, key=lambda x: isinstance(x, pm.Processo)):   # agentes primeiro: o processo liga a eles
         if area and a.area != area:
             continue
-        v = s.get(am.VersaoAgente, "%s-v%d" % (a.id, a.versao_publicada))
+        processo = isinstance(a, pm.Processo)
+        v = s.get(pm.VersaoProcesso if processo else am.VersaoAgente, "%s-v%d" % (a.id, a.versao_publicada))
         if v is None:
             continue
-        bp = Blueprint.model_validate(v.blueprint)
+        if processo:
+            pbp = ProcessoBlueprint.model_validate(v.blueprint)
+            bp = compilar(s, pbp, None, "publicada")
+            ferramentas = set(pbp.ferramentas_diretas()) | {f for aid in pbp.agentes_usados() for f in _ferramentas_do_agente(s, aid)}
+        else:
+            bp = Blueprint.model_validate(v.blueprint)
+            ferramentas = set(bp.ferramentas_usadas())
         feitas = [e for e in por_agente.get(a.id, []) if _no_filtro(e, provedor)]   # volume e custo também seguem o filtro
         modelos = _modelos_do_agente(feitas, bp)
         if provedor:
@@ -101,10 +116,11 @@ def grafo(s: Session, dias: int = 7, area: str | None = None, provedor: str | No
         dono = PERSONAS.get(a.dono)
         volume = len(feitas)
         custo_agente = sum(e.custo_usd for e in feitas)
-        ano = "agente:" + a.id
-        nos[ano] = _no(ano, "agente", "agentes", a.nome, area=a.area, estado=a.estado, risco=a.risco, dono=a.dono,
-                       execucoes=volume, custo_brl=round(precos.usd_para_brl(custo_agente), 4),
-                       rota="/agentes/" + a.id, ferramentas=len(bp.ferramentas_usadas()))
+        ano = ("processo:" if processo else "agente:") + a.id
+        nos[ano] = _no(ano, "processo" if processo else "agente", "processos" if processo else "agentes", a.nome, area=a.area,
+                       estado=a.estado, risco=a.risco, dono=a.dono, execucoes=volume,
+                       custo_brl=round(precos.usd_para_brl(custo_agente), 4),
+                       rota=("/processos/" if processo else "/agentes/") + a.id, ferramentas=len(ferramentas))
         criador = "criador:" + a.dono
         nos.setdefault(criador, _no(criador, "criador", "criadores", dono.nome if dono else a.dono, area=a.area,
                                     detalhe=dono.area_nome if dono else a.area, execucoes=0, custo_brl=0.0))
@@ -115,7 +131,7 @@ def grafo(s: Session, dias: int = 7, area: str | None = None, provedor: str | No
         # ferramentas e plugins que o agente usa -> plataformas
         alvos: list[str] = []
         plugins_usados: set[str] = set()
-        for fid in sorted(bp.ferramentas_usadas()):
+        for fid in sorted(ferramentas):
             esp = CATALOGO.get(fid)
             if esp is None:
                 continue
@@ -153,7 +169,15 @@ def grafo(s: Session, dias: int = 7, area: str | None = None, provedor: str | No
         else:
             for alvo in alvos:
                 ligar(ano, alvo, volume)
-        caminho_do_agente[a.id] = {"alvos": alvos, "bp": bp}
+        if processo:   # o processo chama os agentes trabalhadores dele (as ligações entram no fim, quando todos os nós existem)
+            chamadas.extend((ano, "agente:" + aid, volume, list(modelos.items())) for aid in pbp.agentes_usados())
+        caminho_do_agente[a.id] = {"alvos": alvos, "bp": bp, "no": ano}
+
+    for de, para, volume, modelos in chamadas:
+        if para in nos:
+            ligar(de, para, volume)
+            for chave, u in modelos:
+                ligar(para, "modelo:" + chave, u["chamadas"] or volume)
 
     # plugins integrados aparecem mesmo sem ninguém usando: integrar (ou remover) muda o mapa
     if not area and not provedor:
@@ -168,16 +192,23 @@ def grafo(s: Session, dias: int = 7, area: str | None = None, provedor: str | No
         "dias": dias, "colunas": COLUNAS, "nos": lista,
         "ligacoes": [{"de": d, "para": p, "volume": v} for (d, p), v in sorted(ligacoes.items())],
         "totais": {"agentes": sum(1 for n in lista if n["tipo"] == "agente"),
+                   "processos": sum(1 for n in lista if n["tipo"] == "processo"),
                    "modelos": sum(1 for n in lista if n["tipo"] == "modelo"),
                    "plugins": sum(1 for n in lista if n["tipo"] == "plugin"),
                    "ferramentas": sum(1 for n in lista if n["tipo"] == "ferramenta"),
                    "plataformas": sum(1 for n in lista if n["tipo"] == "sistema"),
-                   "execucoes": sum(1 for e in execs if e.agente_id in visiveis and _no_filtro(e, provedor))},
+                   "execucoes": sum(1 for e in execs if (e.dono_id or e.agente_id) in visiveis and _no_filtro(e, provedor))},
         "filtros": {"area": area, "provedor": provedor, "areas": areas,
                     "provedores": [{"id": p.id, "nome": p.nome} for p in registro.PROVEDORES.values()]},
         "execucoes_recentes": recentes,
         "tem_demo": any(e.demo for e in execs),
     }
+
+
+def _ferramentas_do_agente(s: Session, agente_id: str) -> set[str]:
+    a = s.get(am.Agente, agente_id)
+    v = s.get(am.VersaoAgente, "%s-v%d" % (a.id, a.versao_publicada or a.ultima_versao)) if a else None
+    return set(Blueprint.model_validate(v.blueprint).ferramentas_usadas()) if v else set()
 
 
 def _plugin(nos: dict, ligar, pid: str, volume: int, usado: bool) -> str:
@@ -214,15 +245,16 @@ def _recentes(s: Session, execs: list[rm.Execucao], visiveis: set[str], caminhos
     """As últimas execuções, cada uma com o caminho que o pulso percorre: agente -> modelo -> ferramenta -> plataforma.
     `ordem` (0, 1, 2) diz em que etapa a aresta acende, para os pulsos saírem em sequência."""
     saida = []
-    escolhidas = sorted((x for x in execs if x.agente_id in visiveis and _no_filtro(x, provedor)),
+    escolhidas = sorted((x for x in execs if (x.dono_id or x.agente_id) in visiveis and _no_filtro(x, provedor)),
                         key=lambda x: (x.inicio, x.id), reverse=True)[:RECENTES]
     de_rotina = ligacoes_rotina(s, [x.id for x in escolhidas])
     for e in escolhidas:
-        ano = "agente:" + e.agente_id
+        dono = e.dono_id or e.agente_id
+        ano = caminhos[dono]["no"]
         usados = [registro.obter(k).chave for k in (e.por_modelo or {}) if registro.existe(k)]
         if provedor:
             usados = [k for k in usados if registro.obter(k).provedor == provedor]
-        alvos = caminhos[e.agente_id]["alvos"]
+        alvos = caminhos[dono]["alvos"]
         arestas: list[list] = []
         if usados:
             for k in usados:
@@ -231,7 +263,7 @@ def _recentes(s: Session, execs: list[rm.Execucao], visiveis: set[str], caminhos
         else:
             arestas += [[ano, alvo, 1] for alvo in alvos]
         arestas += [[alvo, _sistema_de(alvo), 2] for alvo in alvos]
-        saida.append({"id": e.id, "agente_id": e.agente_id, "agente": e.agente_nome, "status": e.status, "quando": e.inicio,
+        saida.append({"id": e.id, "agente_id": e.agente_id, "dono_id": dono, "dono_tipo": e.dono_tipo, "agente": e.agente_nome, "status": e.status, "quando": e.inicio,
                       "custo_brl": round(precos.usd_para_brl(e.custo_usd), 5), "rotina": bool(e.id in de_rotina),
                       "modelos": [registro.obter(k).nome for k in usados], "demo": e.demo, "arestas": arestas})
     return saida

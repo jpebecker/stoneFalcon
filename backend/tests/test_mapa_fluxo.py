@@ -63,9 +63,9 @@ def test_filtro_por_provedor(api, sessao):
     m = _mapa(api, "?provedor=openai")
     modelos = [n for n in m["nos"] if n["tipo"] == "modelo"]
     assert modelos and {n["provedor"] for n in modelos} == {"openai"}
-    assert [n for n in m["nos"] if n["tipo"] == "agente"]
+    assert [n for n in m["nos"] if n["tipo"] == "processo"]
     liga = {(l["de"], l["para"]) for l in m["ligacoes"]}
-    for a in (n for n in m["nos"] if n["tipo"] == "agente"):
+    for a in (n for n in m["nos"] if n["tipo"] in ("agente", "processo")):
         assert any(d == a["id"] and p.startswith("modelo:") for d, p in liga)       # todo agente restante usa o provedor
     assert api.get(f"{V1}/mapa?provedor=nada", headers=como("helena")).status_code == 404
 
@@ -86,7 +86,7 @@ def test_filtros_se_combinam(api, sessao):
 def test_execucao_nova_aparece_nas_recentes_com_o_caminho_do_pulso(api, sessao):
     semear(sessao)
     antes = {e["id"] for e in _mapa(api)["execucoes_recentes"]}
-    aid = _agente_id(api, "Resposta a dúvidas de lojistas")
+    aid = _agente_id(api, "Redator de respostas a lojistas")
     exe = _executar(api, "marina", aid, {"lojista_id": "L1001", "pergunta": "Em quanto tempo o estorno cai para o cliente?"})
     m = _mapa(api)
     nova = next(e for e in m["execucoes_recentes"] if e["id"] == exe["id"])
