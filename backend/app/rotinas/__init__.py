@@ -1,4 +1,5 @@
-"""Tarefas de rotina (v7): um criador dá a um agente publicado uma agenda ("toda segunda às 9h") com uma entrada fixa.
+"""Tarefas de rotina (v7, v8): um criador dá a um agente ou a um PROCESSO publicado uma agenda ("toda segunda às 9h") com uma
+entrada fixa.
 
 A plataforma dispara sozinha. A execução é uma execução como qualquer outra: mesmas permissões (as de QUEM AGENDOU),
 mesmos guardrails, mesmo orçamento (ciclo.checar_execucao) e mesma trilha. Ação sensível dentro da rotina fica
@@ -22,8 +23,11 @@ from ..agents import modelos as am
 from ..audit import trilha
 from ..core.db import trava
 from ..core.identidade import CRIADOR, PERSONAS, Persona
+from ..agents.dono import PROCESSO, Dono
 from ..core.relogio import FUSO
 from ..observability import avaliar_seguro
+from ..processos import modelos as pm
+from ..processos.tipo import ciclo as ciclo_processos
 from ..runtime import motor
 from .modelos import Rotina, RotinaExecucao
 
@@ -122,7 +126,12 @@ def _obter(s: Session, rotina_id: str) -> Rotina:
     return r
 
 
-def _pode_gerir(p: Persona, r: Rotina, a: am.Agente) -> bool:
+def _ciclo(tipo: str):
+    """O ciclo de vida do dono da rotina: o módulo dos agentes ou o `Ciclo` dos processos (mesma interface)."""
+    return ciclo_processos if tipo == PROCESSO else ciclo
+
+
+def _pode_gerir(p: Persona, r: Rotina, a) -> bool:
     return p.id == r.dono or p.id == a.dono or (p.tem(CRIADOR) and p.area == a.area)
 
 
@@ -130,16 +139,16 @@ def _pode_rodar(p: Persona, r: Rotina) -> bool:
     return p.id == r.dono
 
 
-def _agente(s: Session, agente_id: str) -> am.Agente:
-    """Agente da rotina; erro do ciclo vira erro de rotina (a API só converte ErroRotina em resposta HTTP)."""
+def _agente(s: Session, agente_id: str, tipo: str = "agente"):
+    """Agente ou processo da rotina; erro do ciclo vira erro de rotina (a API só converte ErroRotina em resposta HTTP)."""
     try:
-        return ciclo.obter(s, agente_id)
+        return _ciclo(tipo).obter(s, agente_id)
     except ciclo.ErroCiclo as e:
         raise ErroRotina(str(e), e.status)
 
 
-def _exigir_gestao(s: Session, p: Persona, r: Rotina, acao: str = "gerem") -> am.Agente:
-    a = _agente(s, r.agente_id)
+def _exigir_gestao(s: Session, p: Persona, r: Rotina, acao: str = "gerem"):
+    a = _agente(s, r.agente_id, r.dono_tipo)
     if not _pode_gerir(p, r, a):
         raise ErroRotina("Só quem agendou ou os criadores da área %s esta rotina." % acao, 403)
     return a
@@ -156,19 +165,20 @@ def _salvar(s: Session, r: Rotina) -> None:
 # Criar, pausar, retomar, remover
 # =============================================================
 def criar(s: Session, pessoa: Persona, agente_id: str, frequencia: str, dia_semana: int | None, hora: int, minuto: int,
-          entrada: dict) -> Rotina:
+          entrada: dict, tipo: str = "agente") -> Rotina:
     if frequencia not in FREQUENCIAS:
         raise ErroRotina("A frequência é diária ou semanal.", 422)
     if frequencia == "semanal" and (dia_semana is None or not 0 <= dia_semana <= 6):
         raise ErroRotina("Escolha o dia da semana.", 422)
     if not (0 <= hora <= 23 and 0 <= minuto <= 59):
         raise ErroRotina("Horário inválido.", 422)
-    a = _agente(s, agente_id)
+    c = _ciclo(tipo)
+    a = _agente(s, agente_id, tipo)
     if a.estado != am.PUBLICADO:
-        raise ErroRotina("Só agentes publicados têm rotina.", 409)
-    if not (pessoa.tem(CRIADOR) and ciclo.pode_executar(pessoa, a)):
-        raise ErroRotina("Só criadores com acesso ao agente agendam rotinas.", 403)
-    bp = ciclo.blueprint_publicado(s, a)
+        raise ErroRotina("Só %s publicados têm rotina." % ("processos" if tipo == PROCESSO else "agentes"), 409)
+    if not (pessoa.tem(CRIADOR) and c.pode_executar(pessoa, a)):
+        raise ErroRotina("Só criadores com acesso ao %s agendam rotinas." % ("processo" if tipo == PROCESSO else "agente"), 403)
+    bp = c.blueprint_publicado(s, a)
     faltando = [c for c in bp.ids_campos() if entrada.get(c) in (None, "")]
     if faltando:
         raise ErroRotina("Preencha a entrada fixa: %s." % ", ".join(faltando), 422)
@@ -177,14 +187,15 @@ def criar(s: Session, pessoa: Persona, agente_id: str, frequencia: str, dia_sema
     if mapa:
         raise ErroRotina("A entrada fixa de uma rotina não pode ter dado pessoal (CPF, e-mail, telefone...).", 422)
     if len(s.exec(select(Rotina).where(Rotina.agente_id == agente_id)).all()) >= MAX_POR_AGENTE:
-        raise ErroRotina("Este agente já tem %d rotinas." % MAX_POR_AGENTE, 409)
+        raise ErroRotina("Este %s já tem %d rotinas." % ("processo" if tipo == PROCESSO else "agente", MAX_POR_AGENTE), 409)
     agora = relogio.agora()
-    r = Rotina(id=uuid.uuid4().hex[:10], agente_id=agente_id, dono=pessoa.id, frequencia=frequencia,
+    r = Rotina(id=uuid.uuid4().hex[:10], agente_id=agente_id, dono_tipo=tipo, dono=pessoa.id, frequencia=frequencia,
                dia_semana=dia_semana if frequencia == "semanal" else None, hora=hora, minuto=minuto,
                entrada={k: entrada[k] for k in bp.ids_campos() if k in entrada}, criada_em=agora.isoformat())
     r.proxima_em = proxima_depois(r, agora).isoformat()
     _salvar(s, r)
-    trilha.registrar(s, "rotina_criada", pessoa.id, agente_id, {"rotina": r.id, "agenda": descricao(r), "proxima_em": r.proxima_em})
+    trilha.registrar(s, "rotina_criada", pessoa.id, agente_id, {"rotina": r.id, "agenda": descricao(r), "proxima_em": r.proxima_em},
+                     dono_tipo=tipo)
     return r
 
 
@@ -193,7 +204,7 @@ def pausar(s: Session, pessoa: Persona, rotina_id: str) -> Rotina:
     _exigir_gestao(s, pessoa, r)
     r.ativa, r.proxima_em = False, None
     _salvar(s, r)
-    trilha.registrar(s, "rotina_pausada", pessoa.id, r.agente_id, {"rotina": r.id, "agenda": descricao(r)})
+    trilha.registrar(s, "rotina_pausada", pessoa.id, r.agente_id, {"rotina": r.id, "agenda": descricao(r)}, dono_tipo=r.dono_tipo)
     return r
 
 
@@ -203,18 +214,18 @@ def retomar(s: Session, pessoa: Persona, rotina_id: str) -> Rotina:
     r.ativa = True
     r.proxima_em = proxima_depois(r, relogio.agora()).isoformat()
     _salvar(s, r)
-    trilha.registrar(s, "rotina_retomada", pessoa.id, r.agente_id, {"rotina": r.id, "proxima_em": r.proxima_em})
+    trilha.registrar(s, "rotina_retomada", pessoa.id, r.agente_id, {"rotina": r.id, "proxima_em": r.proxima_em}, dono_tipo=r.dono_tipo)
     return r
 
 
 def remover(s: Session, pessoa: Persona, rotina_id: str) -> None:
     r = _obter(s, rotina_id)
     _exigir_gestao(s, pessoa, r)
-    agente_id, agenda = r.agente_id, descricao(r)
+    agente_id, agenda, tipo = r.agente_id, descricao(r), r.dono_tipo
     with trava:
         s.delete(r)
         s.commit()
-    trilha.registrar(s, "rotina_removida", pessoa.id, agente_id, {"rotina": rotina_id, "agenda": agenda})
+    trilha.registrar(s, "rotina_removida", pessoa.id, agente_id, {"rotina": rotina_id, "agenda": agenda}, dono_tipo=tipo)
 
 
 def listar(s: Session, pessoa: Persona, agente_id: str | None = None) -> list[dict]:
@@ -223,8 +234,8 @@ def listar(s: Session, pessoa: Persona, agente_id: str | None = None) -> list[di
         q = q.where(Rotina.agente_id == agente_id)
     saida = []
     for r in s.exec(q.order_by(Rotina.criada_em)):
-        a = s.get(am.Agente, r.agente_id)
-        if a is not None and ciclo.pode_ver(pessoa, a):
+        a = s.get(pm.Processo if r.dono_tipo == PROCESSO else am.Agente, r.agente_id)
+        if a is not None and _ciclo(r.dono_tipo).pode_ver(pessoa, a):
             d = publica(s, r)
             d["agente_nome"] = a.nome
             d["pode_gerir"] = _pode_gerir(pessoa, r, a)
@@ -243,23 +254,26 @@ def disparar(s: Session, r: Rotina, origem: str = "agenda", por: Persona | None 
     ator = por.id if por else "sistema"
     agora = relogio.agora().isoformat()
     try:
-        a, bp = ciclo.checar_execucao(s, dono, r.agente_id)
+        a, bp = _ciclo(r.dono_tipo).checar_execucao(s, dono, r.agente_id)
         faltando = [c for c in bp.ids_campos() if r.entrada.get(c) in (None, "")]
         if faltando:
             raise ciclo.ErroCiclo("A versão publicada pede campos que a rotina não tem: %s." % ", ".join(faltando), 422)
     except ciclo.ErroCiclo as e:
         r.ultima_em, r.ultimo_resultado, r.ultima_execucao_id = agora, "pulada: %s" % e, None
         _salvar(s, r)
-        trilha.registrar(s, "rotina_pulada", ator, r.agente_id, {"rotina": r.id, "origem": origem, "motivo": str(e)})
+        trilha.registrar(s, "rotina_pulada", ator, r.agente_id, {"rotina": r.id, "origem": origem, "motivo": str(e)}, dono_tipo=r.dono_tipo)
         return {"execucao": None, "status": "pulada", "motivo": str(e)}
-    exe, _mapa = motor.executar(s, dono, bp, dict(r.entrada), agente_id=a.id, versao=a.versao_publicada)
+    if r.dono_tipo == PROCESSO:
+        exe, _mapa = motor.executar(s, dono, bp, dict(r.entrada), dono=Dono(PROCESSO, a.id, a.versao_publicada))
+    else:
+        exe, _mapa = motor.executar(s, dono, bp, dict(r.entrada), agente_id=a.id, versao=a.versao_publicada)
     with trava:
         s.add(RotinaExecucao(execucao_id=exe.id, rotina_id=r.id, origem=origem))
         s.commit()
     r.ultima_em, r.ultima_execucao_id, r.ultimo_resultado = agora, exe.id, exe.status
     _salvar(s, r)
     trilha.registrar(s, "rotina_disparada", ator, a.id, {"rotina": r.id, "execucao": exe.id, "origem": origem,
-                                                         "em_nome_de": dono.id, "status": exe.status})
+                                                         "em_nome_de": dono.id, "status": exe.status}, dono_tipo=r.dono_tipo)
     avaliar_seguro(s)
     return {"execucao": exe.id, "status": exe.status, "motivo": exe.motivo}
 
@@ -294,7 +308,8 @@ def tick(s: Session, agora: datetime | None = None) -> list[dict]:
                 r = _obter(s, r.id)
                 r.ultima_em, r.ultimo_resultado, r.ultima_execucao_id = momento.isoformat(), motivo, None
                 _salvar(s, r)
-                trilha.registrar(s, "rotina_pulada", "sistema", r.agente_id, {"rotina": r.id, "origem": "agenda", "motivo": motivo})
+                trilha.registrar(s, "rotina_pulada", "sistema", r.agente_id, {"rotina": r.id, "origem": "agenda", "motivo": motivo},
+                                 dono_tipo=r.dono_tipo)
                 feitas.append({"rotina": r.id, "execucao": None, "status": "pulada", "motivo": motivo})
         return feitas
 

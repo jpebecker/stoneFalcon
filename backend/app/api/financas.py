@@ -71,6 +71,18 @@ def orcamento(agente_id: str, pedido: PedidoOrcamento, pessoa: Persona = Depends
     return a.model_dump()
 
 
+@rotas.put("/processos/{processo_id}/orcamento")
+def orcamento_processo(processo_id: str, pedido: PedidoOrcamento, pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
+    from ..processos.tipo import ciclo as ciclo_processos
+    try:
+        p = ciclo_processos.definir_orcamento(s, pessoa, processo_id, pedido.valor_brl)
+    except ciclo.ErroCiclo as e:
+        raise HTTPException(status_code=e.status, detail=str(e))
+    avaliar_seguro(s)
+    s.refresh(p)
+    return p.model_dump()
+
+
 @rotas.post("/demo/historico")
 def demo_historico(pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
     exigir(pessoa, GESTOR_IA)

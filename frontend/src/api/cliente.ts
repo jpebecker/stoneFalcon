@@ -145,23 +145,23 @@ export type PoliticaBalanceador = {
   ultima_carga: CargaBalanceador | null; pode_simular: boolean; demonstracao: string;
 };
 export type ExecucaoRecenteMapa = {
-  id: string; agente_id: string; agente: string; status: string; quando: string; custo_brl: number; rotina: boolean;
+  id: string; agente_id: string | null; dono_id?: string; dono_tipo?: string; agente: string; status: string; quando: string; custo_brl: number; rotina: boolean;
   modelos: string[]; demo: boolean; arestas: [string, string, number][];
 };
 export type NoMapa = {
-  id: string; tipo: "criador" | "agente" | "modelo" | "ferramenta" | "plugin" | "sistema";
+  id: string; tipo: "criador" | "processo" | "agente" | "modelo" | "ferramenta" | "plugin" | "sistema";
   provedor?: string; provedor_nome?: string; simulado?: boolean; chamadas?: number; coluna: string; rotulo: string;
   detalhe?: string; area?: string; estado?: string; risco?: string; dono?: string; execucoes: number; custo_brl?: number;
   rota?: string; usada_por?: number; integrado?: boolean; externo?: boolean; classificacao?: string; ferramentas?: string[] | number;
 };
 export type MapaIA = {
   dias: number; colunas: { id: string; rotulo: string }[]; nos: NoMapa[]; ligacoes: { de: string; para: string; volume: number }[];
-  totais: { agentes: number; modelos: number; plugins: number; ferramentas: number; plataformas: number; execucoes: number }; tem_demo: boolean;
+  totais: { processos: number; agentes: number; modelos: number; plugins: number; ferramentas: number; plataformas: number; execucoes: number }; tem_demo: boolean;
   filtros: { area: string | null; provedor: string | null; areas: string[]; provedores: { id: string; nome: string }[] };
   execucoes_recentes: ExecucaoRecenteMapa[];
 };
 export type Rotina = {
-  id: string; agente_id: string; agente_nome?: string; dono: string; frequencia: "diaria" | "semanal"; dia_semana: number | null;
+  id: string; agente_id: string; dono_tipo?: "agente" | "processo"; agente_nome?: string; dono: string; frequencia: "diaria" | "semanal"; dia_semana: number | null;
   hora: number; minuto: number; descricao: string; ativa: boolean; entrada: Record<string, string>; proxima_em: string | null;
   ultima_em: string | null; ultima_execucao_id: string | null; ultimo_resultado: string | null; pode_gerir?: boolean; pode_rodar?: boolean;
 };
@@ -243,7 +243,7 @@ export type SaudeConector = {
 };
 
 export type FinancasAgente = {
-  id: string; nome: string; area: string; estado: string; minutos_manual: number; execucoes: number; concluidas: number;
+  id: string; tipo: "agente" | "processo"; agentes?: { id: string; nome: string; execucoes: number; custo_brl: number }[]; nome: string; area: string; estado: string; minutos_manual: number; execucoes: number; concluidas: number;
   custo_brl: number; ganho_brl: number; horas_liberadas: number; roi: number | null; custo_medio_brl: number;
   orcamento_mensal_brl: number; gasto_mes_brl: number; uso_orcamento: number | null;
 };
@@ -328,7 +328,7 @@ export type PerguntaFerramenta = {
 
 export type AnaliseTrecho = {
   agentes: {
-    id: string; nome: string; objetivo: string; risco: string; pontuacao: number; campos: Campo[];
+    id: string; tipo: "processo" | "agente"; nome: string; objetivo: string; risco: string; pontuacao: number; campos: Campo[];
     preenchido: Record<string, string>; detectado: string[];
   }[];
   sugerido: string | null; lojista: { id: string; nome: string } | null; colaborador: { id: string; nome: string } | null;

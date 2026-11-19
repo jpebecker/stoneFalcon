@@ -59,10 +59,10 @@ function criar(item) {
 async function montar() {
   await chrome.contextMenus.removeAll();
   criar({ id: MENU_RAIZ, title: 'StoneFalcon', contexts: ['selection'] });
-  criar({ id: MENU_GERAL, parentId: MENU_RAIZ, title: 'Perguntar ao StoneFalcon (sugerir o agente)', contexts: ['selection'] });
+  criar({ id: MENU_GERAL, parentId: MENU_RAIZ, title: 'Perguntar ao StoneFalcon (sugerir o processo ou agente)', contexts: ['selection'] });
   const agentes = await agentesDoPerfil();
   for (const a of agentes) {
-    criar({ id: PREFIXO_AGENTE + a.id, parentId: MENU_RAIZ, title: 'Responder com: ' + a.nome, contexts: ['selection'] });
+    criar({ id: PREFIXO_AGENTE + a.id, parentId: MENU_RAIZ, title: (a.tipo === 'processo' ? 'Processo: ' : 'Agente: ') + a.nome, contexts: ['selection'] });
   }
   if (await criaAgentes()) {
     criar({ id: MENU_CRIAR_TRECHO, parentId: MENU_RAIZ, title: 'Criar Agente de IA com este trecho', contexts: ['selection'] });

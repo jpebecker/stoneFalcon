@@ -199,13 +199,13 @@ v7 gave the platform a live AI Map, multiple model providers and scheduled tasks
 
 **Blocked by:** 06
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Scheduled tasks accept a process or an agent; the run uses the scheduler's permissions, guardrails and budget; sensitive actions still wait for human confirmation.
-- [ ] Extension lists processes and agents grouped, with the same permission filter as the hub; running a process from the extension shows its blocks in the panel.
-- [ ] AI Map shows the processes layer with live pulses per execution and the existing area/provider filters.
-- [ ] Finances: cost and ROI per process; drill-down into the agents inside it; the "what if everything ran on X" view includes processes.
-- [ ] Back-end tests for scheduled process runs, the extension listing and the per-process finance totals.
+- [x] Scheduled tasks accept a process or an agent; the run uses the scheduler's permissions, guardrails and budget; sensitive actions still wait for human confirmation.
+- [x] Extension lists processes and agents grouped, with the same permission filter as the hub; running a process from the extension shows its blocks in the panel.
+- [x] AI Map shows the processes layer with live pulses per execution and the existing area/provider filters.
+- [x] Finances: cost and ROI per process; drill-down into the agents inside it; the "what if everything ran on X" view includes processes.
+- [x] Back-end tests for scheduled process runs, the extension listing and the per-process finance totals.
 
 ### 09: Contract — retire multi-step agents
 

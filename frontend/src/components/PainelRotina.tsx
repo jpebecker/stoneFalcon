@@ -8,10 +8,10 @@ import { quando } from "./formato";
 
 const DIAS = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"];
 
-/** Agenda de rotina do agente: "toda segunda às 9h" com uma entrada fixa. Roda em nome de quem agendou. */
-export default function PainelRotina({ agenteId, campos, pessoa, editor }: { agenteId: string; campos: Campo[]; pessoa: Persona; editor: boolean }) {
+/** Agenda de rotina do agente ou do processo: "toda segunda às 9h" com uma entrada fixa. Roda em nome de quem agendou. */
+export default function PainelRotina({ agenteId, campos, pessoa, editor, base = "agentes" }: { agenteId: string; campos: Campo[]; pessoa: Persona; editor: boolean; base?: "agentes" | "processos" }) {
   const qc = useQueryClient();
-  const rotinas = useQuery({ queryKey: ["rotinas", agenteId], queryFn: () => api<Rotina[]>(`/agentes/${agenteId}/rotinas`), refetchInterval: 5000 });
+  const rotinas = useQuery({ queryKey: ["rotinas", agenteId], queryFn: () => api<Rotina[]>(`/${base}/${agenteId}/rotinas`), refetchInterval: 5000 });
   const relogio = useQuery({ queryKey: ["relogio-rotinas"], queryFn: () => api<RelogioRotinas>("/rotinas/relogio"), refetchInterval: 3000 });
   const pre = usePreenche("rotina");   // roteiro guiado: a agenda do passo já vem preenchida
   const [freq, setFreq] = useState<"semanal" | "diaria">(pre?.frequencia ?? "semanal");
@@ -23,13 +23,13 @@ export default function PainelRotina({ agenteId, campos, pessoa, editor }: { age
   const recarregar = () => {
     qc.invalidateQueries({ queryKey: ["rotinas", agenteId] });
     qc.invalidateQueries({ queryKey: ["execucoes"] });
-    qc.invalidateQueries({ queryKey: ["agente", agenteId] });
+    qc.invalidateQueries({ queryKey: [base === "agentes" ? "agente" : "processo", agenteId] });
     qc.invalidateQueries({ queryKey: ["mapa"] });
   };
   const criar = useMutation({
     mutationFn: () => {
       const [h, m] = hora.split(":").map(Number);
-      return api<Rotina>(`/agentes/${agenteId}/rotinas`, { frequencia: freq, dia_semana: freq === "semanal" ? dia : null, hora: h, minuto: m, entrada });
+      return api<Rotina>(`/${base}/${agenteId}/rotinas`, { frequencia: freq, dia_semana: freq === "semanal" ? dia : null, hora: h, minuto: m, entrada });
     },
     onSuccess: () => { setAviso(null); recarregar(); },
     onError: (e: Error) => setAviso(e.message),

@@ -36,6 +36,21 @@ def criar(agente_id: str, pedido: PedidoRotina, pessoa: Persona = Depends(usuari
     return rotinas.publica(s, r)
 
 
+@rotas.post("/processos/{processo_id}/rotinas")
+def criar_do_processo(processo_id: str, pedido: PedidoRotina, pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
+    try:
+        r = rotinas.criar(s, pessoa, processo_id, pedido.frequencia, pedido.dia_semana, pedido.hora, pedido.minuto, pedido.entrada,
+                          tipo="processo")
+    except ErroRotina as e:
+        _erro(e)
+    return rotinas.publica(s, r)
+
+
+@rotas.get("/processos/{processo_id}/rotinas")
+def do_processo(processo_id: str, pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
+    return rotinas.listar(s, pessoa, processo_id)
+
+
 @rotas.get("/agentes/{agente_id}/rotinas")
 def do_agente(agente_id: str, pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
     return rotinas.listar(s, pessoa, agente_id)

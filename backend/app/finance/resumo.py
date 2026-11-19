@@ -121,6 +121,25 @@ def _minutos(s: Session, a) -> float:
     return float((v.blueprint if v else {}).get("minutos_manual", 0))
 
 
+def _agentes_do_processo(s: Session, meus: list[rm.Execucao]) -> list[dict]:
+    """Detalhe por agente de um processo: cada passo de agente guarda quem rodou e quanto custou (o custo do processo se divide neles)."""
+    por_agente: dict[str, dict] = {}
+    for e in meus:
+        for passo in (e.passos or {}).values():
+            ref = passo.get("agente")
+            aid = ref.get("id") if isinstance(ref, dict) else ref
+            if not aid:
+                continue
+            x = por_agente.setdefault(aid, {"id": aid, "nome": (ref.get("nome") if isinstance(ref, dict) else None), "execucoes": 0, "custo_brl": 0.0})
+            x["execucoes"] += 1
+            x["custo_brl"] = round(x["custo_brl"] + brl(passo.get("custo_usd") or 0.0), 4)
+    for aid, x in por_agente.items():
+        if not x["nome"]:
+            a = s.get(am.Agente, aid)
+            x["nome"] = a.nome if a else aid
+    return sorted(por_agente.values(), key=lambda x: -x["custo_brl"])
+
+
 def resumo(s: Session, p: Persona, dias: int = 30, premissas: Premissas | None = None) -> dict:
     pr = premissas or Premissas()
     agentes = _agentes_visiveis(s, p)
@@ -145,6 +164,8 @@ def resumo(s: Session, p: Persona, dias: int = 30, premissas: Premissas | None =
             "orcamento_mensal_brl": a.orcamento_mensal_brl, "gasto_mes_brl": mes,
             "uso_orcamento": round(mes / a.orcamento_mensal_brl, 4) if a.orcamento_mensal_brl else None,
         }
+        if _tipo_do(a) == "processo":
+            por_agente[a.id]["agentes"] = _agentes_do_processo(s, meus)   # detalhe: os agentes que rodaram dentro do processo
         ar = por_area[a.area]
         ar["execucoes"] += len(meus)
         ar["custo_brl"] = round(ar["custo_brl"] + c, 4)

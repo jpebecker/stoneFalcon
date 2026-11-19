@@ -358,14 +358,15 @@ def test_extensao_sugere_o_agente_e_preenche_os_campos(api):
     r = api.post(f"{V1}/extensao/analisar", json={"trecho": trecho}, headers=como("rafael")).json()
     assert r["lojista"]["id"] == "L1003"
     melhor = r["agentes"][0]
-    assert melhor["nome"] == NOME_AGENTE["triagem"] and r["sugerido"] == melhor["id"]
-    # o agente trabalhador não tem campos: o preenchimento volta quando a extensão listar os processos (v8/08)
-    assert "Lojista: Eletrônicos Relâmpago" in melhor["detectado"] or melhor["preenchido"] == {}
+    assert melhor["nome"] == "Triagem de chargebacks" and melhor["tipo"] == "processo" and r["sugerido"] == melhor["id"]
+    assert melhor["preenchido"] == {"lojista_id": "L1003"} and "Lojista: Eletrônicos Relâmpago" in melhor["detectado"]
+    assert {x["tipo"] for x in r["agentes"]} == {"processo", "agente"}          # processos e agentes trabalhadores, juntos
 
     duvida = ("Oi! Em quanto tempo o estorno cai para o cliente? Equipe da Padaria Pão Dourado.")
     r = api.post(f"{V1}/extensao/analisar", json={"trecho": duvida}, headers=como("marina")).json()
     a = r["agentes"][0]
-    assert a["nome"] == NOME_AGENTE["duvida"]
+    assert a["nome"] == "Resposta a dúvidas de lojistas" and a["tipo"] == "processo" and a["preenchido"]["lojista_id"] == "L1001"
+    assert a["preenchido"]["pergunta"] == duvida
     assert api.post(f"{V1}/extensao/analisar", json={"trecho": ""}, headers=como("marina")).json()["sugerido"] is None
 
 
@@ -492,3 +493,15 @@ def test_reiniciar_a_demo_devolve_o_estado_inicial_exato(api, sessao):
     assert api.post(f"{V1}/demo/reiniciar", headers=h).json()["ok"]
     assert foto() == inicial
     assert api.get(f"{V1}/auditoria/verificar", headers=h).json()["integra"]
+
+
+def test_extensao_lista_processos_e_agentes_so_do_que_o_perfil_pode_rodar(api):
+    _iniciar(api, "helena")
+    marina = api.post(f"{V1}/extensao/analisar", json={"trecho": ""}, headers=como("marina")).json()["agentes"]
+    assert {x["nome"] for x in marina if x["tipo"] == "processo"} == {"Resposta a dúvidas de lojistas"}
+    assert {x["nome"] for x in marina if x["tipo"] == "agente"} == {NOME_AGENTE["duvida"]}
+    rafael = api.post(f"{V1}/extensao/analisar", json={"trecho": ""}, headers=como("rafael")).json()["agentes"]
+    assert [x["tipo"] for x in rafael] == ["processo", "agente"] and rafael[0]["nome"] == "Triagem de chargebacks"
+    # rodar o processo pela extensão mostra os blocos: a execução traz um passo por bloco
+    exe = _executar_processo(api, "marina", marina[0]["id"], marina[0]["preenchido"] or {"lojista_id": "L1001", "pergunta": "Prazo de estorno?"})
+    assert [p["id"] for p in exe["blueprint"]["passos"]] == ["cadastro", "politica", "resposta"] and exe["dono_tipo"] == "processo"

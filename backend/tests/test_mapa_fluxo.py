@@ -128,3 +128,23 @@ def test_so_a_helena_usa_os_filtros(api, sessao):
     semear(sessao)
     for perfil in ("marina", "lucas", "thiago"):
         assert api.get(f"{V1}/mapa?area=risco&provedor=openai", headers=como(perfil)).status_code == 403
+
+
+def test_execucao_de_processo_acende_o_pulso_criador_processo_agentes_modelos_ferramentas(api, sessao):
+    semear(sessao)
+    pid = next(p["id"] for p in api.get(f"{V1}/processos", headers=como("helena")).json() if p["nome"] == "Resposta a dúvidas de lojistas")
+    exe = api.post(f"{V1}/processos/{pid}/executar", json={"entrada": {"lojista_id": "L1001", "pergunta": "Prazo do estorno?"}},
+                   headers=como("marina")).json()
+    m = _mapa(api)
+    nova = next(e for e in m["execucoes_recentes"] if e["id"] == exe["id"])
+    assert nova["dono_tipo"] == "processo" and nova["dono_id"] == pid and nova["agente_id"] is None
+    liga = {(l["de"], l["para"]) for l in m["ligacoes"]}
+    assert all((de, para) in liga for de, para, _ in nova["arestas"])
+    assert all(de == "processo:" + pid for de, _, o in nova["arestas"] if o == 0)
+    # criador -> processo -> agente trabalhador (a camada de processos do mapa)
+    no_processo = next(n for n in m["nos"] if n["id"] == "processo:" + pid)
+    assert no_processo["coluna"] == "processos" and ("criador:" + no_processo["dono"], "processo:" + pid) in liga
+    assert any(de == "processo:" + pid and para.startswith("agente:") for de, para in liga)
+    # filtros de área continuam valendo para a camada nova
+    risco = _mapa(api, "?area=risco")
+    assert {n["area"] for n in risco["nos"] if n["tipo"] == "processo"} == {"risco"}

@@ -39,7 +39,7 @@ function Boas({ aoEntrar, erro }: { aoEntrar: (id: string) => void; erro: boolea
       <Marca claro />
       <div>
         <h1 className="text-2xl">Bem-vindo ao copiloto</h1>
-        <p className="mt-1 text-sm text-tinta-2">Selecione um texto em qualquer página e peça a um agente. Dados pessoais são mascarados antes de qualquer modelo ver.</p>
+        <p className="mt-1 text-sm text-tinta-2">Selecione um texto em qualquer página e peça a um processo ou agente. Dados pessoais são mascarados antes de qualquer modelo ver.</p>
       </div>
       {erro && <p className="rounded-lg bg-erro-fundo p-3 text-sm text-erro">Não reconheci o seu perfil. Escolha quem você é.</p>}
       {perfis.isError && <p className="rounded-lg bg-erro-fundo p-3 text-sm text-erro">Não consegui falar com a plataforma. Ela está ligada?</p>}
@@ -192,7 +192,7 @@ export default function Extensao({ pessoa, aoEntrar, aoSair, erroPerfil }: {
   }, [agentes]);
 
   const executar = useMutation({
-    mutationFn: () => api<Execucao>(`/agentes/${agenteId}/executar`, { entrada }),
+    mutationFn: () => api<Execucao>(`/${agente?.tipo === "processo" ? "processos" : "agentes"}/${agenteId}/executar`, { entrada }),
     onSuccess: (e) => {
       setExe(e); setAoVivo(true);
       const resultado = e.resultado_tela ?? e.resultado ?? "";
@@ -277,7 +277,7 @@ export default function Extensao({ pessoa, aoEntrar, aoSair, erroPerfil }: {
         {analise.isPending && <div className="space-y-2" aria-busy="true"><div className="h-14 animate-pulse rounded-caixa bg-folha" /><div className="h-24 animate-pulse rounded-caixa bg-folha" /></div>}
         {analise.isError && <p className="rounded-caixa bg-erro-fundo p-3 text-sm text-erro">{(analise.error as Error).message}</p>}
         {analise.data && agentes.length === 0 && (
-          <p className="caixa p-4 text-sm text-tinta-2">Nenhum agente publicado para a sua área ainda. Crie um no Estúdio da plataforma.</p>
+          <p className="caixa p-4 text-sm text-tinta-2">Nenhum processo ou agente publicado para a sua área ainda. Crie um no Estúdio da plataforma.</p>
         )}
 
         {agentes.length > 0 && (
@@ -286,10 +286,14 @@ export default function Extensao({ pessoa, aoEntrar, aoSair, erroPerfil }: {
               <p className="text-xs font-semibold text-pedra-forte">✦ Sugestão pelo trecho: {agente.nome}</p>
             )}
             <label className="block">
-              <span className="rotulo">Agente</span>
+              <span className="rotulo">Processo ou agente</span>
               <select className="campo" value={agenteId} onChange={(e) => escolher(e.target.value)}>
-                <option value="">Escolha um agente da sua área…</option>
-                {agentes.map((a) => <option key={a.id} value={a.id}>{a.nome}</option>)}
+                <option value="">Escolha um processo ou agente da sua área…</option>
+                {(["processo", "agente"] as const).map((tipo) => agentes.some((a) => a.tipo === tipo) && (
+                  <optgroup key={tipo} label={tipo === "processo" ? "Processos" : "Agentes"}>
+                    {agentes.filter((a) => a.tipo === tipo).map((a) => <option key={a.id} value={a.id}>{a.nome}</option>)}
+                  </optgroup>
+                ))}
               </select>
             </label>
             {agente && <p className="text-xs text-tinta-3">{agente.objetivo}</p>}
@@ -306,7 +310,7 @@ export default function Extensao({ pessoa, aoEntrar, aoSair, erroPerfil }: {
                 aoMudar={(v) => setEntrada((e) => ({ ...e, [c.id]: v }))} />
             ))}
             <button className="botao-pedra w-full" disabled={executar.isPending || faltando.length > 0} onClick={() => executar.mutate()}>
-              {executar.isPending ? "Executando…" : faltando.length ? "Preencha: " + faltando.map((c) => c.rotulo.toLowerCase()).join(", ") : "Executar agente"}
+              {executar.isPending ? "Executando…" : faltando.length ? "Preencha: " + faltando.map((c) => c.rotulo.toLowerCase()).join(", ") : agente?.tipo === "processo" ? "Executar processo" : "Executar agente"}
             </button>
             {executar.isError && <p className="text-sm text-erro">{(executar.error as Error).message}</p>}
           </section>
