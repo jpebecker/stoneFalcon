@@ -2,12 +2,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-  api, type Agente, type AgenteDetalhe, type Blueprint, type Execucao, type Ferramenta, type Passo, type Persona, type Saude, type Sugestao, type Validacao,
+  api, type Agente, type AgenteDetalhe, type Blueprint, type Execucao, type Ferramenta, type Persona, type ProcessoBlueprint, type Saude, type Sugestao, type Validacao,
 } from "../api/cliente";
-import Canvas from "../components/Canvas";
 import CampoEntrada from "../components/CampoEntrada";
+import FormularioTrabalhador from "../components/FormularioTrabalhador";
 import { registrarCtx, usePreenche } from "../roteiro/estado";
-import EditorPasso from "../components/EditorPasso";
 import LinhaDoTempo from "../components/LinhaDoTempo";
 import { COR_RISCO, reais } from "../components/formato";
 import { CHAVE_RASCUNHO } from "./ViaExtensao";
@@ -16,18 +15,15 @@ type Padrao = { id: string; titulo: string; area: string; exemplo: string };
 
 const NOME_RISCO = { baixo: "Risco baixo", medio: "Risco médio", alto: "Risco alto" };
 
-function novoId(bp: Blueprint) {
-  let n = bp.passos.length + 1;
-  while (bp.passos.some((p) => p.id === "passo_" + n)) n++;
-  return "passo_" + n;
-}
+/** Agente de vários passos (formato antigo): só se converte em processo, não se edita aqui. */
+const ehLegado = (bp: Blueprint) => !(bp.passos.length === 1 && bp.passos[0].tipo === "agente");
 
 export default function Estudio({ pessoa }: { pessoa: Persona }) {
   const [descricao, setDescricao] = useState("");
   const [sug, setSug] = useState<Sugestao | null>(null);
   const [bp, setBp] = useState<Blueprint | null>(null);
   const [val, setVal] = useState<Validacao | null>(null);
-  const [sel, setSel] = useState<string | null>(null);
+  const [fluxo, setFluxo] = useState<Blueprint | null>(null);   // o fluxo de vários passos que a descrição sugeriu (vira processo)
   const [entrada, setEntrada] = useState<Record<string, string>>({});
   const [exe, setExe] = useState<Execucao | null>(null);
   const [params] = useSearchParams();
@@ -86,7 +82,7 @@ export default function Estudio({ pessoa }: { pessoa: Persona }) {
   const sugerir = useMutation({
     mutationFn: ({ d, fonte }: { d: string; fonte?: { tipo: string; url: string } | null }) =>
       api<Sugestao>("/estudio/sugerir", { descricao: d, fonte: fonte ?? null }),
-    onSuccess: (s) => { setSug(s); setBp(s.blueprint); setSel(null); setExe(null); setEntrada(s.entrada_sugerida ?? {}); },
+    onSuccess: (s) => { setSug(s); setBp(s.trabalhador); setFluxo(s.multipasso ? s.blueprint : null); setExe(null); setEntrada(s.entrada_sugerida ?? {}); },
   });
   const testar = useMutation({
     mutationFn: () => api<Execucao>("/estudio/testar", { blueprint: bp, entrada }),
@@ -102,27 +98,15 @@ export default function Estudio({ pessoa }: { pessoa: Persona }) {
 
   const valido = val?.valido ? val : null;
   const semPermissao = useMemo(() => new Set(Object.keys(valido?.sem_permissao ?? {})), [valido]);
-  const modelos = useMemo(() => Object.fromEntries(Object.entries(valido?.estimativa.por_passo ?? {}).map(([k, v]) => [k, v.modelo && v.simulado ? v.modelo + " · simulado" : v.modelo])), [valido]);
-  const passoSel = bp?.passos.find((p) => p.id === sel) ?? null;
-
-  const mudarPasso = (novo: Passo) => bp && setBp({ ...bp, passos: bp.passos.map((p) => (p.id === novo.id ? novo : p)) });
-  const removerPasso = (id: string) => {
-    if (!bp) return;
-    setBp({ ...bp, passos: bp.passos.filter((p) => p.id !== id).map((p) => ({ ...p, depende_de: p.depende_de.filter((d) => d !== id) })) });
-    setSel(null);
-  };
-  const adicionar = (tipo: "agente" | "aprovacao") => {
-    if (!bp) return;
-    const id = novoId(bp);
-    const ultimo = bp.passos[bp.passos.length - 1]?.id;
-    const passo: Passo = {
-      id, tipo, titulo: tipo === "agente" ? "Novo passo com IA" : "Confirmação humana",
-      instrucao: tipo === "agente" ? "Descreva o que fazer neste passo." : "", ferramentas: [], modelo: "auto",
-      max_iteracoes: 6, ferramenta: null, entrada: {}, depende_de: ultimo ? [ultimo] : [],
-    };
-    setBp({ ...bp, passos: [...bp.passos, passo] });
-    setSel(id);
-  };
+  const legado = !!bp && ehLegado(bp);
+  const emProcesso = useMutation({
+    mutationFn: (f: Blueprint) => api<{ processo: ProcessoBlueprint; agentes: { id: string; nome: string }[] }>("/estudio/em-processo", { blueprint: f }),
+    onSuccess: (r) => { qc.invalidateQueries({ queryKey: ["agentes"] }); navegar("/processos/novo", { state: { rascunho: r.processo } }); },
+  });
+  const converter = useMutation({
+    mutationFn: () => api<{ processo: { id: string } }>(`/agentes/${agenteId}/converter-em-processo`, {}),
+    onSuccess: (r) => { qc.invalidateQueries({ queryKey: ["agentes"] }); qc.invalidateQueries({ queryKey: ["processos"] }); navegar("/processos/" + r.processo.id); },
+  });
 
   // ---------- etapa 1: descrever ----------
   if (agenteId && !bp) return <p className="text-tinta-3">Carregando o agente…</p>;
@@ -171,9 +155,9 @@ export default function Estudio({ pessoa }: { pessoa: Persona }) {
             value={bp.objetivo} onChange={(e) => setBp({ ...bp, objetivo: e.target.value })} aria-label="Objetivo" />
         </div>
         <div className="flex gap-2">
-          {!agenteId && <button className="botao-claro" onClick={() => { setBp(null); setSug(null); setVal(null); setExe(null); }}>Recomeçar</button>}
-          <button className="botao-claro" disabled={!valido || salvar.isPending} onClick={() => salvar.mutate(false)}>Salvar rascunho</button>
-          <button className="botao-pedra" disabled={!valido || salvar.isPending || semPermissao.size > 0} onClick={() => salvar.mutate(true)}
+          {!agenteId && <button className="botao-claro" onClick={() => { setBp(null); setSug(null); setVal(null); setExe(null); setFluxo(null); }}>Recomeçar</button>}
+          <button className="botao-claro" disabled={!valido || salvar.isPending || legado} onClick={() => salvar.mutate(false)}>Salvar rascunho</button>
+          <button className="botao-pedra" disabled={!valido || salvar.isPending || semPermissao.size > 0 || legado} onClick={() => salvar.mutate(true)}
             title={valido?.risco.exige_revisao_seguranca ? "Vai para a revisão da Segurança antes de ir ao ar" : "Vai ao ar agora"}>
             {valido?.risco.exige_revisao_seguranca ? "Enviar para revisão" : "Publicar"}
           </button>
@@ -194,17 +178,30 @@ export default function Estudio({ pessoa }: { pessoa: Persona }) {
         </ul>
       )}
 
+      {fluxo && !agenteId && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-caixa border border-info/30 bg-info-fundo/50 p-4" data-testid="oferta-processo">
+          <p className="max-w-3xl text-sm">
+            <b>Isto parece um processo de vários passos</b> ({fluxo.passos.length} passos: consultas, agentes e conferências).
+            Um agente faz uma tarefa só. Para juntar dados, agentes, aprovações e caminhos diferentes, transforme em um processo: os agentes viram blocos que você ajusta no canvas.
+          </p>
+          <button className="botao-pedra" disabled={emProcesso.isPending} onClick={() => emProcesso.mutate(fluxo)}>
+            {emProcesso.isPending ? "Montando o processo…" : "Transformar em processo"}
+          </button>
+        </div>
+      )}
+      {emProcesso.isError && <p className="text-sm text-erro">{(emProcesso.error as Error).message}</p>}
+      {legado && (
+        <div className="rounded-caixa border border-alerta/40 bg-alerta-fundo/60 p-4 text-sm" role="alert" data-testid="aviso-legado">
+          <b>Agente de vários passos (formato antigo).</b> Os agentes agora são trabalhadores de um passo só. Ele continua rodando como está, mas não se edita mais aqui:
+          converta em um processo, que mantém as mesmas ferramentas, a mesma ordem e as mesmas aprovações.
+          <div className="mt-2"><button className="botao-pedra" disabled={converter.isPending} onClick={() => converter.mutate()}>{converter.isPending ? "Convertendo…" : "Converter em processo"}</button></div>
+          {converter.isError && <p className="mt-2 text-erro">{(converter.error as Error).message}</p>}
+        </div>
+      )}
+
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-tinta-3">Passos na mesma coluna rodam ao mesmo tempo. Clique num passo para ajustar.</p>
-            <div className="flex gap-2">
-              <button className="botao-claro py-1.5" onClick={() => adicionar("agente")}>+ Passo com IA</button>
-              <button className="botao-claro py-1.5" onClick={() => adicionar("aprovacao")}>+ Aprovação humana</button>
-            </div>
-          </div>
-          <Canvas bp={bp} niveis={valido?.niveis ?? sug?.niveis ?? []} modelos={modelos} semPermissao={semPermissao}
-            selecionado={sel} aoSelecionar={setSel} aoMudar={setBp} />
+          {!legado && <FormularioTrabalhador bp={bp} ferramentas={cat.data?.ferramentas ?? []} aoMudar={setBp} />}
           {val && !val.valido && (
             <div className="rounded-caixa border border-erro/30 bg-erro-fundo p-3 text-sm text-erro">
               {val.erros.map((e, i) => <p key={i}>{e}</p>)}
@@ -213,15 +210,14 @@ export default function Estudio({ pessoa }: { pessoa: Persona }) {
         </div>
 
         <aside className="space-y-4">
-          {passoSel ? (
-            <EditorPasso passo={passoSel} ferramentas={cat.data?.ferramentas ?? []} aoMudar={mudarPasso} aoRemover={() => removerPasso(passoSel.id)} />
-          ) : valido && (
+          {valido && !legado && (
             <div className="caixa space-y-4 p-4">
               <div className="flex items-center justify-between">
                 <span className={"selo text-sm " + COR_RISCO[valido.risco.nivel]}>{NOME_RISCO[valido.risco.nivel]}</span>
                 <span className="text-sm text-tinta-2">≈ {reais(valido.estimativa.custo_por_execucao_brl)} por execução</span>
               </div>
               <ul className="space-y-0.5 text-xs text-tinta-2">{valido.risco.motivos.map((m) => <li key={m}>• {m}</li>)}</ul>
+              {semPermissao.size > 0 && <ul className="space-y-0.5 text-xs text-erro">{Object.values(valido.sem_permissao).map((m) => <li key={m}>• {m}</li>)}</ul>}
               <p className="text-xs text-tinta-3">
                 {valido.risco.exige_revisao_seguranca
                   ? "Por tocar dados ou ações sensíveis, a publicação passa pela revisão da Segurança."
@@ -230,17 +226,11 @@ export default function Estudio({ pessoa }: { pessoa: Persona }) {
               <div className="border-t border-linha pt-3">
                 <h3 className="mb-2 text-sm font-semibold">Como o agente vai trabalhar</h3>
                 <ol className="space-y-2 text-sm">
-                  {valido.explicacao.map((x, i) => (
-                    <li key={x.passo}><b>{i + 1}. {x.titulo}.</b> <span className="text-tinta-2">{x.explicacao}</span></li>
+                  {valido.explicacao.map((x) => (
+                    <li key={x.passo}><span className="text-tinta-2">{x.explicacao}</span></li>
                   ))}
                 </ol>
               </div>
-              <label className="block border-t border-linha pt-3">
-                <span className="rotulo">Tempo da tarefa feita à mão (min)</span>
-                <input type="number" min={0} className="campo w-28" value={bp.minutos_manual}
-                  onChange={(e) => setBp({ ...bp, minutos_manual: Number(e.target.value) || 0 })} />
-                <span className="mt-1 block text-xs text-tinta-3">Base para medir o retorno do agente.</span>
-              </label>
             </div>
           )}
         </aside>

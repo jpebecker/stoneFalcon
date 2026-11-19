@@ -6,6 +6,8 @@ from pydantic import BaseModel, Field, ValidationError
 from sqlmodel import Session
 
 from ..agents.blueprint import Blueprint
+from ..agents.ciclo import ErroCiclo
+from ..processos.conversao import converter_fluxo
 from ..agents.governanca import avaliar_risco, estimar_custo, ferramentas_sem_permissao
 from ..audit import trilha
 from ..core.db import sessao
@@ -59,6 +61,22 @@ def validar(pedido: PedidoBlueprint, pessoa: Persona = Depends(usuario_atual)):
                        "por_passo": est.por_passo},
         "explicacao": sugestao.explicar(bp, est),
     }
+
+
+class PedidoEmProcesso(BaseModel):
+    blueprint: Blueprint     # o fluxo sugerido (vários passos)
+
+
+@rotas.post("/em-processo")
+def em_processo(pedido: PedidoEmProcesso, pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
+    """"Transformar em processo": cria um agente trabalhador (rascunho seu) para cada passo de IA e devolve o fluxo de blocos
+    já montado para o editor de processos (ainda não salvo)."""
+    exigir(pessoa, CRIADOR)
+    try:
+        pbp, agentes = converter_fluxo(s, pessoa, pedido.blueprint.model_copy(update={"area": pessoa.area}), pessoa.roteiro_id)
+    except ErroCiclo as e:
+        raise HTTPException(status_code=e.status, detail=str(e))
+    return {"processo": pbp.model_dump(), "agentes": [{"id": a.id, "nome": a.nome} for a in agentes]}
 
 
 class PedidoTeste(BaseModel):

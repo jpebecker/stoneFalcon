@@ -21,6 +21,7 @@ from ..processos import modelos as pm
 from ..processos.blueprint import ProcessoBlueprint
 from ..processos.compilar import compilar, trabalhador
 from ..processos.diff import comparar
+from ..processos.uso import agentes_com_problema
 from ..processos.validacao import problemas_por_bloco
 from ..processos.tipo import ciclo
 from ..roteiros.catalogo import ROTEIROS
@@ -72,6 +73,9 @@ def _resumo(p: pm.Processo, s: Session) -> dict:
     d["custo_brl"] = round(sum(e.custo_usd for e in execs) * motor.precos.usd_para_brl(1.0), 4)
     d["as_is"] = _as_is(p.roteiro_id)
     d["agentes"] = agentes_do_processo(s, p)
+    d["agentes_info"] = [{"id": a.id, "nome": a.nome, "estado": a.estado, "motivo": a.motivo_estado}
+                         for a in (s.get(am.Agente, i) for i in d["agentes"]) if a is not None]
+    d["alertas_agentes"] = agentes_com_problema(s, p)   # agente pausado/depreciado dentro do processo: o bloco escala
     return d
 
 

@@ -29,6 +29,7 @@ export default function Processos({ pessoa }: { pessoa: Persona }) {
               <span className={"selo " + COR_RISCO[p.risco]}>{NOME_RISCO[p.risco]}</span>
               <span className="text-tinta-2">{p.execucoes} execuções</span>
               {p.escaladas > 0 && <span className="text-falcao">{p.escaladas} escaladas</span>}
+              {!!p.alertas_agentes?.length && <span className="selo bg-alerta-fundo text-alerta" title="Um agente deste processo está pausado ou depreciado">agente com problema</span>}
               <span className="ml-auto text-tinta-3">{reais(p.custo_brl)}</span>
             </div>
           </Link>

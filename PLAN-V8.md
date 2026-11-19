@@ -169,14 +169,14 @@ v7 gave the platform a live AI Map, multiple model providers and scheduled tasks
 
 **Blocked by:** 04
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] The Studio creates and edits single-worker agents only; the canvas in the Studio is replaced by the worker form plus test panel.
-- [ ] A multi-step description shows "Turn this into a process", which opens a pre-filled process draft whose Agent blocks are new worker agents (drafts, owned by the creator).
-- [ ] Agent detail lists the processes that use it (name, owner persona, area, linked AS IS process); the Agents list shows a "used in N processes" badge.
-- [ ] Existing multi-step agents still execute and show the "legacy" label with a "Convert to process" action (conversion creates the worker agents and a process; the old agent stays until ticket 09).
-- [ ] Pausing or deprecating a worker agent warns about, and is reflected in, the processes that use it.
-- [ ] Back-end tests: worker create/test/publish; conversion of a multi-step agent produces an equivalent process (same tools, same order/parallelism, same approvals).
+- [x] The Studio creates and edits single-worker agents only; the canvas in the Studio is replaced by the worker form plus test panel.
+- [x] A multi-step description shows "Turn this into a process", which opens a pre-filled process draft whose Agent blocks are new worker agents (drafts, owned by the creator).
+- [x] Agent detail lists the processes that use it (name, owner persona, area, linked AS IS process); the Agents list shows a "used in N processes" badge.
+- [x] Existing multi-step agents still execute and show the "legacy" label with a "Convert to process" action (conversion creates the worker agents and a process; the old agent stays until ticket 09).
+- [x] Pausing or deprecating a worker agent warns about, and is reflected in, the processes that use it.
+- [x] Back-end tests: worker create/test/publish; conversion of a multi-step agent produces an equivalent process (same tools, same order/parallelism, same approvals).
 
 ### 07: Move demo seed and guided scripts to processes
 

@@ -78,6 +78,8 @@ export type Sugestao = {
   blueprint: Blueprint; origem: string; explicacao: Explicacao[]; ferramentas_removidas: Record<string, string>;
   alertas: string[]; risco: Risco; estimativa: Estimativa; niveis: string[][]; custo_sugestao_brl: number;
   entrada_sugerida?: Record<string, string>;
+  trabalhador: Blueprint;       // v8: o agente único (um trabalhador) que o Estúdio cria a partir do fluxo sugerido
+  multipasso: boolean;          // o fluxo é claramente de vários passos: oferece "Transformar em processo"
 };
 
 export type Validacao =
@@ -171,6 +173,8 @@ export type Agente = {
   versao_publicada: number | null; ultima_versao: number; risco: "baixo" | "medio" | "alto"; compartilhado_com: string[];
   motivo_estado: string | null; criado_em: string; atualizado_em: string;
   execucoes: number; escaladas: number; custo_brl: number; plugins_indisponiveis: { id: string; nome: string }[];
+  processos?: number;           // v8: em quantos processos o agente trabalha
+  legado?: boolean;             // v8: agente de vários passos (formato antigo): converte em processo
 };
 
 export type VersaoAgente = {
@@ -180,7 +184,8 @@ export type VersaoAgente = {
 
 export type EventoAuditoria = { seq: number; id: string; tipo: string; quando: string; ator: string; agente_id: string | null; dados: Record<string, unknown> };
 
-export type AgenteDetalhe = Agente & { versoes: VersaoAgente[]; pode_executar: boolean; historico: EventoAuditoria[] };
+export type UsoEmProcesso = { id: string; nome: string; dono: string; area: string; estado: string; as_is: { roteiro_id: string; processo: string; persona: string } | null };
+export type AgenteDetalhe = Agente & { versoes: VersaoAgente[]; pode_executar: boolean; historico: EventoAuditoria[]; usado_em?: UsoEmProcesso[] };
 
 export type Mudanca = { tipo: "adicionado" | "removido" | "alterado"; alvo: string; campo: string | null; antes: unknown; depois: unknown };
 
@@ -202,6 +207,8 @@ export type Processo = {
   risco: "baixo" | "medio" | "alto"; compartilhado_com: string[]; motivo_estado: string | null; orcamento_mensal_brl: number;
   roteiro_id: string | null; criado_em: string; atualizado_em: string; execucoes: number; escaladas: number; custo_brl: number;
   as_is: { roteiro_id: string; processo: string; persona: string } | null; agentes: string[];
+  agentes_info?: { id: string; nome: string; estado: string; motivo: string | null }[];
+  alertas_agentes?: { id: string; nome: string; estado: string; motivo: string | null }[];
 };
 export type VersaoProcesso = Omit<VersaoAgente, "blueprint" | "agente_id"> & { processo_id: string; blueprint: ProcessoBlueprint };
 export type ProcessoDetalhe = Processo & { versoes: VersaoProcesso[]; pode_executar: boolean; pode_editar: boolean; historico: EventoAuditoria[] };

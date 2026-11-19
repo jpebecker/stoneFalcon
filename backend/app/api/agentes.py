@@ -14,6 +14,8 @@ from ..core.db import sessao
 from ..core.identidade import GESTOR_IA, REVISOR_SEGURANCA, Persona, usuario_atual
 from ..observability import avaliar_seguro
 from ..plugins import servico as plugins
+from ..processos.conversao import eh_trabalhador
+from ..processos.uso import usado_em
 from ..runtime import motor
 from ..runtime.modelos import Execucao
 from ..rotinas import marcar as marcar_rotina
@@ -42,6 +44,8 @@ def _resumo(a: m.Agente, s: Session) -> dict:
     d["escaladas"] = sum(1 for e in execs if e.status == "escalada")
     d["custo_brl"] = round(sum(e.custo_usd for e in execs) * motor.precos.usd_para_brl(1.0), 4)
     d["plugins_indisponiveis"] = plugins.plugins_indisponiveis(s, a)   # depende de plugin removido: sinalizado, não silencioso
+    d["processos"] = len(usado_em(s, a.id))                            # em quantos processos o agente trabalha
+    d["legado"] = not eh_trabalhador(Blueprint.model_validate(ciclo.versao(s, a.id, a.versao_publicada or a.ultima_versao).blueprint))
     return d
 
 
@@ -79,6 +83,7 @@ def detalhe(agente_id: str, pessoa: Persona = Depends(usuario_atual), s: Session
     d = _resumo(a, s)
     d["versoes"] = [v.model_dump() for v in ciclo.versoes(s, a.id)]
     d["pode_executar"] = ciclo.pode_executar(pessoa, a)
+    d["usado_em"] = usado_em(s, a.id)                                  # "a quais processos este agente pertence?"
     eventos = [e for e in trilha.listar(s, agente_id=a.id, limite=300) if e.tipo in _EVENTOS_CICLO]
     d["historico"] = [e.model_dump() for e in eventos]
     return d
@@ -149,7 +154,7 @@ def pausar(agente_id: str, pedido: PedidoMotivo, pessoa: Persona = Depends(usuar
     try:
         a = ciclo.pausar(s, pessoa, agente_id, pedido.motivo)
         avaliar_seguro(s)
-        return _dump(s, a)
+        return {**_dump(s, a), "processos_afetados": usado_em(s, a.id)}
     except ciclo.ErroCiclo as e:
         _erro(e)
 
@@ -169,13 +174,53 @@ def depreciar(agente_id: str, pedido: PedidoMotivo, pessoa: Persona = Depends(us
     try:
         a = ciclo.depreciar(s, pessoa, agente_id, pedido.motivo)
         avaliar_seguro(s)
-        return _dump(s, a)
+        return {**_dump(s, a), "processos_afetados": usado_em(s, a.id)}
     except ciclo.ErroCiclo as e:
         _erro(e)
 
 
 class PedidoCompartilhar(BaseModel):
     areas: list[str]
+
+
+@rotas.post("/agentes/{agente_id}/converter-em-processo")
+def converter_em_processo(agente_id: str, pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
+    """Agente de vários passos (formato antigo) -> agentes trabalhadores + processo equivalente. O agente antigo fica como está.
+    O que não precisa de revisão da Segurança já sai publicado; o resto fica em rascunho ou em revisão, com o estado à vista."""
+    from ..core.identidade import CRIADOR, exigir
+    from ..processos.conversao import converter_fluxo, roteiro_do_agente
+    from ..processos.tipo import ciclo as ciclo_processos
+    exigir(pessoa, CRIADOR)
+    try:
+        a = ciclo.obter(s, agente_id)
+        _ver(pessoa, a)
+        if not (pessoa.id == a.dono or pessoa.area == a.area):
+            raise ciclo.ErroCiclo("Só criadores da área %s convertem este agente." % a.area, 403)
+        bp = Blueprint.model_validate(ciclo.versao(s, a.id, a.versao_publicada or a.ultima_versao).blueprint)
+        if eh_trabalhador(bp):
+            raise ciclo.ErroCiclo("Este agente já é um trabalhador de um passo só: use-o direto nos blocos de um processo.")
+        pbp, trabalhadores = converter_fluxo(s, pessoa, bp, roteiro_do_agente(a.nome) or pessoa.roteiro_id,
+                                             "Convertido do agente “%s”." % a.nome)
+        p = ciclo_processos.criar(s, pessoa, pbp, "Convertido do agente “%s”." % a.nome)
+        publicados = True
+        for t in trabalhadores:
+            try:
+                ciclo.publicar(s, pessoa, t.id)
+            except ciclo.ErroCiclo:
+                pass
+            s.refresh(t)
+            publicados = publicados and t.estado == m.PUBLICADO
+        if publicados:
+            try:
+                ciclo_processos.publicar(s, pessoa, p.id)
+            except ciclo.ErroCiclo:
+                pass
+        s.refresh(p)
+        for t in trabalhadores:   # o commit da auditoria expira os objetos: recarrega antes de serializar
+            s.refresh(t)
+        return {"processo": p.model_dump(), "agentes": [t.model_dump() for t in trabalhadores]}
+    except ciclo.ErroCiclo as e:
+        _erro(e)
 
 
 @rotas.post("/agentes/{agente_id}/compartilhar")

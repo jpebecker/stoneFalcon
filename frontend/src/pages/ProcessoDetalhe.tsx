@@ -72,6 +72,13 @@ export default function ProcessoDetalhe({ pessoa }: { pessoa: Persona }) {
         </div>
       </div>
       {acao.isError && <p className="text-sm text-erro">{(acao.error as Error).message}</p>}
+      {p.alertas_agentes && p.alertas_agentes.length > 0 && (
+        <ul className="space-y-1 rounded-lg bg-alerta-fundo p-3 text-sm text-alerta" role="alert" data-testid="alertas-agentes">
+          {p.alertas_agentes.map((a) => (
+            <li key={a.id}>O agente <Link to={"/agentes/" + a.id} className="font-semibold underline">{a.nome}</Link> está {a.estado}{a.motivo ? ` (${a.motivo})` : ""}: o bloco dele escala para um humano.</li>
+          ))}
+        </ul>
+      )}
 
       <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
         <div className="space-y-6">
@@ -98,7 +105,7 @@ export default function ProcessoDetalhe({ pessoa }: { pessoa: Persona }) {
                 <li key={b.id} className="flex items-center gap-2">
                   <span aria-hidden="true" className="w-5 text-center">{BLOCOS[b.tipo].icone}</span>
                   <b>{b.titulo}</b><span className="text-tinta-3">· {BLOCOS[b.tipo].nome}</span>
-                  {b.tipo === "agente" && b.agente_id && <Link className="text-pedra-forte hover:underline" to={"/agentes/" + b.agente_id}>{agentes.data?.find((a) => a.id === b.agente_id)?.nome ?? b.agente_id}</Link>}
+                  {b.tipo === "agente" && b.agente_id && <Link className="text-pedra-forte hover:underline" to={"/agentes/" + b.agente_id}>{p.agentes_info?.find((a) => a.id === b.agente_id)?.nome ?? agentes.data?.find((a) => a.id === b.agente_id)?.nome ?? b.agente_id}</Link>}
                 </li>
               ))}
             </ol>
