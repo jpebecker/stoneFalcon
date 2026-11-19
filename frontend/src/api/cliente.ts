@@ -89,6 +89,7 @@ export type Ferramenta = {
   areas: string[]; acao: string; exige_aprovacao: boolean; limite_por_minuto: number; ativo: boolean;
   falha: string | null; disponivel_para_mim: boolean; motivo: string; origem: string; plugin: string | null;
   parametros: Record<string, { type: string; description?: string; enum?: string[] }>; obrigatorios: string[];
+  campos_saida?: Record<string, string>;
 };
 
 export type UsoFerramenta = { conector: string; ok: boolean; erro: string | null; tipo_erro: string | null; latencia_ms: number; mascarados: { tipo: string; rotulo: string; quantidade: number }[]; suspeitas: string[] };
@@ -209,7 +210,7 @@ export type AgenteDisponivel = {
   ferramentas: string[]; modelo: string | null; motivo: string | null;
 };
 export type ValidacaoProcesso =
-  | { valido: false; erros: string[] }
+  | { valido: false; erros: string[]; blocos?: Record<string, string[]> }
   | { valido: true; erros: []; niveis: string[][]; sem_permissao: Record<string, string>; bloqueios: Record<string, string>; risco: Risco;
       estimativa: Estimativa & { duracao_ms: number }; blocos?: Record<string, string[]> };
 

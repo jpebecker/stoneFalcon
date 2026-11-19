@@ -10,14 +10,14 @@ export const quando = (iso: string) => new Date(iso).toLocaleString("pt-BR", { d
 export const NOME_STATUS: Record<string, string> = {
   concluida: "Concluída", em_andamento: "Em andamento", aguardando_aprovacao: "Aguardando você",
   escalada: "Escalada para humano", falhou: "Falhou", concluido: "Concluído", aguardando: "Aguardando",
-  escalado: "Escalado", recusado: "Recusado",
+  escalado: "Escalado", recusado: "Recusado", pulado: "Pulado",
 };
 
 export const COR_STATUS: Record<string, string> = {
   concluida: "bg-pedra-fundo text-pedra-forte", concluido: "bg-pedra-fundo text-pedra-forte",
   aguardando_aprovacao: "bg-alerta-fundo text-alerta", aguardando: "bg-alerta-fundo text-alerta",
   escalada: "bg-falcao-fundo text-falcao", escalado: "bg-falcao-fundo text-falcao",
-  falhou: "bg-erro-fundo text-erro", recusado: "bg-papel text-tinta-2", em_andamento: "bg-info-fundo text-info",
+  falhou: "bg-erro-fundo text-erro", recusado: "bg-papel text-tinta-2", pulado: "bg-papel text-tinta-3", em_andamento: "bg-info-fundo text-info",
 };
 
 export const COR_RISCO: Record<string, string> = {

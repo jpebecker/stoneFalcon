@@ -14,6 +14,7 @@ from . import modelos as pm
 from .blueprint import ProcessoBlueprint
 from .compilar import compilar
 from .diff import comparar, ferramentas_novas
+from .validacao import problemas_por_bloco
 
 
 def _normalizar(s: Session, p: Persona, bp: ProcessoBlueprint) -> ProcessoBlueprint:
@@ -28,7 +29,11 @@ def _normalizar(s: Session, p: Persona, bp: ProcessoBlueprint) -> ProcessoBluepr
 
 
 def _antes_de_publicar(s: Session, bp: ProcessoBlueprint) -> None:
-    """Um processo só vai ao ar quando os agentes que ele usa já foram publicados."""
+    """Um processo só vai ao ar com todos os blocos configurados e com os agentes que ele usa já publicados."""
+    problemas = problemas_por_bloco(s, None, bp.model_dump())
+    if problemas:
+        bid, lista = next(iter(problemas.items()))
+        raise ErroCiclo("O bloco “%s” não está pronto: %s" % (bp.bloco(bid).titulo, " ".join(lista)), 422)
     for b in bp.blocos:
         if b.tipo != "agente":
             continue

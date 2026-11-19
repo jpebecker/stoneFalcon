@@ -24,7 +24,7 @@ function CartaoPasso({ r, cotacao }: { r: RegistroPasso; cotacao: number }) {
         </span>
         <span className="w-20 text-right text-xs text-tinta-3">{ms(r.duracao_estimada_ms)}</span>
       </button>
-      {r.motivo && <p className="mt-2 text-sm text-falcao">{r.motivo}</p>}
+      {r.motivo && <p className={"mt-2 text-sm " + (r.status === "pulado" ? "text-tinta-3" : "text-falcao")}>{r.motivo}</p>}
       {r.reserva && <p className="mt-2 rounded-lg bg-alerta-fundo p-2 text-sm text-alerta">⚠ Resposta de reserva: {r.reserva}</p>}
       {r.ferramentas.length > 0 && (
         <ul className="mt-2 flex flex-wrap gap-1.5">

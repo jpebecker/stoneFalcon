@@ -153,15 +153,15 @@ v7 gave the platform a live AI Map, multiple model providers and scheduled tasks
 
 **Blocked by:** 04
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Palette with the 7 block types, each with an icon, color and one-line description.
-- [ ] Side panel per block: plugin/tool pickers only list tools the creator may use (plugin integrated, area and classification allowed); disallowed ones show why.
-- [ ] Wiring outputs to inputs is done by picking "output of block X → field" from a list; the stored graph uses the existing template references under the hood.
-- [ ] Condition block routes to a "yes" and a "no" branch; the runner skips the branch not taken and the timeline shows it as skipped.
-- [ ] Live validation highlights blocks with missing configuration or no permission, in plain language; publish is disabled while invalid.
-- [ ] Risk and cost estimate update as blocks change (reusing the agent estimate rules).
-- [ ] Back-end tests for each block type, the condition branch skip, and permission filtering.
+- [x] Palette with the 7 block types, each with an icon, color and one-line description.
+- [x] Side panel per block: plugin/tool pickers only list tools the creator may use (plugin integrated, area and classification allowed); disallowed ones show why.
+- [x] Wiring outputs to inputs is done by picking "output of block X → field" from a list; the stored graph uses the existing template references under the hood.
+- [x] Condition block routes to a "yes" and a "no" branch; the runner skips the branch not taken and the timeline shows it as skipped.
+- [x] Live validation highlights blocks with missing configuration or no permission, in plain language; publish is disabled while invalid.
+- [x] Risk and cost estimate update as blocks change (reusing the agent estimate rules).
+- [x] Back-end tests for each block type, the condition branch skip, and permission filtering.
 
 ### 06: Agents become single workers
 

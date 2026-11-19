@@ -10,6 +10,7 @@ import CanvasProcesso, { ENTRADA } from "../components/CanvasProcesso";
 import EditorCampos from "../components/EditorCampos";
 import LinhaDoTempo from "../components/LinhaDoTempo";
 import PainelBloco from "../components/PainelBloco";
+import PaletaBlocos from "../components/PaletaBlocos";
 import { BLOCOS, COR_RISCO, NOME_RISCO, ms, reais } from "../components/formato";
 
 const VAZIO: ProcessoBlueprint = {
@@ -84,9 +85,8 @@ export default function ProcessoEditor({ pessoa }: { pessoa: Persona }) {
   const problemas = useMemo(() => {
     const p: Record<string, string[]> = {};
     for (const b of bp?.blocos ?? []) {
-      const lista = [...(valido?.bloqueios?.[b.id] ? [valido.bloqueios[b.id]] : []), ...(val?.valido ? (val.blocos?.[b.id] ?? []) : [])];
-      if (b.tipo === "agente" && !b.agente_id) lista.push("Escolha o agente.");
-      if (lista.length) p[b.id] = lista;
+      const lista = [...(valido?.bloqueios?.[b.id] ? [valido.bloqueios[b.id]] : []), ...(val?.blocos?.[b.id] ?? [])];
+      if (lista.length) p[b.id] = [...new Set(lista)];
     }
     return p;
   }, [bp, valido, val]);
@@ -156,10 +156,8 @@ export default function ProcessoEditor({ pessoa }: { pessoa: Persona }) {
         <div className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm text-tinta-3">Blocos na mesma coluna rodam ao mesmo tempo. Clique num bloco para ajustar; arraste de um ao outro para ligar.</p>
-            <div className="flex flex-wrap gap-2" data-testid="paleta">
-              <button className="botao-claro py-1.5" onClick={() => adicionar("agente")}><span aria-hidden="true">{BLOCOS.agente.icone}</span> Agente</button>
-            </div>
           </div>
+          <PaletaBlocos aoAdicionar={adicionar} aoSelecionarEntradas={() => setSel(ENTRADA)} />
           <CanvasProcesso bp={bp} subtitulos={subtitulos} problemas={problemas} selecionado={sel} aoSelecionar={setSel} aoMudar={setBp} />
           {val && !val.valido && (
             <div className="rounded-caixa border border-erro/30 bg-erro-fundo p-3 text-sm text-erro" role="alert">
@@ -171,7 +169,8 @@ export default function ProcessoEditor({ pessoa }: { pessoa: Persona }) {
 
         <aside className="space-y-4">
           {blocoSel ? (
-            <PainelBloco bloco={blocoSel} problemas={problemas[blocoSel.id] ?? []} aoMudar={mudarBloco} aoRemover={() => removerBloco(blocoSel.id)} />
+            <PainelBloco bp={bp} bloco={blocoSel} ferramentas={cat.data?.ferramentas ?? []} problemas={problemas[blocoSel.id] ?? []}
+              aoMudar={mudarBloco} aoRemover={() => removerBloco(blocoSel.id)} />
           ) : sel === ENTRADA ? (
             <div className="caixa space-y-2 p-4 text-sm"><h3 className="text-base">{BLOCOS.entrada.nome}</h3><p className="text-tinta-2">{BLOCOS.entrada.descricao}</p>
               <p className="text-xs text-tinta-3">Edite os campos na seção acima do canvas.</p></div>

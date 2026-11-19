@@ -21,6 +21,7 @@ from ..processos import modelos as pm
 from ..processos.blueprint import ProcessoBlueprint
 from ..processos.compilar import compilar, trabalhador
 from ..processos.diff import comparar
+from ..processos.validacao import problemas_por_bloco
 from ..processos.tipo import ciclo
 from ..roteiros.catalogo import ROTEIROS
 from ..rotinas import marcar as marcar_rotina
@@ -134,18 +135,20 @@ class PedidoBlueprint(BaseModel):
 @rotas.post("/processos/validar")
 def validar(pedido: PedidoBlueprint, pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
     """Checagem ao vivo enquanto a pessoa monta o fluxo."""
+    blocos = problemas_por_bloco(s, pessoa, pedido.blueprint)   # por bloco, mesmo com o fluxo ainda incompleto
     try:
         pbp = ProcessoBlueprint.model_validate(pedido.blueprint)
     except ValidationError as e:
-        return {"valido": False, "erros": list(dict.fromkeys(err["msg"].removeprefix("Value error, ") for err in e.errors()))}
+        return {"valido": False, "blocos": blocos,
+                "erros": list(dict.fromkeys(err["msg"].removeprefix("Value error, ") for err in e.errors()))}
     try:
         bp = compilar(s, pbp, pessoa, "ultima")
     except ErroCiclo as e:
-        return {"valido": False, "erros": [str(e)]}
+        return {"valido": False, "blocos": blocos, "erros": [str(e)]}
     est = estimar_custo(bp)
     risco = avaliar_risco(bp)
     return {
-        "valido": True, "erros": [], "niveis": pbp.niveis(),
+        "valido": True, "erros": [], "blocos": blocos, "niveis": pbp.niveis(),
         "sem_permissao": ferramentas_sem_permissao(pessoa, bp),
         "bloqueios": {p.id: p.bloqueio for p in bp.passos if p.bloqueio},
         "risco": {"nivel": risco.nivel, "motivos": risco.motivos, "exige_revisao_seguranca": risco.exige_revisao},
