@@ -113,7 +113,7 @@ def publico(s: Session, p: Plugin, pessoa: Persona) -> dict:
     pode = pode_integrar(pessoa, p)
     return {
         "id": p.id, "nome": p.nome, "categoria": p.categoria, "categoria_nome": p.categoria_nome, "descricao": p.descricao,
-        "simulado": True, "janela": p.janela, "classificacao": p.classificacao.name.lower(), "sensivel": p.sensivel,
+        "simulado": not p.real, "real": p.real, "janela": p.janela, "classificacao": p.classificacao.name.lower(), "sensivel": p.sensivel,
         "areas": ["todas"] if "*" in p.areas else list(p.areas),
         "areas_nomes": ["todas as áreas"] if "*" in p.areas else sorted({x.area_nome for x in PERSONAS.values() if x.area in p.areas}),
         "estado": estado, "vale_para_minha_area": vale,
@@ -371,7 +371,7 @@ def consolidado(s: Session, pessoa: Persona, plugin_id: str) -> dict:
     # conteúdo do sistema externo: os mesmos dois eixos das ferramentas (nível E área); o CoE de IA vê todas as áreas
     area_ok = p.vale_para(pessoa) or pessoa.tem(GESTOR_IA)
     return {
-        "plugin": publico(s, p, pessoa), "simulado": True, "nivel_suficiente": nivel_ok, "area_permitida": area_ok,
+        "plugin": publico(s, p, pessoa), "simulado": not p.real, "nivel_suficiente": nivel_ok, "area_permitida": area_ok,
         "numeros": {"agentes": len(usam), "chamadas_mes": chamadas, "erros": erros,
                     "custo_brl": round(precos.usd_para_brl(custo_usd), 4), "execucoes": len(execucoes_ids),
                     "latencia_p95_ms": lat_p95},

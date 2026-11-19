@@ -341,10 +341,17 @@ export type FerramentaPlugin = {
   nivel_suficiente: boolean; disponivel_para_mim: boolean;
 };
 
+export type ArquivoPlugin = {
+  id: string; nome: string; formato: "csv" | "xlsx"; classificacao: string; areas: string[]; areas_nomes: string[]; dono: string; dono_nome: string;
+  colunas: string[]; total_linhas: number; tamanho_bytes: number; versao: number; criado_em: string; atualizado_em: string; atualizado_por: string;
+  demo: boolean; exige_confirmacao_para_escrever: boolean; pode_remover?: boolean; previa?: Record<string, string | number>[]; previa_limite?: number;
+};
+export type LimitesArquivos = { bytes: number; linhas: number; colunas: number; formatos: string[]; meu_nivel: string; classificacoes: string[] };
+
 export type PedidoMeu = { id: string; estado: "pendente" | "aprovado" | "recusado" | "registrado"; parecer: string | null; revisor: string | null };
 
 export type Plugin = {
-  id: string; nome: string; categoria: string; categoria_nome: string; descricao: string; simulado: true; janela: boolean;
+  id: string; nome: string; categoria: string; categoria_nome: string; descricao: string; simulado: boolean; real?: boolean; janela: boolean;
   classificacao: string; sensivel: boolean; areas: string[]; areas_nomes: string[];
   estado: "disponivel" | "integrado" | "aguardando_aprovacao"; vale_para_minha_area: boolean;
   ferramentas: FerramentaPlugin[]; exige_aprovacao_para_integrar: boolean; integrado_por: string | null; integrado_em: string | null;
@@ -366,7 +373,7 @@ export type JanelaPlugin =
   | { tipo: "vazio"; titulo: string };
 
 export type ConsolidadoPlugin = {
-  plugin: Plugin; simulado: true; nivel_suficiente: boolean; area_permitida: boolean;
+  plugin: Plugin; simulado: boolean; nivel_suficiente: boolean; area_permitida: boolean;
   numeros: { agentes: number; chamadas_mes: number; erros: number; custo_brl: number; execucoes: number; latencia_p95_ms: number };
   saude: {
     status: "ok" | "lento" | "fora";

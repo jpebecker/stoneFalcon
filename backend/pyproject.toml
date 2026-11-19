@@ -9,6 +9,7 @@ dependencies = [
   "sqlmodel>=0.0.22",
   "anthropic>=1.0",
   "python-dotenv>=1.0",
+  "openpyxl>=3.1",
 ]
 
 [dependency-groups]

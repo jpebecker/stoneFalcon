@@ -28,7 +28,7 @@ from ..core.db import trava as trava_db
 from ..core.identidade import Persona
 from ..core.relogio import agora
 from ..guardrails import injecao
-from .catalogo import CATALOGO, Contexto, ErroFerramenta, Especificacao
+from .catalogo import CATALOGO, AcessoNegado, Contexto, ErroFerramenta, Especificacao
 from .permissoes import avaliar
 
 FALHAS = ("erro", "lento", "fora_do_ar")
@@ -172,7 +172,7 @@ def executar(s: Session, pessoa: Persona, conector_id: str, entrada: dict, ctx: 
     if problema:
         return fim(Resultado(False, conector_id, erro=problema, tipo_erro="invalido"), "ferramenta_erro")
 
-    if esp.exige_aprovacao and not aprovado_por:
+    if (esp.exige_aprovacao or (esp.aprovacao_se and esp.aprovacao_se(s, entrada, ctx))) and not aprovado_por:
         return fim(Resultado(False, conector_id, erro="Ação sensível: aguardando confirmação de um humano.",
                              tipo_erro="aprovacao", aguardando_aprovacao=True), "ferramenta_aguardando_aprovacao")
 
@@ -187,8 +187,12 @@ def executar(s: Session, pessoa: Persona, conector_id: str, entrada: dict, ctx: 
         return fim(Resultado(False, conector_id, erro="O sistema respondeu com erro 500.", tipo_erro="falha",
                              latencia_ms=esp.latencia_ms), "ferramenta_erro")
 
+    ctx.extras["sessao"] = s            # ferramentas que guardam dados no banco (plugin Arquivos e Planilhas)
+    ctx.extras.pop("classificacao_dado", None)
     try:
         bruto = esp.executar(entrada, ctx)
+    except AcessoNegado as e:
+        return fim(Resultado(False, conector_id, erro=str(e), tipo_erro="negado"), "ferramenta_negada")
     except ErroFerramenta as e:
         return fim(Resultado(False, conector_id, erro=str(e), tipo_erro="invalido"), "ferramenta_erro")
     except Exception as e:  # sistema quebrou: registra, não derruba o agente
@@ -202,7 +206,7 @@ def executar(s: Session, pessoa: Persona, conector_id: str, entrada: dict, ctx: 
     origens = ctx.extras.get("origens")
     if origens is not None:   # dado novo herda a classificação do sistema de onde veio
         for marcador in set(mapa) - antes:
-            origens[marcador] = int(esp.classificacao)
+            origens[marcador] = max(int(esp.classificacao), int(ctx.extras.get("classificacao_dado") or 0))
     latencia = esp.latencia_ms * (8 if est.falha == "lento" else 1)
     try:
         saida = json.loads(masc)

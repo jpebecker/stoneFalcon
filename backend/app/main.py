@@ -24,6 +24,7 @@ from .api.execucoes import rotas as rotas_execucoes
 from .api.ferramentas import rotas as rotas_ferramentas
 from .api.financas import rotas as rotas_financas
 from .api.plataforma import rotas as rotas_plataforma
+from .api.arquivos import rotas as rotas_arquivos
 from .api.plugins import rotas as rotas_plugins
 from .api.processos import rotas as rotas_processos
 from .api.rotinas import rotas as rotas_rotinas
@@ -113,6 +114,7 @@ app.include_router(rotas_processos)
 app.include_router(rotas_saude)
 app.include_router(rotas_financas)
 app.include_router(rotas_roteiros)
+app.include_router(rotas_arquivos)
 app.include_router(rotas_plugins)
 app.include_router(rotas_balanceador)
 app.include_router(rotas_mapa)

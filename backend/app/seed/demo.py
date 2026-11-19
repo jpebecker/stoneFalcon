@@ -13,7 +13,7 @@ from ..agents import modelos as m
 from ..core.identidade import PERSONAS
 from ..processos.blueprint import ProcessoBlueprint
 from ..processos.tipo import ciclo as ciclo_processos
-from . import historico
+from . import arquivos_demo, historico
 from .processos_demo import CHAVES, ROTEIRO, TRABALHADORES, processo
 
 # quem cria cada um, o orçamento mensal do processo e o parecer da Segurança (só o que passa pela revisão de risco alto)
@@ -45,6 +45,7 @@ def semear(s: Session, sem: frozenset[str] | set[str] = frozenset()) -> bool:
     for chave in CHAVES:
         if chave not in sem:
             criar_processo_demo(s, chave)
+    arquivos_demo.semear(s)
     historico.gerar(s)
     return True
 

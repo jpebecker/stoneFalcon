@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { api, type Plugin } from "../api/cliente";
-import { AcoesPlugin, classeSelo, COR_ESTADO_PLUGIN, IconeCategoria, NOME_ESTADO_PLUGIN, SeloSimulado } from "../components/Plugin";
+import { AcoesPlugin, classeSelo, COR_ESTADO_PLUGIN, IconeCategoria, NOME_ESTADO_PLUGIN, SeloDoPlugin } from "../components/Plugin";
 
 export default function Plugins() {
   const q = useQuery({ queryKey: ["plugins"], queryFn: () => api<Plugin[]>("/plugins") });
@@ -18,10 +18,10 @@ export default function Plugins() {
     <div className="space-y-6">
       <div>
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-3xl">Plugins</h1><SeloSimulado />
+          <h1 className="text-3xl">Plugins</h1><span className="selo bg-papel text-tinta-2" title="A maioria dos plugins é simulada; o Arquivos e Planilhas é de verdade">simulados · 1 real</span>
         </div>
         <p className="mt-1 max-w-3xl text-tinta-2">
-          Marketplace de integrações homologadas. O plugin nunca é executado: só as ferramentas que ele traz. Integrar as coloca no
+          Marketplace de integrações homologadas. Os plugins simulados nunca são executados: só as ferramentas que eles trazem; o Arquivos e Planilhas funciona de verdade. Integrar as coloca no
           Catálogo (governança) e como passo no Estúdio. Plugin com dado confidencial ou restrito passa pela aprovação da Segurança.
         </p>
       </div>
@@ -48,7 +48,7 @@ export default function Plugins() {
                 <h2 className="truncate text-lg leading-tight"><Link to={"/plugins/" + p.id} className="hover:text-pedra-forte">{p.nome}</Link></h2>
                 <div className="mt-0.5 text-xs text-tinta-3">{p.categoria_nome}</div>
               </div>
-              <SeloSimulado />
+              <SeloDoPlugin real={p.real} />
             </div>
             <p className="mt-3 text-sm text-tinta-2">{p.descricao}</p>
             <ul className="mt-3 space-y-1 text-sm">

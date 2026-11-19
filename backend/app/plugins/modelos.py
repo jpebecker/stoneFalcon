@@ -1,4 +1,5 @@
 """Tabelas do marketplace: o que está integrado e os pedidos de integração (os sensíveis passam pelo Lucas)."""
+from sqlalchemy import JSON, Column
 from sqlmodel import Field, SQLModel
 
 # estados de um pedido
@@ -31,3 +32,24 @@ class PedidoPlugin(SQLModel, table=True):
     parecer: str | None = None
     criado_em: str
     decidido_em: str | None = None
+
+
+class ArquivoPlugin(SQLModel, table=True):
+    """Arquivo do plugin Arquivos e Planilhas (o REAL): CSV ou XLSX enviado por uma pessoa, guardado como colunas e linhas."""
+    __tablename__ = "plugin_arquivo"
+
+    id: str = Field(primary_key=True)
+    nome: str = Field(index=True)
+    formato: str                                   # "csv" | "xlsx"
+    classificacao: int = 1                         # Classificacao: 0 pública ... 3 restrita
+    areas: list = Field(default_factory=list, sa_column=Column(JSON))     # áreas que podem usar ("*" = todas)
+    dono: str = Field(index=True)                  # quem enviou
+    area_dono: str = ""
+    colunas: list = Field(default_factory=list, sa_column=Column(JSON))
+    linhas: list = Field(default_factory=list, sa_column=Column(JSON))    # lista de {coluna: valor}
+    tamanho_bytes: int = 0
+    versao: int = 1                                # sobe a cada mudança de conteúdo
+    criado_em: str
+    atualizado_em: str
+    atualizado_por: str
+    demo: bool = False                             # arquivo do estado inicial da demo

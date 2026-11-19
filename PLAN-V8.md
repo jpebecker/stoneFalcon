@@ -227,17 +227,17 @@ v7 gave the platform a live AI Map, multiple model providers and scheduled tasks
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Plugin appears in the marketplace for all areas with the badge "real"; integrating follows the existing rules (confidential/restricted files need the security approval path).
-- [ ] Upload accepts CSV and XLSX up to a size/row/column limit (shown in the UI); invalid files get a plain-language error.
-- [ ] File classification cannot exceed the uploader's access level; a file is only readable by people whose area and level cover it.
-- [ ] Tools: list files, read rows (filter), find row, append row (write → needs human confirmation when the file is confidential or above), update row; each has a JSON schema like the other catalogue tools.
-- [ ] Reads pass through masking (CPF, CNPJ, card, e-mail, phone, secrets become markers before any model); writes are recorded in the audit trail with who, which agent/process and which row.
-- [ ] Plugin page: preview grid, row count, last change, download of the current version, and the usual usage/cost/health numbers.
-- [ ] `openpyxl` added to the back-end requirements; the start scripts reinstall it automatically (verified once on Windows).
-- [ ] Reset demo restores the seeded files.
-- [ ] Back-end tests: upload/parse CSV and XLSX, permission by area and level, masking on read, append/update with audit, confirmation on confidential write.
+- [x] Plugin appears in the marketplace for all areas with the badge "real"; integrating follows the existing rules (confidential/restricted files need the security approval path).
+- [x] Upload accepts CSV and XLSX up to a size/row/column limit (shown in the UI); invalid files get a plain-language error.
+- [x] File classification cannot exceed the uploader's access level; a file is only readable by people whose area and level cover it.
+- [x] Tools: list files, read rows (filter), find row, append row (write → needs human confirmation when the file is confidential or above), update row; each has a JSON schema like the other catalogue tools.
+- [x] Reads pass through masking (CPF, CNPJ, card, e-mail, phone, secrets become markers before any model); writes are recorded in the audit trail with who, which agent/process and which row.
+- [x] Plugin page: preview grid, row count, last change, download of the current version, and the usual usage/cost/health numbers.
+- [x] `openpyxl` added to the back-end requirements; the start scripts reinstall it automatically (verified once on Windows).
+- [x] Reset demo restores the seeded files.
+- [x] Back-end tests: upload/parse CSV and XLSX, permission by area and level, masking on read, append/update with audit, confirmation on confidential write.
 
 ### 11: A Files & Sheets use for every persona
 

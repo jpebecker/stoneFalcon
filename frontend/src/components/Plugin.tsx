@@ -41,6 +41,13 @@ export function IconeCategoria({ categoria, tamanho = 40 }: { categoria: string;
   );
 }
 
+export const SeloReal = () => (
+  <span className="selo bg-pedra-fundo text-pedra-forte" title="Este plugin funciona de verdade: guarda e lê os seus arquivos">real</span>
+);
+
+/** O selo do plugin: "real" quando funciona de verdade, "simulado" nos demais. */
+export const SeloDoPlugin = ({ real }: { real?: boolean }) => (real ? <SeloReal /> : <SeloSimulado />);
+
 export const SeloSimulado = () => (
   <span className="selo bg-papel text-tinta-2" title="Protótipo acadêmico: nenhum sistema externo real é chamado">simulado</span>
 );
