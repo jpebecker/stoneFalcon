@@ -9,7 +9,7 @@ from .. import guardrails
 from ..core.db import sessao
 from ..core.identidade import ENGENHARIA_PLATAFORMA, Persona, exigir, usuario_atual
 from ..observability import avaliar_seguro
-from ..tools import executor
+from ..tools import executor, saidas
 from ..plugins.catalogo import PLUGINS
 from ..tools.catalogo import CATALOGO, MODULOS, TODAS, Contexto, disponiveis
 from ..tools.permissoes import avaliar
@@ -32,10 +32,10 @@ def _publico(esp, pessoa: Persona, s: Session) -> dict:
         "modulo": esp.modulo, "modulo_nome": MODULOS[esp.modulo],
         "classificacao": esp.classificacao.name.lower(),
         "areas": ["todas"] if TODAS in esp.areas else list(esp.areas),
-        "origem": ("plugin %s" % PLUGINS[esp.plugin].nome) if esp.plugin else "plataforma", "plugin": esp.plugin,
+        "origem": (("plugin interno %s" if PLUGINS[esp.plugin].interno else "plugin %s") % PLUGINS[esp.plugin].nome) if esp.plugin else "plataforma", "plugin": esp.plugin,
         "acao": esp.acao, "exige_aprovacao": esp.exige_aprovacao,
         "limite_por_minuto": esp.limite_por_minuto,
-        "parametros": esp.parametros, "obrigatorios": list(esp.obrigatorios),
+        "parametros": esp.parametros, "obrigatorios": list(esp.obrigatorios), "campos_saida": saidas.campos(esp.id),
         "ativo": est.ativo, "falha": est.falha,
         "disponivel_para_mim": v.permitido, "motivo": v.motivo,
     }

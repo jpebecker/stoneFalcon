@@ -1,4 +1,4 @@
-"""Os 9 plugins da vitrine (os 8 da v6 e o Google Sheets da v7) e as ferramentas que cada um traz.
+"""Os 10 plugins da vitrine (os 8 da v6 e o Google Sheets da v7) e as ferramentas que cada um traz.
 
 Importado SÓ por `tools/catalogo.py` (no fim dele), que registra as ferramentas no catálogo com a marca `plugin=<id>`:
 elas existem sempre, mas só valem enquanto o plugin está integrado (`tools/permissoes.py` confere). Quem quiser os
@@ -11,6 +11,7 @@ import re
 from ..core.identidade import Classificacao
 from ..tools import dados_ficticios as fx
 from ..tools.catalogo import TODAS, Contexto, ErroFerramenta, Especificacao
+from . import arquivos as arq
 from . import planilhas
 from . import sistemas as sx
 
@@ -130,15 +131,46 @@ _I, _C = Classificacao.INTERNA, Classificacao.CONFIDENCIAL
 
 
 def _f(plugin: str, id_: str, nome: str, descricao: str, classif, areas, acao: str, parametros: dict, obrigatorios: tuple,
-       executar, latencia: int) -> Especificacao:
+       executar, latencia: int, aprovacao_se=None) -> Especificacao:
     # mesma regra do catálogo da plataforma: escrita em dado confidencial ou restrito só com confirmação humana
     return Especificacao(id_, nome, descricao, "plugins", classif, areas, acao, parametros, obrigatorios, executar,
                          exige_aprovacao=acao == "escrita" and classif >= Classificacao.CONFIDENCIAL,
                          limite_por_minuto=10 if acao == "escrita" else 30,
-                         latencia_ms=latencia, plugin=plugin)
+                         latencia_ms=latencia, plugin=plugin, aprovacao_se=aprovacao_se)
 
+
+_ARQ = {"arquivo": {"type": "string", "description": "Nome ou código do arquivo (veja a ferramenta de listar arquivos)."}}
+_COL = {"coluna": {"type": "string", "description": "Nome da coluna do arquivo."}}
 
 FERRAMENTAS: list[Especificacao] = [
+    # Arquivos e Planilhas (REAL): quem pode usar CADA arquivo é conferido por área e nível dentro da ferramenta; a escrita em
+    # arquivo confidencial ou restrito espera a confirmação de um humano (aprovacao_se).
+    _f("arquivos", "arquivos_listar", "Listar arquivos (Arquivos e Planilhas)",
+       "Lista os arquivos CSV e planilhas que a sua área pode usar, com as colunas e o número de linhas de cada um.",
+       _I, (TODAS,), "leitura", {}, (), arq.ferramenta_listar, 60),
+    _f("arquivos", "arquivos_ler_linhas", "Ler linhas de um arquivo (Arquivos e Planilhas)",
+       "Lê as linhas de um arquivo ou planilha. Com coluna e valor, devolve só as linhas que batem. Cada linha vem com o seu número.",
+       _I, (TODAS,), "leitura",
+       {**_ARQ, "coluna": {"type": "string", "description": "Coluna do filtro (opcional)."},
+        "valor": {"type": "string", "description": "Valor procurado na coluna (opcional)."},
+        "limite": {"type": "integer", "description": "Quantas linhas devolver (1 a 100; padrão 20)."}},
+       ("arquivo",), arq.ferramenta_ler, 90),
+    _f("arquivos", "arquivos_buscar_linha", "Achar uma linha (Arquivos e Planilhas)",
+       "Acha a primeira linha de um arquivo em que uma coluna tem exatamente o valor informado (por exemplo, um código ou um nome).",
+       _I, (TODAS,), "leitura", {**_ARQ, **_COL, "valor": {"type": "string", "description": "Valor procurado."}},
+       ("arquivo", "coluna", "valor"), arq.ferramenta_buscar, 90),
+    _f("arquivos", "arquivos_adicionar_linha", "Acrescentar uma linha (Arquivos e Planilhas)",
+       "Acrescenta uma linha no fim de um arquivo. Em arquivo confidencial ou restrito, um humano confirma antes.",
+       _I, (TODAS,), "escrita",
+       {**_ARQ, "valores": {"type": "string", "description": "Objeto JSON com o valor de cada coluna, por exemplo {\"nome\": \"Ana\"}."}},
+       ("arquivo", "valores"), arq.ferramenta_adicionar, 140, aprovacao_se=arq.precisa_confirmacao),
+    _f("arquivos", "arquivos_atualizar_linha", "Atualizar uma linha (Arquivos e Planilhas)",
+       "Muda o valor de uma ou mais colunas de UMA linha, achada por uma coluna-chave. Em arquivo confidencial ou restrito, um humano confirma antes.",
+       _I, (TODAS,), "escrita",
+       {**_ARQ, "coluna_chave": {"type": "string", "description": "Coluna que identifica a linha (por exemplo, um código)."},
+        "valor_chave": {"type": "string", "description": "Valor da coluna-chave na linha a mudar."},
+        "valores": {"type": "string", "description": "Objeto JSON com as colunas a mudar e o novo valor de cada uma."}},
+       ("arquivo", "coluna_chave", "valor_chave", "valores"), arq.ferramenta_atualizar, 140, aprovacao_se=arq.precisa_confirmacao),
     _f("zendesk", "zendesk_ler_chamado", "Ler chamado (Zendesk)",
        "Lê um chamado da fila do Zendesk: assunto, solicitante, prioridade, status e a mensagem do lojista.",
        _I, ("atendimento",), "leitura", {"chamado_id": {"type": "string", "description": "Código do chamado, por exemplo Z-4812."}},
@@ -207,6 +239,9 @@ FERRAMENTAS: list[Especificacao] = [
 
 # Metadados de vitrine (a classificação e as áreas valem para o plugin inteiro: vêm das ferramentas dele)
 VITRINE = [
+    {"id": "arquivos", "nome": "Arquivos e Planilhas", "categoria": "planilhas", "categoria_nome": "Planilhas", "janela": False, "real": True,
+     "descricao": "Plugin de verdade, sem internet: envie um CSV ou Excel, escolha quem pode usar e a classificação, e agentes e "
+                  "processos leem, acham, acrescentam e atualizam linhas, com dado pessoal protegido e tudo na auditoria."},
     {"id": "zendesk", "nome": "Zendesk", "categoria": "helpdesk", "categoria_nome": "Helpdesk", "janela": True,
      "descricao": "Fila de chamados de atendimento: lê o chamado do lojista e publica a resposta."},
     {"id": "salesforce", "nome": "Salesforce", "categoria": "crm", "categoria_nome": "CRM", "janela": False,

@@ -19,7 +19,11 @@ import Financas from "./pages/Financas";
 import Inicio from "./pages/Inicio";
 import Painel from "./pages/Painel";
 import PluginPagina from "./pages/PluginPagina";
+import PluginCriar from "./pages/PluginCriar";
 import Plugins from "./pages/Plugins";
+import ProcessoDetalhe from "./pages/ProcessoDetalhe";
+import ProcessoEditor from "./pages/ProcessoEditor";
+import Processos from "./pages/Processos";
 import Perguntas from "./pages/Perguntas";
 import Revisoes from "./pages/Revisoes";
 import RoteiroPagina from "./pages/RoteiroPagina";
@@ -39,6 +43,7 @@ const NAV: { aba: string; para: string; rotulo: string }[] = [
   { aba: "mapa", para: "/mapa", rotulo: "Mapa de IA" },
   { aba: "estudio", para: "/estudio", rotulo: "Estúdio" },
   { aba: "agentes", para: "/agentes", rotulo: "Agentes" },
+  { aba: "processos", para: "/processos", rotulo: "Processos" },
   { aba: "plugins", para: "/plugins", rotulo: "Plugins" },
   { aba: "revisoes", para: "/revisoes", rotulo: "Revisões" },
   { aba: "execucoes", para: "/execucoes", rotulo: "Execuções" },
@@ -192,11 +197,16 @@ export default function App() {
                 <Route path="/roteiro/:id" element={<RoteiroPagina pessoa={pessoa} />} />
                 <Route path="/mapa" element={<Guarda pessoa={pessoa} aba="mapa"><MapaIAPagina /></Guarda>} />
                 <Route path="/perguntas" element={<Guarda pessoa={pessoa} aba="perguntas"><Perguntas /></Guarda>} />
-                <Route path="/plugins" element={<Guarda pessoa={pessoa} aba="plugins"><Plugins /></Guarda>} />
+                <Route path="/plugins" element={<Guarda pessoa={pessoa} aba="plugins"><Plugins pessoa={pessoa} /></Guarda>} />
+                <Route path="/plugins/criar" element={<Guarda pessoa={pessoa} aba="plugins"><PluginCriar /></Guarda>} />
                 <Route path="/plugins/:id" element={<Guarda pessoa={pessoa} aba="plugins"><PluginPagina pessoa={pessoa} /></Guarda>} />
                 <Route path="/estudio" element={<Guarda pessoa={pessoa} aba="estudio"><Estudio pessoa={pessoa} /></Guarda>} />
                 <Route path="/agentes" element={<Agentes pessoa={pessoa} />} />
                 <Route path="/agentes/:id" element={<AgenteDetalhe pessoa={pessoa} />} />
+                <Route path="/processos" element={<Guarda pessoa={pessoa} aba="processos"><Processos pessoa={pessoa} /></Guarda>} />
+                <Route path="/processos/novo" element={<Guarda pessoa={pessoa} aba="estudio"><ProcessoEditor pessoa={pessoa} /></Guarda>} />
+                <Route path="/processos/:id" element={<Guarda pessoa={pessoa} aba="processos"><ProcessoDetalhe pessoa={pessoa} /></Guarda>} />
+                <Route path="/processos/:id/editar" element={<Guarda pessoa={pessoa} aba="estudio"><ProcessoEditor pessoa={pessoa} /></Guarda>} />
                 <Route path="/revisoes" element={<Guarda pessoa={pessoa} aba="revisoes"><Revisoes /></Guarda>} />
                 <Route path="/saude" element={<PaginaSaude />} />
                 <Route path="/alertas" element={<Alertas />} />

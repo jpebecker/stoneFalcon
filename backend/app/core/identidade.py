@@ -30,6 +30,7 @@ REVISOR_SEGURANCA = "revisor_seguranca"  # aprova publicação de agentes de ris
 ENGENHARIA_PLATAFORMA = "engenharia"   # registra conectores no catálogo
 CONSULTA_COLABORADORES = "consulta_colaboradores"   # busca outros colaboradores por nome (RH)
 GESTOR_IA = "gestor_ia"                # vê custos, ROI, saúde e auditoria de toda a empresa
+ANALISTA_IA = "ai_analyst"             # v8: analista de IA: decide os pedidos "Crie o seu plugin" (a Helena)
 
 
 @dataclass(frozen=True)
@@ -83,7 +84,7 @@ PERSONAS = {p.id: p for p in [
        Classificacao.CONFIDENCIAL, REVISOR_SEGURANCA, ENGENHARIA_PLATAFORMA, matricula="C605", cor="#6B5BD0",
        roteiro="lucas", descricao="Governa o catálogo e revisa só os agentes de risco alto."),
     _p("helena", "Helena Castro", "gestao", "CoE de IA", "Gestora do CoE de IA",
-       Classificacao.INTERNA, GESTOR_IA, matricula="C606", cor="#10201A", roteiro="helena",
+       Classificacao.INTERNA, GESTOR_IA, ANALISTA_IA, matricula="C606", cor="#10201A", roteiro="helena",
        descricao="Prova o retorno e controla o custo da IA na empresa."),
 ]}
 
@@ -117,6 +118,7 @@ ABAS: dict[str, tuple[str, ...] | None] = {
     "plugins": None,
     "estudio": (CRIADOR,),
     "agentes": None,
+    "processos": None,                              # v8: todos veem; só criadores da área editam (a API confere)
     "revisoes": (REVISOR_SEGURANCA,),
     "execucoes": None,
     "saude": None,

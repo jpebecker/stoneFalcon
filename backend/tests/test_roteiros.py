@@ -8,6 +8,7 @@ import pytest
 
 from app.roteiros.catalogo import ROTEIROS
 from app.roteiros.perguntas import PERGUNTAS
+from app.seed.processos_demo import NOME_AGENTE, processo
 from app.tools import dados_ficticios as fx
 from tests.conftest import como
 
@@ -62,6 +63,12 @@ def _executar(api, persona: str, agente_id: str, entrada: dict) -> dict:
     return r.json()
 
 
+def _executar_processo(api, persona: str, processo_id: str, entrada: dict) -> dict:
+    r = api.post(f"{V1}/processos/{processo_id}/executar", json={"entrada": entrada}, headers=como(persona))
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
 def _texto_final(exe: dict, passo: str) -> str:
     return exe["passos"][passo]["saida"] or ""
 
@@ -85,51 +92,82 @@ def _fim(api, roteiro_id: str, agente_id: str | None = None):
     return res
 
 
+# ---------------------------------------------------------------- v8: agente trabalhador -> processo
+def _agente_e_processo(api, roteiro_id: str, persona: str, chave: str, esperado: str):
+    """Passos 'criar' e 'montar' dos roteiros: o Estúdio monta o trabalhador (que só lê e raciocina), a pessoa o publica e
+    monta o processo com os blocos do roteiro. Devolve (agente_id, processo_blueprint, sugestão)."""
+    bp, sug = _criar(api, roteiro_id, persona, esperado)
+    trabalhador = sug["trabalhador"]
+    assert [p["tipo"] for p in trabalhador["passos"]] == ["agente"]      # um agente, uma tarefa
+    aid = _salvar(api, persona, trabalhador)
+    assert _publicar(api, persona, aid)["estado"] == "publicado"
+    return aid, processo(chave, aid, slack=chave == "troca"), sug
+
+
+def _testar_processo(api, roteiro_id: str, persona: str, pbp: dict) -> dict:
+    entrada = _passo(roteiro_id, "testar").preenche["entrada"]
+    r = api.post(f"{V1}/processos/testar", json={"blueprint": pbp, "entrada": entrada}, headers=como(persona))
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
+def _salvar_processo(api, persona: str, pbp: dict) -> str:
+    r = api.post(f"{V1}/processos", json={"blueprint": pbp, "nota": "roteiro"}, headers=como(persona))
+    assert r.status_code == 200, r.text
+    return r.json()["id"]
+
+
+def _publicar_processo(api, persona: str, pid: str) -> dict:
+    r = api.post(f"{V1}/processos/{pid}/publicar", headers=como(persona))
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
 # ---------------------------------------------------------------- Marina
 def test_roteiro_marina(api):
     _iniciar(api, "marina")
-    # estado inicial do roteiro: o agente dela ainda não existe
-    nomes = [a["nome"] for a in api.get(f"{V1}/agentes", headers=como("marina")).json()]
-    assert "Resposta a dúvidas de lojistas" not in nomes
+    # estado inicial do roteiro: nem o agente nem o processo dela existem ainda
+    assert "Resposta a dúvidas de lojistas" not in [a["nome"] for a in api.get(f"{V1}/processos", headers=como("marina")).json()]
+    assert NOME_AGENTE["duvida"] not in [a["nome"] for a in api.get(f"{V1}/agentes", headers=como("marina")).json()]
 
-    bp, sug = _criar(api, "marina", "marina", "duvida_lojista")
-    assert bp["minutos_manual"] == 8
-    assert sug["risco"]["nivel"] == "baixo"
-    teste = _testar(api, "marina", "marina", bp)
+    aid, pbp, sug = _agente_e_processo(api, "marina", "marina", "duvida", "duvida_lojista")
+    assert pbp["minutos_manual"] == 8 and sug["risco"]["nivel"] == "baixo"
+    teste = _testar_processo(api, "marina", "marina", pbp)
     assert teste["status"] == "concluida"
     assert "estorno" in _texto_final(teste, "resposta").lower() or "faturas" in _texto_final(teste, "resposta")
     assert "resposta simulada" not in _texto_final(teste, "resposta").lower()
 
-    aid = _salvar(api, "marina", bp)
-    assert _publicar(api, "marina", aid)["estado"] == "publicado"      # risco baixo: sem fila
+    pid = _salvar_processo(api, "marina", pbp)
+    assert _publicar_processo(api, "marina", pid)["estado"] == "publicado"      # risco baixo: sem fila
 
-    exe = _executar(api, "marina", aid, _passo("marina", "usar").preenche["entrada"])
+    exe = _executar_processo(api, "marina", pid, _passo("marina", "usar").preenche["entrada"])
     assert exe["status"] == "concluida"
     assert "Ótica Visão Clara" in _texto_final(exe, "resposta")
     assert exe["passos"]["cadastro"]["duracao_estimada_ms"] and exe["passos"]["politica"]["duracao_estimada_ms"]
-    res = _fim(api, "marina", aid)
+    res = _fim(api, "marina", pid)
     assert res["execucao"]["id"] == exe["id"] and res["origem"] == "medido"
 
 
 # ---------------------------------------------------------------- Rafael
 def test_roteiro_rafael(api):
     _iniciar(api, "rafael")
-    bp, sug = _criar(api, "rafael", "rafael", "triagem_chargeback")
+    aid, pbp, sug = _agente_e_processo(api, "rafael", "rafael", "triagem", "triagem_chargeback")
     assert sug["risco"]["nivel"] == "alto" and sug["risco"]["exige_revisao_seguranca"]
+    assert sug["acoes_no_processo"]                                         # abrir chamado e reter repasse ficam no processo
 
-    seguro = _testar(api, "rafael", "rafael", bp)                      # L1001: sem risco
+    seguro = _testar_processo(api, "rafael", "rafael", pbp)                 # L1001: sem risco
     assert seguro["status"] == "concluida" and not fx.BLOQUEIOS
 
-    aid = _salvar(api, "rafael", bp)
-    assert _publicar(api, "rafael", aid)["estado"] == "em_revisao"     # risco alto: quatro olhos
+    pid = _salvar_processo(api, "rafael", pbp)
+    assert _publicar_processo(api, "rafael", pid)["estado"] == "em_revisao"  # risco alto: quatro olhos
     fila = api.get(f"{V1}/revisoes", headers=como("lucas")).json()
-    assert [i["agente"]["id"] for i in fila] == [aid]
+    assert [i["agente"]["id"] for i in fila] == [pid] and fila[0]["tipo"] == "processo"
     parecer = _passo("rafael", "revisao").preenche["parecer"]
-    r = api.post(f"{V1}/agentes/{aid}/revisao", json={"aprovar": True, "parecer": parecer}, headers=como("lucas"))
+    r = api.post(f"{V1}/processos/{pid}/revisao", json={"aprovar": True, "parecer": parecer}, headers=como("lucas"))
     assert r.status_code == 200 and r.json()["estado"] == "publicado"
 
-    exe = _executar(api, "rafael", aid, _passo("rafael", "usar").preenche["entrada"])
-    assert exe["status"] == "aguardando_aprovacao"                      # a retenção pausa
+    exe = _executar_processo(api, "rafael", pid, _passo("rafael", "usar").preenche["entrada"])
+    assert exe["status"] == "aguardando_aprovacao"                          # a retenção pausa
     assert not fx.BLOQUEIOS
     assert "Eletrônicos Relâmpago" in _texto_final(exe, "analise") and "Risco ALTO" in _texto_final(exe, "analise")
     assert exe["passos"]["analise"]["modelo"] and exe["passos"]["analise"]["motivos_modelo"]   # o roteador explica
@@ -139,21 +177,20 @@ def test_roteiro_rafael(api):
 
     auditoria = api.get(f"{V1}/auditoria", headers=como("helena")).json()
     assert auditoria["cadeia"]["integra"] is True
-    res = _fim(api, "rafael", aid)
+    res = _fim(api, "rafael", pid)
     assert res["execucao"]["status"] == "concluida"
 
 
 # ---------------------------------------------------------------- Carla
 def test_roteiro_carla(api):
     _iniciar(api, "carla")
-    bp, sug = _criar(api, "carla", "carla", "ferias_colaborador")
+    aid, pbp, sug = _agente_e_processo(api, "carla", "carla", "ferias", "ferias_colaborador")
     assert sug["risco"]["nivel"] == "medio"
-    teste = _testar(api, "carla", "carla", bp)
-    assert teste["status"] == "concluida"
+    assert _testar_processo(api, "carla", "carla", pbp)["status"] == "concluida"
 
-    aid = _salvar(api, "carla", bp)
-    assert _publicar(api, "carla", aid)["estado"] == "publicado"
-    exe = _executar(api, "carla", aid, _passo("carla", "usar").preenche["entrada"])
+    pid = _salvar_processo(api, "carla", pbp)
+    assert _publicar_processo(api, "carla", pid)["estado"] == "publicado"
+    exe = _executar_processo(api, "carla", pid, _passo("carla", "usar").preenche["entrada"])
     assert exe["status"] == "concluida"
     final = _texto_final(exe, "resposta")
     assert "18 dias" in final and "Bruno" in final
@@ -167,7 +204,7 @@ def test_roteiro_carla(api):
     assert cpf not in bruto and email not in bruto and cpf[:3] + cpf[3:] not in final
     ev = [e for e in auditoria["eventos"] if e["tipo"] == "ferramenta_executada" and e["dados"].get("conector") == "consultar_colaborador"]
     assert ev and any(m["tipo"] in ("cpf", "email") or "CPF" in str(m) for e in ev for m in e["dados"].get("mascarados", []))
-    _fim(api, "carla", aid)
+    _fim(api, "carla", pid)
 
 
 # ---------------------------------------------------------------- Thiago
@@ -183,32 +220,29 @@ def test_roteiro_thiago(api):
     cat = {f["id"]: f for f in api.get(f"{V1}/ferramentas", headers=como("thiago")).json()["ferramentas"]}
     assert cat["slack_enviar_mensagem"]["origem"] == "plugin Slack"
 
-    bp, sug = _criar(api, "thiago", "thiago", "troca_maquininha_estoque")
+    aid, pbp, sug = _agente_e_processo(api, "thiago", "thiago", "troca", "troca_maquininha_estoque")
     assert sug["risco"]["nivel"] == "medio"
-    assert sug["niveis"][0] == ["cadastro", "regra", "estoque"]         # três passos em paralelo
-    assert "canal" in [p["id"] for p in bp["passos"]]                   # depois do chamado, avisa o canal
-    teste = _testar(api, "thiago", "thiago", bp)
-    assert teste["status"] == "concluida"
+    assert sug["niveis"][0] == ["cadastro", "regra", "estoque"]             # três passos em paralelo
+    assert "canal" in [b["id"] for b in pbp["blocos"]]                       # depois do chamado, avisa o canal
+    assert _testar_processo(api, "thiago", "thiago", pbp)["status"] == "concluida"
 
-    aid = _salvar(api, "thiago", bp)
-    assert _publicar(api, "thiago", aid)["estado"] == "publicado"
-    exe = _executar(api, "thiago", aid, _passo("thiago", "usar").preenche["entrada"])
+    pid = _salvar_processo(api, "thiago", pbp)
+    assert _publicar_processo(api, "thiago", pid)["estado"] == "publicado"
+    exe = _executar_processo(api, "thiago", pid, _passo("thiago", "usar").preenche["entrada"])
     assert exe["status"] == "concluida"
-    assert "estoque baixo" in _texto_final(exe, "chamado") and "Maquininha Smart" in _texto_final(exe, "chamado")
+    assert "estoque baixo" in _texto_final(exe, "analise") and "Maquininha Smart" in _texto_final(exe, "analise")
     assert fx.CHAMADOS[-1]["fila"] == "logistica" and "Smart" in fx.CHAMADOS[-1]["titulo"]
-    assert fx.NOTIFICACOES, "o aviso ao lojista foi enviado"
     msg = sx.SLACK[-1]
-    assert msg["canal"] == "#logistica" and "Smart" in msg["mensagem"] and fx.CHAMADOS[-1]["id"] in msg["mensagem"]
-    assert "#logistica" in _texto_final(exe, "canal")
+    assert msg["canal"] == "#logistica" and "Smart" in msg["mensagem"]
     inicios = [exe["passos"][p]["duracao_estimada_ms"] for p in ("cadastro", "regra", "estoque")]
-    assert exe["duracao_estimada_ms"] < sum(inicios) + exe["passos"]["chamado"]["duracao_estimada_ms"] +         exe["passos"]["aviso"]["duracao_estimada_ms"] + exe["passos"]["canal"]["duracao_estimada_ms"]   # paralelo: não soma
+    assert exe["duracao_estimada_ms"] < sum(inicios) + sum(exe["passos"][p]["duracao_estimada_ms"] for p in ("analise", "chamado", "canal"))   # paralelo: não soma
 
-    # passo 'canal': a página consolidada do Slack mostra a mensagem que o agente publicou
+    # passo 'canal': a página consolidada do Slack mostra a mensagem que o processo publicou
     pg = api.get(f"{V1}/plugins/slack/consolidado", headers=como("thiago")).json()
     canal = next(c for c in pg["janela"]["canais"] if c["canal"] == "#logistica")
-    assert any("Smart" in m["texto"] and "Troca de maquininha com estoque" in m["autor"] for m in canal["mensagens"])
-    assert pg["numeros"]["chamadas_mes"] >= 2 and [a["nome"] for a in pg["agentes"]] == ["Troca de maquininha com estoque"]
-    res = _fim(api, "thiago", aid)
+    assert any("Smart" in m["texto"] for m in canal["mensagens"])
+    assert pg["numeros"]["chamadas_mes"] >= 1
+    res = _fim(api, "thiago", pid)
     assert any("Slack" in p for p in ROTEIROS["thiago"].to_be["passos"] + ROTEIROS["thiago"].as_is["passos"])   # o cartão considera o aviso ao canal
     assert res["execucao"]["id"] == exe["id"]
 
@@ -222,27 +256,27 @@ def test_roteiro_thiago(api):
 def test_roteiro_lucas(api):
     _iniciar(api, "lucas")
     fila = api.get(f"{V1}/revisoes", headers=como("lucas")).json()
-    assert len(fila) == 1 and fila[0]["agente"]["nome"] == "Triagem de chargebacks"
-    assert any("Slack" in str(m["depois"]) or "enviar_notificacao" in str(m["depois"]) for m in fila[0]["mudancas"])
+    assert len(fila) == 1 and fila[0]["tipo"] == "processo" and fila[0]["agente"]["nome"] == "Triagem de chargebacks"
+    assert any(m["tipo"] == "adicionado" and "Slack" in str(m["depois"]) for m in fila[0]["mudancas"])
     parecer = _passo("lucas", "revisao").preenche["parecer"]
-    r = api.post(f"{V1}/agentes/{fila[0]['agente']['id']}/revisao", json={"aprovar": True, "parecer": parecer},
+    r = api.post(f"{V1}/processos/{fila[0]['agente']['id']}/revisao", json={"aprovar": True, "parecer": parecer},
                  headers=como("lucas"))
     assert r.status_code == 200 and r.json()["estado"] == "publicado"
 
-    agentes = api.get(f"{V1}/agentes", headers=como("marina")).json()
-    duvida = next(a for a in agentes if a["nome"] == "Resposta a dúvidas de lojistas")
+    processos = api.get(f"{V1}/processos", headers=como("marina")).json()
+    duvida = next(a for a in processos if a["nome"] == "Resposta a dúvidas de lojistas")
     f = api.post(f"{V1}/ferramentas/consultar_lojista/falha", json={"falha": "fora_do_ar"}, headers=como("lucas"))
     assert f.status_code == 200
-    exe = _executar(api, "marina", duvida["id"], _passo("lucas", "usar").preenche["entrada"])
+    exe = _executar_processo(api, "marina", duvida["id"], _passo("lucas", "usar").preenche["entrada"])
     assert exe["status"] == "escalada" and exe["motivo"]
     assert api.get(f"{V1}/notificacoes/contagem", headers=como("marina")).json()["criticos"] >= 1
 
-    p = api.post(f"{V1}/agentes/{duvida['id']}/pausar", json={"motivo": "Sistema de cadastro fora do ar"}, headers=como("lucas"))
+    p = api.post(f"{V1}/processos/{duvida['id']}/pausar", json={"motivo": "Sistema de cadastro fora do ar"}, headers=como("lucas"))
     assert p.status_code == 200 and p.json()["estado"] == "pausado"
     api.post(f"{V1}/ferramentas/consultar_lojista/falha", json={"falha": None}, headers=como("lucas"))
     abertos = [a for a in api.get(f"{V1}/alertas", headers=como("marina")).json() if not a.get("resolvido_em")]
     assert not [a for a in abertos if a["regra"] == "conector_fora"]    # o alerta fecha sozinho
-    assert api.post(f"{V1}/agentes/{duvida['id']}/retomar", headers=como("lucas")).json()["estado"] == "publicado"
+    assert api.post(f"{V1}/processos/{duvida['id']}/retomar", headers=como("lucas")).json()["estado"] == "publicado"
 
 
 # ---------------------------------------------------------------- Helena
@@ -281,12 +315,12 @@ def test_estrutura_dos_roteiros(api, rid):
 
 def test_reiniciar_roteiro_devolve_o_estado_inicial(api):
     def foto():
-        return sorted(a["nome"] for a in api.get(f"{V1}/agentes", headers=como("helena")).json())
+        return (sorted(a["nome"] for a in api.get(f"{V1}/agentes", headers=como("helena")).json()),
+                sorted(p["nome"] for p in api.get(f"{V1}/processos", headers=como("helena")).json()))
     _iniciar(api, "marina")
     inicial = foto()
-    bp, _ = _criar(api, "marina", "marina", "duvida_lojista")
-    aid = _salvar(api, "marina", bp)
-    _publicar(api, "marina", aid)
+    aid, pbp, _ = _agente_e_processo(api, "marina", "marina", "duvida", "duvida_lojista")
+    _publicar_processo(api, "marina", _salvar_processo(api, "marina", pbp))
     assert foto() != inicial
     _iniciar(api, "marina")
     assert foto() == inicial and not fx.CHAMADOS
@@ -318,19 +352,20 @@ def test_formato_antigo_de_campos_continua_valido():
 
 # ---------------------------------------------------------------- extensão copiloto
 def test_extensao_sugere_o_agente_e_preenche_os_campos(api):
-    _iniciar(api, "helena")   # estado completo: 3 agentes publicados
+    _iniciar(api, "helena")   # estado completo: agentes e processos publicados
     trecho = ("Atenção, time de risco: o lojista Eletrônicos Relâmpago (L1003) recebeu um volume incomum de contestações "
               "nos últimos dias. Peço uma análise de chargebacks.")
     r = api.post(f"{V1}/extensao/analisar", json={"trecho": trecho}, headers=como("rafael")).json()
     assert r["lojista"]["id"] == "L1003"
     melhor = r["agentes"][0]
-    assert melhor["nome"] == "Triagem de chargebacks" and r["sugerido"] == melhor["id"]
+    assert melhor["nome"] == "Triagem de chargebacks" and melhor["tipo"] == "processo" and r["sugerido"] == melhor["id"]
     assert melhor["preenchido"] == {"lojista_id": "L1003"} and "Lojista: Eletrônicos Relâmpago" in melhor["detectado"]
+    assert {x["tipo"] for x in r["agentes"]} == {"processo", "agente"}          # processos e agentes trabalhadores, juntos
 
     duvida = ("Oi! Em quanto tempo o estorno cai para o cliente? Equipe da Padaria Pão Dourado.")
     r = api.post(f"{V1}/extensao/analisar", json={"trecho": duvida}, headers=como("marina")).json()
     a = r["agentes"][0]
-    assert a["nome"] == "Resposta a dúvidas de lojistas" and a["preenchido"]["lojista_id"] == "L1001"
+    assert a["nome"] == "Resposta a dúvidas de lojistas" and a["tipo"] == "processo" and a["preenchido"]["lojista_id"] == "L1001"
     assert a["preenchido"]["pergunta"] == duvida
     assert api.post(f"{V1}/extensao/analisar", json={"trecho": ""}, headers=como("marina")).json()["sugerido"] is None
 
@@ -349,7 +384,7 @@ def test_resultado_de_todos_os_roteiros_responde(api):
         d = r.json()
         assert d["linhas"] or d["indicadores"]
     ind = {i["nome"]: i for i in api.get(f"{V1}/roteiros/lucas/resultado", headers=como("lucas")).json()["indicadores"]}
-    assert ind["Agentes publicados sem código novo"]["valor"] == 3
+    assert ind["Agentes e processos publicados sem código novo"]["valor"] == 13
     assert ind["Revisões de segurança feitas"]["valor"] == 1
 
 
@@ -363,7 +398,7 @@ def test_reiniciar_fora_do_modo_demo_so_o_coe(api, monkeypatch):
 
 def test_resultado_nao_vaza_agente_de_outra_area(api):
     _iniciar(api, "helena")
-    triagem = next(a for a in api.get(f"{V1}/agentes", headers=como("helena")).json() if a["nome"] == "Triagem de chargebacks")
+    triagem = next(a for a in api.get(f"{V1}/processos", headers=como("helena")).json() if a["nome"] == "Triagem de chargebacks")
     r = api.get(f"{V1}/roteiros/marina/resultado", params={"agente_id": triagem["id"]}, headers=como("marina"))
     assert r.status_code == 403
     assert api.get(f"{V1}/roteiros/rafael/resultado", params={"agente_id": triagem["id"]}, headers=como("rafael")).status_code == 200
@@ -371,11 +406,11 @@ def test_resultado_nao_vaza_agente_de_outra_area(api):
 
 def test_erros_diz_o_tamanho_da_amostra(api):
     _iniciar(api, "marina")
-    bp, _ = _criar(api, "marina", "marina", "duvida_lojista")
-    aid = _salvar(api, "marina", bp)
-    _publicar(api, "marina", aid)
-    _executar(api, "marina", aid, _passo("marina", "usar").preenche["entrada"])
-    linha = next(l for l in _fim(api, "marina", aid)["linhas"] if l["criterio"].startswith("Erros"))
+    aid, pbp, _ = _agente_e_processo(api, "marina", "marina", "duvida", "duvida_lojista")
+    pid = _salvar_processo(api, "marina", pbp)
+    _publicar_processo(api, "marina", pid)
+    _executar_processo(api, "marina", pid, _passo("marina", "usar").preenche["entrada"])
+    linha = next(l for l in _fim(api, "marina", pid)["linhas"] if l["criterio"].startswith("Erros"))
     assert linha["to_be"] == 0.0 and "1 execução" in linha["origem_to_be"] and "amostra pequena" in linha["origem_to_be"]
     assert linha["origem_as_is"].startswith("premissa")
 
@@ -432,3 +467,42 @@ def test_texto_selecionado_nao_vai_na_url():
 def test_so_o_rh_busca_outros_colaboradores(api):
     assert api.get(f"{V1}/colaboradores", params={"q": "bruno"}, headers=como("helena")).json()["itens"][0]["eu"] is True
     assert len(api.get(f"{V1}/colaboradores", params={"q": "bruno"}, headers=como("helena")).json()["itens"]) == 1
+
+
+def test_reiniciar_a_demo_devolve_o_estado_inicial_exato(api, sessao):
+    """Reset demo: agentes trabalhadores, processos (estado e versão), histórico gerado e trilha voltam ao estado inicial."""
+    from sqlmodel import select
+    from app.runtime import modelos as rm
+    h = como("helena")
+
+    def foto():
+        agentes = sorted((a["nome"], a["estado"]) for a in api.get(f"{V1}/agentes", headers=h).json())
+        processos = sorted((p["nome"], p["estado"], p["versao_publicada"]) for p in api.get(f"{V1}/processos", headers=h).json())
+        n = len(api.get(f"{V1}/financas/resumo?dias=30", headers=h).json()["por_dia"])
+        return agentes, processos, n
+
+    assert api.post(f"{V1}/demo/reiniciar", headers=h).json()["ok"]
+    inicial = foto()
+    assert len(inicial[0]) == 4 and len(inicial[1]) == 9 and all(p[1] == "publicado" for p in inicial[1])
+    pid = next(p["id"] for p in api.get(f"{V1}/processos", headers=h).json() if p["nome"] == "Orientação de férias")
+    assert api.post(f"{V1}/processos/{pid}/pausar", json={"motivo": "teste"}, headers=como("lucas")).status_code == 200
+    _executar_processo(api, "marina", next(p["id"] for p in api.get(f"{V1}/processos", headers=h).json()
+                                            if p["nome"] == "Resposta a dúvidas de lojistas"),
+                       {"lojista_id": "L1001", "pergunta": "Em quanto tempo o estorno cai?"})
+    assert foto() != inicial
+    assert api.post(f"{V1}/demo/reiniciar", headers=h).json()["ok"]
+    assert foto() == inicial
+    assert api.get(f"{V1}/auditoria/verificar", headers=h).json()["integra"]
+
+
+def test_extensao_lista_processos_e_agentes_so_do_que_o_perfil_pode_rodar(api):
+    _iniciar(api, "helena")
+    marina = api.post(f"{V1}/extensao/analisar", json={"trecho": ""}, headers=como("marina")).json()["agentes"]
+    assert {x["nome"] for x in marina if x["tipo"] == "processo"} == {"Resposta a dúvidas de lojistas", "Consulta ao FAQ de atendimento"}
+    assert {x["nome"] for x in marina if x["tipo"] == "agente"} == {NOME_AGENTE["duvida"]}
+    rafael = api.post(f"{V1}/extensao/analisar", json={"trecho": ""}, headers=como("rafael")).json()["agentes"]
+    assert {x["nome"] for x in rafael if x["tipo"] == "processo"} == {"Triagem de chargebacks", "Registro da decisão de triagem"}
+    assert [x["tipo"] for x in rafael][-1] == "agente" and rafael[0]["tipo"] == "processo"
+    # rodar o processo pela extensão mostra os blocos: a execução traz um passo por bloco
+    exe = _executar_processo(api, "marina", marina[0]["id"], marina[0]["preenchido"] or {"lojista_id": "L1001", "pergunta": "Prazo de estorno?"})
+    assert [p["id"] for p in exe["blueprint"]["passos"]] == ["cadastro", "politica", "resposta"] and exe["dono_tipo"] == "processo"

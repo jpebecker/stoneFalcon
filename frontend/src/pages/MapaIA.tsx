@@ -22,10 +22,10 @@ type Dados = NoMapa & { novo: boolean };
 type Pulso = { chave: string; cor: string; atraso: number };
 
 const BORDA: Record<string, string> = {
-  criador: "border-l-falcao", agente: "border-l-pedra", modelo: "border-l-info", ferramenta: "border-l-info", plugin: "border-l-info", sistema: "border-l-tinta-3",
+  criador: "border-l-falcao", processo: "border-l-falcao", agente: "border-l-pedra", modelo: "border-l-info", ferramenta: "border-l-info", plugin: "border-l-info", sistema: "border-l-tinta-3",
 };
 const ROTULO_TIPO: Record<string, string> = {
-  criador: "Criador", agente: "Agente", modelo: "Modelo", ferramenta: "Ferramenta", plugin: "Plugin", sistema: "Plataforma",
+  criador: "Criador", processo: "Processo", agente: "Agente", modelo: "Modelo", ferramenta: "Ferramenta", plugin: "Plugin", sistema: "Plataforma",
 };
 const COR_PROVEDOR: Record<string, string> = {
   anthropic: "var(--serie-1)", google: "var(--serie-2)", openai: "var(--serie-3)", deepseek: "var(--serie-4)", xai: "var(--serie-5)",
@@ -57,7 +57,7 @@ function No({ data }: NodeProps<Node<Dados>>) {
       </div>
       <div className="mt-0.5 truncate text-sm font-semibold leading-snug text-tinta" title={n.rotulo}>{n.rotulo}</div>
       <div className="mt-0.5 truncate text-xs text-tinta-2">
-        {n.tipo === "agente" && `${num(n.execucoes)} execuções · ${reais(n.custo_brl ?? 0)}${n.risco ? " · risco " + n.risco : ""}`}
+        {(n.tipo === "agente" || n.tipo === "processo") && `${num(n.execucoes)} execuções · ${reais(n.custo_brl ?? 0)}${n.risco ? " · risco " + n.risco : ""}`}
         {n.tipo === "criador" && `${n.detalhe ?? ""} · ${num(n.execucoes)} exec. · ${reais(n.custo_brl ?? 0)}`}
         {n.tipo === "modelo" && `${num(n.chamadas ?? 0)} chamadas · ${reais(n.custo_brl ?? 0)}`}
         {(n.tipo === "ferramenta" || n.tipo === "plugin") && `${n.detalhe ?? ""} · usada por ${n.usada_por ?? 0} · ${num(n.execucoes)} exec.`}
@@ -275,7 +275,7 @@ export default function MapaIAPagina() {
         {(area || provedor) && <button className="text-xs font-semibold text-pedra-forte" onClick={() => { setArea(""); setProvedor(""); }}>limpar filtros</button>}
         {m && (
           <span className="selo ml-auto bg-pedra-fundo text-pedra-forte">
-            {m.totais.agentes} agentes · {m.totais.modelos} modelos · {m.totais.plugins} plugins · {m.totais.ferramentas} ferramentas · {m.totais.plataformas} plataformas · {num(m.totais.execucoes)} execuções em {m.dias} dias
+            {m.totais.processos} processos · {m.totais.agentes} agentes · {m.totais.modelos} modelos · {m.totais.plugins} plugins · {m.totais.ferramentas} ferramentas · {m.totais.plataformas} plataformas · {num(m.totais.execucoes)} execuções em {m.dias} dias
           </span>
         )}
       </div>

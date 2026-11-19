@@ -41,7 +41,7 @@ def test_auditoria_so_para_coe_e_seguranca(api):
 
 def test_sem_login_e_recusado(api):
     assert api.get("/api/v1/eu").status_code == 401
-    assert api.get("/api/v1/eu", headers=como("helena")).json()["papeis"] == ["gestor_ia", "usuario"]
+    assert api.get("/api/v1/eu", headers=como("helena")).json()["papeis"] == ["ai_analyst", "gestor_ia", "usuario"]
 
 
 def test_saude_informa_modo_simulado(api):

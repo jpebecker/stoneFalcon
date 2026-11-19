@@ -16,6 +16,8 @@ from app.seed.demo import semear
 from app.tools import dados_ficticios, executor
 from tests.conftest import como
 
+pytestmark = pytest.mark.usefixtures("legado")   # v7: usa fluxos de vários passos como dado de exemplo (veja o fixture)
+
 P = PERSONAS
 
 
@@ -135,7 +137,7 @@ def test_indicadores_da_banca(sessao):
     i = resumo.indicadores(sessao, P["helena"])
     assert 0 < i["tempo_execucao"]["agente_min"] < i["tempo_execucao"]["manual_min"]
     assert i["custo_operacional"]["agente_brl"] < i["custo_operacional"]["manual_brl"]
-    assert i["produtividade"]["tarefas_concluidas"] > 0 and i["produtividade"]["agentes_ativos"] == 3
+    assert i["produtividade"]["tarefas_concluidas"] > 0 and i["produtividade"]["agentes_ativos"] == 4
     assert 0 < i["taxa_erros"]["agente"] < 0.2
     assert i["roi"]["projecao_payback_mes"] is not None
 
@@ -159,5 +161,41 @@ def test_premissas_trazem_medidas_e_demo_reinicia(api):
     assert api.post("/api/v1/demo/reiniciar", headers=h).json()["ok"]
     p = api.get("/api/v1/financas/premissas", headers=h).json()
     assert p["medidas"]["minutos_por_tarefa"] > 0 and p["medidas_demo"]
-    assert len(api.get("/api/v1/agentes", headers=h).json()) == 3
+    assert len(api.get("/api/v1/agentes", headers=h).json()) == 4
     assert api.get("/api/v1/auditoria/verificar", headers=h).json()["integra"]
+
+
+# ---------- v8/08: custo e ROI por processo, com o detalhe dos agentes dentro dele ----------
+def test_financas_por_processo_com_detalhe_por_agente(sessao):
+    semear(sessao)
+    r = resumo.resumo(sessao, P["helena"])
+    processos = [x for x in r["por_agente"] if x["tipo"] == "processo"]
+    assert len(processos) == 9 and all(x["execucoes"] > 0 for x in processos)      # os de só ferramentas não gastam token
+    triagem = next(x for x in processos if x["nome"] == "Triagem de chargebacks")
+    assert [a["nome"] for a in triagem["agentes"]] == ["Analista de risco de chargebacks"]
+    assert 0 < triagem["agentes"][0]["execucoes"] <= triagem["execucoes"]       # escaladas antes do agente não contam nele
+    assert triagem["agentes"][0]["custo_brl"] == pytest.approx(triagem["custo_brl"], rel=0.02)      # o agente carrega o custo do processo
+    assert sum(x["custo_brl"] for x in r["por_agente"]) == pytest.approx(r["custo_brl"], abs=0.01)   # nada contado duas vezes
+
+
+def test_financas_o_que_seria_se_tudo_rodasse_em_x_inclui_processos(sessao):
+    semear(sessao)
+    c = resumo.comparativo(sessao, P["helena"], 30)
+    r = resumo.resumo(sessao, P["helena"], 30)
+    assert c["execucoes"] == r["execucoes"] and c["atual_brl"] == pytest.approx(r["custo_brl"], abs=0.01)
+
+
+def test_financas_cada_um_ve_so_os_processos_da_sua_area(sessao):
+    semear(sessao)
+    nomes = {x["nome"] for x in resumo.resumo(sessao, P["marina"])["por_agente"]}
+    assert "Resposta a dúvidas de lojistas" in nomes and "Triagem de chargebacks" not in nomes
+
+
+def test_orcamento_do_processo(api, sessao):
+    semear(sessao)
+    h = como("helena")
+    pid = next(p["id"] for p in api.get("/api/v1/processos", headers=h).json() if p["nome"] == "Triagem de chargebacks")
+    assert api.put(f"/api/v1/processos/{pid}/orcamento", json={"valor_brl": 150}, headers=h).json()["orcamento_mensal_brl"] == 150
+    assert api.put(f"/api/v1/processos/{pid}/orcamento", json={"valor_brl": 1}, headers=como("marina")).status_code == 403
+    linha = next(x for x in api.get("/api/v1/financas/resumo", headers=h).json()["por_agente"] if x["id"] == pid)
+    assert linha["orcamento_mensal_brl"] == 150 and linha["tipo"] == "processo"

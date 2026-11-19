@@ -26,7 +26,7 @@ from ..tools.catalogo import CATALOGO
 class Passo(BaseModel):
     id: str = Field(pattern=r"^[a-z0-9_]{1,40}$")
     titulo: str = Field(min_length=1, max_length=120)
-    tipo: Literal["ferramenta", "agente", "aprovacao"]
+    tipo: Literal["ferramenta", "agente", "aprovacao", "condicao", "saida"]
     depende_de: list[str] = Field(default_factory=list)
     # tipo "agente"
     instrucao: str = ""
@@ -44,6 +44,17 @@ class Passo(BaseModel):
     # tipo "ferramenta"
     ferramenta: str | None = None
     entrada: dict[str, Any] = Field(default_factory=dict)
+    # passos que vieram de um bloco de processo (v8): qual agente/trabalhador roda aqui, como ele se apresenta ao modelo
+    # e, se o agente não pode rodar agora (pausado, sem acesso), o motivo: o passo escala em vez de rodar
+    bloco: str | None = None
+    # tipo "condicao": {fonte, operador, valor}; tipo "saida": `texto` (resposta final); `ramo` = {condicao, valor}
+    # limita o passo a um dos ramos de uma condição (o outro ramo é pulado)
+    regra: dict[str, Any] | None = None
+    ramo: dict[str, str] | None = None
+    texto: str = ""
+    agente_ref: dict[str, Any] | None = None
+    contexto_agente: dict[str, str] | None = None
+    bloqueio: str | None = None
 
 
 class CampoEntrada(BaseModel):

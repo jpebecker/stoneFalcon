@@ -8,6 +8,7 @@ from sqlmodel import Session
 from ..agents import ciclo
 from ..agents import modelos as am
 from ..core.db import sessao
+from ..processos import modelos as pm
 from ..core import config
 from ..core.identidade import GESTOR_IA, PERSONAS, Persona, exigir_aba, usuario_atual
 from ..roteiros import medicao, perguntas
@@ -71,10 +72,10 @@ def reiniciar_roteiro(roteiro_id: str, pessoa: Persona = Depends(usuario_atual),
 def resultado(roteiro_id: str, agente_id: str | None = None, pessoa: Persona = Depends(usuario_atual),
               s: Session = Depends(sessao)):
     roteiro = _acessivel(pessoa, roteiro_id)
-    if agente_id:   # o cartão mostra nome, custo e status do agente: só de quem pode ver aquele agente
-        agente = s.get(am.Agente, agente_id)
-        if agente is None or not ciclo.pode_ver(pessoa, agente):
-            raise HTTPException(status_code=403, detail="Você não tem acesso a este agente.")
+    if agente_id:   # o cartão mostra nome, custo e status do agente ou do processo: só de quem pode ver aquele dono
+        dono = s.get(am.Agente, agente_id) or s.get(pm.Processo, agente_id)
+        if dono is None or not ciclo.pode_ver(pessoa, dono):
+            raise HTTPException(status_code=403, detail="Você não tem acesso a este agente ou processo.")
     return medicao.resultado(s, roteiro, agente_id)
 
 

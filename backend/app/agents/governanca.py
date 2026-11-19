@@ -106,7 +106,7 @@ def estimar_duracao_ms(bp: Blueprint) -> int:
     def duracao(p) -> int:
         if p.tipo == "ferramenta":
             return CATALOGO[p.ferramenta].latencia_ms
-        if p.tipo == "aprovacao":
+        if p.tipo in ("aprovacao", "condicao", "saida"):
             return 0
         entrada = _SISTEMA + len(p.depende_de) * _CONTEXTO_POR_DEPENDENCIA + len(p.ferramentas) * _POR_FERRAMENTA_DEFINIDA
         chave = roteador.decidir(p.modelo, p.instrucao, entrada, n_ferramentas=len(p.ferramentas),

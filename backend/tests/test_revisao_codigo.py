@@ -12,6 +12,8 @@ from app.seed.agentes_exemplo import TRIAGEM_CHARGEBACK
 from app.tools import dados_ficticios, executor
 from tests.conftest import como
 
+pytestmark = pytest.mark.usefixtures("legado")   # v7: usa fluxos de vários passos como dado de exemplo (veja o fixture)
+
 P = PERSONAS
 
 

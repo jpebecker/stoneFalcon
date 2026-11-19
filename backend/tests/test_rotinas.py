@@ -7,7 +7,6 @@ from sqlmodel import Session
 from app import rotinas
 from app.core import db
 from app.core.relogio import FUSO
-from app.seed.demo import semear
 from app.tools import dados_ficticios as fx
 from tests.conftest import como
 
@@ -96,14 +95,20 @@ def test_so_agente_publicado_tem_rotina(api):
 
 
 # ---------- quem pode ----------
-def test_so_criador_com_acesso_ao_agente_agenda(api, sessao):
-    semear(sessao)
-    triagem = next(a["id"] for a in api.get(f"{V1}/agentes", headers=como("helena")).json() if a["nome"] == "Triagem de chargebacks")
+def test_so_criador_com_acesso_ao_processo_agenda(api, sessao):
+    triagem = _processo_triagem(api)
     corpo = {"entrada": {"lojista_id": "L1001"}}
-    assert _criar(api, triagem, "marina", **corpo).status_code == 403          # outra área, agente não compartilhado
-    assert _criar(api, triagem, "helena", **corpo).status_code == 403          # sem papel de criador
-    assert _criar(api, triagem, "lucas", **corpo).status_code == 403
-    assert _criar(api, triagem, "rafael", **corpo).status_code == 200
+    assert _criar_processo(api, triagem, "marina", **corpo).status_code == 403          # outra área, agente não compartilhado
+    assert _criar_processo(api, triagem, "helena", **corpo).status_code == 403          # sem papel de criador
+    assert _criar_processo(api, triagem, "lucas", **corpo).status_code == 403
+    assert _criar_processo(api, triagem, "rafael", **corpo).status_code == 200
+
+
+def test_rotinas_de_processo_e_de_agente_nao_se_misturam(api, sessao):
+    triagem = _processo_triagem(api)
+    assert _criar_processo(api, triagem, "rafael", entrada={"lojista_id": "L1001"}).status_code == 200
+    assert len(api.get(f"{V1}/processos/{triagem}/rotinas", headers=como("rafael")).json()) == 1
+    assert api.get(f"{V1}/agentes/{triagem}/rotinas", headers=como("rafael")).json() == []   # a rota do agente só lista rotinas de agente
 
 
 # ---------- relógio controlado ----------
@@ -187,10 +192,9 @@ def test_rotina_roda_em_nome_de_quem_agendou(api):
 
 # ---------- mesmas permissões, guardrails e orçamento ----------
 def test_rotina_nao_roda_ferramenta_que_quem_agendou_nao_poderia(api, sessao):
-    semear(sessao)
-    triagem = next(a["id"] for a in api.get(f"{V1}/agentes", headers=como("helena")).json() if a["nome"] == "Triagem de chargebacks")
-    assert api.post(f"{V1}/agentes/{triagem}/compartilhar", json={"areas": ["atendimento"]}, headers=como("rafael")).status_code == 200
-    rid = _criar(api, triagem, "marina", entrada={"lojista_id": "L1003"}).json()["id"]          # Marina só tem acesso interno
+    triagem = _processo_triagem(api)
+    assert api.post(f"{V1}/processos/{triagem}/compartilhar", json={"areas": ["atendimento"]}, headers=como("rafael")).status_code == 200
+    rid = _criar_processo(api, triagem, "marina", entrada={"lojista_id": "L1003"}).json()["id"]          # Marina só tem acesso interno
     r = api.post(f"{V1}/rotinas/{rid}/rodar", headers=como("marina")).json()
     exe = api.get(f"{V1}/execucoes/{r['execucao']}", headers=como("marina")).json()
     assert exe["status"] == "escalada" and not fx.BLOQUEIOS
@@ -200,9 +204,8 @@ def test_rotina_nao_roda_ferramenta_que_quem_agendou_nao_poderia(api, sessao):
 
 
 def test_acao_sensivel_dentro_da_rotina_espera_confirmacao_humana(api, sessao):
-    semear(sessao)
-    triagem = next(a["id"] for a in api.get(f"{V1}/agentes", headers=como("helena")).json() if a["nome"] == "Triagem de chargebacks")
-    rid = _criar(api, triagem, "rafael", entrada={"lojista_id": "L1003"}).json()["id"]
+    triagem = _processo_triagem(api)
+    rid = _criar_processo(api, triagem, "rafael", entrada={"lojista_id": "L1003"}).json()["id"]
     feitas = _tick(SEGUNDA_9H)
     assert feitas and feitas[0]["status"] == "aguardando_aprovacao"
     assert not fx.BLOQUEIOS                                           # nada executou sozinho
@@ -276,3 +279,48 @@ def test_reiniciar_a_demo_remove_as_agendas_e_volta_o_relogio(api):
     assert api.post(f"{V1}/demo/reiniciar", headers=como("helena")).json()["ok"]
     assert api.get(f"{V1}/rotinas", headers=como("helena")).json() == []
     assert rotinas.relogio.fator == 1.0 and abs((rotinas.relogio.agora() - datetime.now(FUSO)).total_seconds()) < 5
+
+
+# ---------- v8/08: a rotina também agenda um PROCESSO ----------
+def _processo_triagem(api) -> str:
+    """Processo de triagem (risco alto) publicado pelo Rafael, com a aprovação do Lucas; o agente trabalhador vem do roteiro."""
+    from app.seed.processos_demo import TRABALHADORES, processo
+    h = como("rafael")
+    aid = api.post(f"{V1}/agentes", json={"blueprint": TRABALHADORES["triagem"].model_dump(), "nota": "rotina"}, headers=h).json()["id"]
+    assert api.post(f"{V1}/agentes/{aid}/publicar", headers=h).json()["estado"] == "publicado"
+    pid = api.post(f"{V1}/processos", json={"blueprint": processo("triagem", aid), "nota": "rotina"}, headers=h).json()["id"]
+    assert api.post(f"{V1}/processos/{pid}/publicar", headers=h).json()["estado"] == "em_revisao"
+    assert api.post(f"{V1}/processos/{pid}/revisao", json={"aprovar": True, "parecer": "Aprovado."}, headers=como("lucas")).status_code == 200
+    return pid
+
+
+def _criar_processo(api, pid, perfil="rafael", **corpo):
+    padrao = {"frequencia": "semanal", "dia_semana": 0, "hora": 9, "minuto": 0, "entrada": {"lojista_id": "L1003"}}
+    return api.post(f"{V1}/processos/{pid}/rotinas", json={**padrao, **corpo}, headers=como(perfil))
+
+
+def test_rotina_de_processo_dispara_com_as_permissoes_de_quem_agendou_e_espera_a_confirmacao(api):
+    pid = _processo_triagem(api)
+    assert _criar_processo(api, pid, "marina").status_code == 403      # outra área
+    assert _criar_processo(api, pid, "lucas").status_code == 403       # sem papel de criador
+    d = _criar_processo(api, pid).json()
+    assert d["dono_tipo"] == "processo" and d["agente_id"] == pid and "segunda" in d["descricao"]
+    assert [r["id"] for r in api.get(f"{V1}/processos/{pid}/rotinas", headers=como("rafael")).json()] == [d["id"]]
+    assert api.get(f"{V1}/processos/{pid}/rotinas", headers=como("marina")).json() == []   # quem não vê o processo não vê a agenda
+
+    feitas = _tick(SEGUNDA_9H)
+    assert feitas and feitas[0]["status"] == "aguardando_aprovacao" and not fx.BLOQUEIOS   # a retenção espera o humano
+    exe = api.get(f"{V1}/execucoes/{feitas[0]['execucao']}", headers=como("rafael")).json()
+    assert exe["dono_tipo"] == "processo" and exe["persona"] == "rafael" and exe["rotina"]["origem"] == "agenda"
+    ok = api.post(f"{V1}/execucoes/{exe['id']}/decisao", json={"aprovar": True}, headers=como("rafael"))
+    assert ok.status_code == 200 and [b["lojista_id"] for b in fx.BLOQUEIOS] == ["L1003"]
+
+
+def test_rotina_de_processo_respeita_estado_e_orcamento(api):
+    pid = _processo_triagem(api)
+    rid = _criar_processo(api, pid).json()["id"]
+    assert api.post(f"{V1}/processos/{pid}/pausar", json={"motivo": "teste"}, headers=como("lucas")).status_code == 200
+    r = api.post(f"{V1}/rotinas/{rid}/rodar", headers=como("rafael")).json()
+    assert r["status"] == "pulada" and "pausado" in r["motivo"]
+    assert api.post(f"{V1}/processos/{pid}/retomar", headers=como("lucas")).status_code == 200
+    assert api.post(f"{V1}/processos/{pid}/rotinas", json={"entrada": {}}, headers=como("rafael")).status_code == 422   # entrada fixa completa

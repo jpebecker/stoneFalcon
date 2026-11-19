@@ -16,6 +16,8 @@ class Execucao(SQLModel, table=True):
 
     id: str = Field(primary_key=True)
     agente_id: str | None = Field(default=None, index=True)
+    dono_tipo: str = Field(default="agente", index=True)   # o que rodou: "agente" ou "processo" (linhas antigas = agente)
+    dono_id: str | None = Field(default=None, index=True)  # id do agente/processo; vazio nas linhas antigas (vale agente_id)
     versao: int | None = None
     agente_nome: str = ""
     area: str = ""

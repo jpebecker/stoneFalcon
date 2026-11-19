@@ -48,13 +48,13 @@ PERGUNTAS = [
     # ---- Rafael
     _q("rafael-1", "rafael", "seguranca", "O agente pode bloquear um lojista sozinho?",
        "Não. A retenção de repasse é ação sensível: a execução para e só continua depois da confirmação do analista, registrada na auditoria.",
-       "rafael", "/agentes/{agente:Triagem de chargebacks}", "Execução parada pedindo confirmação", passo="usar"),
+       "rafael", "/processos/{processo:Triagem de chargebacks}", "Execução parada pedindo confirmação", passo="usar"),
     _q("rafael-2", "rafael", "seguranca", "Como provar quem aprovou a retenção?",
        "A trilha de auditoria é encadeada por hash: ninguém altera um evento sem quebrar a cadeia, e o selo mostra isso.",
        "helena", "/auditoria", "Auditoria: cadeia íntegra e evento de confirmação", passo="auditoria"),
     _q("rafael-3", "rafael", "custo", "Por que usar o modelo mais caro na análise?",
        "O roteador escolhe por tarefa e explica por quê: a análise de risco pesa vários fatores e sobe para o Sonnet; o resto fica no Haiku.",
-       "rafael", "/agentes/{agente:Triagem de chargebacks}", "Passo da análise: por que este modelo", passo="usar"),
+       "rafael", "/processos/{processo:Triagem de chargebacks}", "Passo da análise: por que este modelo", passo="usar"),
     _q("rafael-4", "rafael", "escala", "Um agente de risco alto vai ao ar sem revisão?",
        "Nunca. Agente de risco alto vai para a Segurança, que aprova com parecer; a pausa de emergência também barra ações pendentes.",
        "lucas", "/revisoes", "Fila de revisão da Segurança", passo="revisao"),
@@ -83,7 +83,7 @@ PERGUNTAS = [
        "lucas", "/ferramentas", "Catálogo com a ferramenta de estoque"),
     _q("thiago-3", "thiago", "processo", "E se o estoque estiver baixo?",
        "O agente consulta o estoque junto com o cadastro e a regra, e já avisa no chamado que o estoque está baixo para oferecer um modelo equivalente.",
-       "thiago", "/agentes/{agente:Troca de maquininha com estoque}", "Resposta do agente com estoque baixo", passo="usar"),
+       "thiago", "/processos/{processo:Troca de maquininha com estoque}", "Resposta do agente com estoque baixo", passo="usar"),
     _q("thiago-4", "thiago", "custo", "Isso fica caro com muitas trocas?",
        "O cadastro, a regra e o estoque são consultas diretas, sem IA e sem custo de modelo; só a redação do chamado e do aviso usa o Haiku.",
        "thiago", "/roteiro/thiago?etapa=resultado", "Custo por troca medido", passo="medir"),
@@ -100,7 +100,7 @@ PERGUNTAS = [
        "lucas", "/alertas", "Alerta crítico aberto", passo="alerta"),
     _q("lucas-3", "lucas", "seguranca", "Dá para parar um agente na hora?",
        "Sim, com um clique. A pausa de emergência também barra ações que já estavam pendentes de confirmação.",
-       "lucas", "/agentes/{agente:Resposta a dúvidas de lojistas}", "Botão Pausar", passo="pausar"),
+       "lucas", "/processos/{processo:Resposta a dúvidas de lojistas}", "Botão Pausar", passo="pausar"),
     _q("lucas-4", "lucas", "diferencial", "Por que não deixar cada time usar um low-code genérico?",
        "Porque cada ferramenta paralela vira shadow IT sem permissão por classificação, sem mascaramento e sem trilha. Aqui isso é nativo e invisível.",
        "helena", "/auditoria", "Auditoria de todos os agentes", passo=None),
@@ -131,7 +131,7 @@ PERGUNTAS = [
     _q("helena-6", "helena", "escala", "A plataforma depende de um único fornecedor de IA?",
        "Não. O registro tem Claude, Gemini, GPT, DeepSeek e Grok, cada um com preço e capacidades, e o balanceador escolhe pelo esforço de cada "
        "passo e troca de provedor quando um cai ou o orçamento aperta. Atenção: só o Claude roda de verdade; os demais são simulados nesta demonstração.",
-       "helena", "/saude", "Saúde: política do balanceador, queda de provedor e carga de teste", roteiro="pitch", passo="queda"),
+       "helena", "/saude", "Saúde: política do balanceador, queda de provedor e carga de teste", passo="financas"),
     _q("helena-7", "helena", "escala", "Como o CoE enxerga tudo o que os colaboradores criaram?",
        "No Mapa de IA, só do CoE: quem criou, os agentes publicados, os modelos por provedor, os plugins e as plataformas, ao vivo. Um agente "
        "publicado aparece sozinho em poucos segundos e cada execução acende um pulso pelo caminho dela.",
@@ -139,7 +139,22 @@ PERGUNTAS = [
     _q("thiago-6", "thiago", "processo", "O agente pode rodar sozinho, sem ninguém iniciar?",
        "Pode, como rotina: o criador agenda (toda segunda às 9h, por exemplo) com uma entrada fixa. A rotina roda em nome de quem agendou, com "
        "as mesmas permissões, guardrails e orçamento, e ação sensível continua esperando a confirmação de uma pessoa.",
-       "thiago", "/agentes/{agente:Troca de maquininha pela planilha}", "Página do agente: agenda e Rodar agora", roteiro="pitch", passo="rotina"),
+       "thiago", "/processos/{processo:Troca de maquininha pela planilha}", "Página do processo: agenda e Rodar agora", roteiro="pitch", passo="rotina"),
+    _q("helena-8", "helena", "diferencial", "Por que separar agentes e processos?",
+       "O agente é UM trabalhador de IA que lê e raciocina, reutilizável em vários fluxos. O processo é o fluxo de blocos: dados, agentes, "
+       "ações, condições e aprovações humanas, com dono, versão e revisão próprios. Separar deixa a ação sensível e a aprovação à vista no "
+       "processo, e o mesmo agente serve a vários processos.",
+       "helena", "/mapa", "Mapa de IA: criador, processo, agentes, modelos, plugins e plataformas", roteiro="pitch", passo="mapa"),
+    _q("thiago-7", "thiago", "diferencial", "O plugin é de verdade?",
+       "O Arquivos e Planilhas é: guarda e lê CSV e Excel de verdade, sem internet, com classificação, área e nível conferidos a cada leitura, dado "
+       "pessoal mascarado antes do modelo e escrita na auditoria. Os demais plugins e os plugins criados pelos pedidos são conceituais e levam o selo "
+       "“simulado”.",
+       "thiago", "/plugins/arquivos", "Plugin Arquivos e Planilhas: prévia, download e selo “real”", roteiro="pitch", passo="arquivos"),
+    _q("thiago-8", "thiago", "seguranca", "Como evitar que alguém clone a ferramenta de um fornecedor?",
+       "O pedido só aceita informação pública colada pela pessoa (sem logotipo, marca nem código) e o texto colado é tratado como dado, nunca como "
+       "instrução. O plugin nasce com nome e ícone genéricos, a analista de IA aprova com parecer e, se o dado é sensível, a Segurança também; "
+       "ninguém decide o próprio pedido.",
+       "thiago", "/plugins/criar", "Crie o seu plugin: aviso de informação pública e rascunho genérico", roteiro="pitch", passo="criarplugin"),
     _q("helena-5", "helena", "escala", "Isso escala para %s colaboradores?" % format(_PR.usuarios, ",").replace(",", "."),
        "A calculadora usa o documento de custos da equipe (investimento, módulos e sustentação), %d colaboradores e rampa de adoção de %d meses; em produção, Postgres e SSO." % (_PR.usuarios, _PR.meses_rampa),
        "helena", "/financas/calculadora", "Calculadora com 6.000 colaboradores", passo="calculadora"),

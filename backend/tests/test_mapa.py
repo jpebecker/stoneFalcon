@@ -8,6 +8,8 @@ from app.seed.demo import semear
 from app.tools.catalogo import CATALOGO
 from tests.conftest import como
 
+pytestmark = pytest.mark.usefixtures("legado")   # v7: usa fluxos de vários passos como dado de exemplo (veja o fixture)
+
 V1 = "/api/v1"
 PERFIS = list(PERSONAS)
 
@@ -57,8 +59,8 @@ def test_mapa_mostra_os_agentes_publicados_da_semente_ligados_a_tudo(api, sessao
     semear(sessao)
     m = api.get(f"{V1}/mapa", headers=como("helena")).json()
     nomes = {n["rotulo"] for n in m["nos"] if n["tipo"] == "agente"}
-    assert {"Triagem de chargebacks", "Resposta a dúvidas de lojistas", "Orientação de férias"} <= nomes
-    assert [c["id"] for c in m["colunas"]] == ["criadores", "agentes", "modelos", "ferramentas", "plataformas"]
+    assert {"Analista de risco de chargebacks", "Redator de respostas a lojistas", "Orientador de férias e benefícios"} <= nomes
+    assert [c["id"] for c in m["colunas"]] == ["criadores", "processos", "agentes", "modelos", "ferramentas", "plataformas"]
     # cada agente tem um criador, modelos, ferramentas e, por elas, plataformas
     liga = {(l["de"], l["para"]) for l in m["ligacoes"]}
     por_destino = {l["para"]: l["de"] for l in m["ligacoes"] if l["de"].startswith("criador:")}
@@ -86,8 +88,10 @@ def test_mapa_e_coerente_com_o_catalogo_e_os_agentes_publicados(api, sessao):
     publicados = {a["nome"] for a in api.get(f"{V1}/agentes", headers=como("helena")).json() if a["estado"] == "publicado"}
     assert {n["rotulo"] for n in m["nos"] if n["tipo"] == "agente"} == publicados
     assert m["totais"]["agentes"] == len(publicados)
+    processos = {p["nome"] for p in api.get(f"{V1}/processos", headers=como("helena")).json() if p["estado"] == "publicado"}
+    assert {n["rotulo"] for n in m["nos"] if n["tipo"] == "processo"} == processos and len(processos) == 9
     # colunas coerentes com o tipo
-    coluna = {"criador": "criadores", "agente": "agentes", "modelo": "modelos", "ferramenta": "ferramentas",
+    coluna = {"criador": "criadores", "processo": "processos", "agente": "agentes", "modelo": "modelos", "ferramenta": "ferramentas",
               "plugin": "ferramentas", "sistema": "plataformas"}
     assert all(n["coluna"] == coluna[n["tipo"]] for n in m["nos"])
 
@@ -148,5 +152,5 @@ def test_mapa_conta_as_execucoes_do_periodo(api, sessao):
     semear(sessao)
     m = api.get(f"{V1}/mapa?dias=30", headers=como("helena")).json()
     assert m["totais"]["execucoes"] > 0 and m["tem_demo"] is True
-    assert sum(n["execucoes"] for n in m["nos"] if n["tipo"] == "agente") == m["totais"]["execucoes"]
+    assert sum(n["execucoes"] for n in m["nos"] if n["tipo"] in ("agente", "processo")) == m["totais"]["execucoes"]
     assert grafo(sessao, 7)["dias"] == 7

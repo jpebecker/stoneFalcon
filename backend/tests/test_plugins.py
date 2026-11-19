@@ -10,6 +10,8 @@ from app.tools.catalogo import CATALOGO, Especificacao, disponiveis
 from app.tools.executor import validar
 from tests.conftest import como
 
+pytestmark = pytest.mark.usefixtures("legado")   # v7: usa fluxos de vários passos como dado de exemplo (veja o fixture)
+
 V1 = "/api/v1"
 PERFIS = list(PERSONAS)
 
@@ -50,10 +52,11 @@ def _executar_zendesk(api, pessoa="marina") -> tuple[str, dict]:
 @pytest.mark.parametrize("perfil", PERFIS)
 def test_vitrine_aparece_para_os_6_perfis(api, perfil):
     lista = api.get(f"{V1}/plugins", headers=como(perfil)).json()
-    assert [p["nome"] for p in lista] == ["Zendesk", "Salesforce", "Slack", "Jira", "Google Drive", "Google Sheets",
-                                          "ServiceNow", "SAP SuccessFactors", "Datadog"]
+    assert [p["nome"] for p in lista] == ["Arquivos e Planilhas", "Zendesk", "Salesforce", "Slack", "Jira", "Google Drive",
+                                          "Google Sheets", "ServiceNow", "SAP SuccessFactors", "Datadog"]
     for p in lista:
-        assert p["simulado"] is True and p["categoria"] and p["estado"] == "disponivel"
+        assert p["simulado"] is (p["id"] != "arquivos") and p["real"] is (p["id"] == "arquivos")     # só o Arquivos e Planilhas é de verdade
+        assert p["categoria"] and p["estado"] == "disponivel"
         assert p["ferramentas"] and all(f["acao"] in ("leitura", "escrita") and f["classificacao"] for f in p["ferramentas"])
         assert isinstance(p["vale_para_minha_area"], bool)
     assert "plugins" in api.get(f"{V1}/eu", headers=como(perfil)).json()["abas"]
@@ -62,14 +65,14 @@ def test_vitrine_aparece_para_os_6_perfis(api, perfil):
 def test_cada_cartao_diz_se_vale_para_a_area_de_quem_olha(api):
     def vale(perfil):
         return {p["id"] for p in api.get(f"{V1}/plugins", headers=como(perfil)).json() if p["vale_para_minha_area"]}
-    assert vale("marina") == {"zendesk", "salesforce", "slack", "drive"}
-    assert vale("carla") == {"slack", "drive", "sap"}
-    assert vale("thiago") == {"slack", "drive", "jira", "sheets"}
-    assert vale("lucas") == {"slack", "drive", "jira", "servicenow", "datadog"}
+    assert vale("marina") == {"arquivos", "zendesk", "salesforce", "slack", "drive"}      # "arquivos" (v8) vale para todas as áreas
+    assert vale("carla") == {"arquivos", "slack", "drive", "sap"}
+    assert vale("thiago") == {"arquivos", "slack", "drive", "jira", "sheets"}
+    assert vale("lucas") == {"arquivos", "slack", "drive", "jira", "servicenow", "datadog"}
 
 
 def test_ferramentas_de_plugin_seguem_o_contrato_do_catalogo():
-    assert len(PLUGINS) == 9
+    assert len(PLUGINS) == 10
     base = CATALOGO["abrir_chamado"]
     for p in PLUGINS.values():
         assert p.ferramentas, p.id
@@ -77,7 +80,7 @@ def test_ferramentas_de_plugin_seguem_o_contrato_do_catalogo():
             assert isinstance(f, Especificacao) and CATALOGO[f.id] is f and f.plugin == p.id
             assert isinstance(f.classificacao, Classificacao) and f.acao in ("leitura", "escrita")
             assert f.areas and f.nome and f.descricao and callable(f.executar) and f.latencia_ms > 0
-            assert f.obrigatorios and set(f.obrigatorios) <= set(f.parametros)
+            assert (f.obrigatorios or f.id == "arquivos_listar") and set(f.obrigatorios) <= set(f.parametros)
             assert set(f.para_modelo()) == set(base.para_modelo())          # mesmo formato entregue ao modelo
             assert f.classificacao <= p.classificacao
             assert f.limite_por_minuto <= (10 if f.acao == "escrita" else 30)
@@ -96,7 +99,12 @@ def test_ferramentas_de_plugin_executam_e_validam_a_entrada(api):
         "servicenow_abrir_incidente": {"titulo": "T", "descricao": "D"}, "sap_consultar_saldo_ferias": {"colaborador_id": "C501"},
         "datadog_consultar_alerta": {"servico": "api-repasses"}, "sheets_ler_planilha": {"fonte": "local:pedidos-troca"},
     }
-    assert set(exemplos) == {f.id for p in PLUGINS.values() for f in p.ferramentas}
+    reais = {"arquivos_listar": {}, "arquivos_ler_linhas": {"arquivo": "faq.csv"}, "arquivos_buscar_linha": {"arquivo": "faq.csv", "coluna": "a", "valor": "b"},
+             "arquivos_adicionar_linha": {"arquivo": "faq.csv", "valores": "{}"},
+             "arquivos_atualizar_linha": {"arquivo": "faq.csv", "coluna_chave": "a", "valor_chave": "b", "valores": "{}"}}
+    assert set(exemplos) | set(reais) == {f.id for p in PLUGINS.values() for f in p.ferramentas}
+    for fid, entrada in reais.items():       # as de verdade precisam do banco: o comportamento delas está em test_arquivos.py
+        assert validar(CATALOGO[fid], entrada) is None, fid
     for fid, entrada in exemplos.items():
         esp = CATALOGO[fid]
         assert validar(esp, entrada) is None, fid
@@ -209,9 +217,11 @@ def test_reiniciar_a_demo_volta_todos_os_plugins_ao_estado_inicial(api):
     _integrar(api, "lucas", "datadog")
     api.post(f"{V1}/plugins/salesforce/integrar", headers=como("marina"))
     assert api.post(f"{V1}/demo/reiniciar", headers=como("helena")).status_code == 200
-    assert {p["estado"] for p in api.get(f"{V1}/plugins", headers=como("marina")).json()} == {"disponivel"}
+    estados = {p["id"]: p["estado"] for p in api.get(f"{V1}/plugins", headers=como("marina")).json()}
+    assert estados.pop("arquivos") == "integrado"                  # o plugin real (v8) já nasce integrado com os arquivos da demo
+    assert set(estados.values()) == {"disponivel"}
     assert api.get(f"{V1}/plugins/pedidos", headers=como("lucas")).json() == []
-    assert not any(f.plugin for f in disponiveis().values())
+    assert {f.plugin for f in disponiveis().values() if f.plugin} == {"arquivos"}
 
 
 # ======================================================================= 07: plugin sensível

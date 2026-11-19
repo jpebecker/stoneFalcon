@@ -20,6 +20,29 @@ def financas_resumo(dias: int = 30, pessoa: Persona = Depends(usuario_atual), s:
     return resumo.resumo(s, pessoa, min(max(dias, 1), 365))
 
 
+@rotas.post("/financas/exportar-planilha")
+def financas_exportar(dias: int = 30, pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
+    """Helena: grava o resumo de Finanças (por processo e agente) num arquivo novo do plugin Arquivos e Planilhas, que ela vê e baixa lá."""
+    from ..core.relogio import agora
+    from ..plugins import arquivos
+    from ..plugins import estado as plugins_estado
+    exigir(pessoa, GESTOR_IA)
+    if not plugins_estado.integrado(arquivos.PLUGIN_ID):
+        raise HTTPException(status_code=409, detail="Integre o plugin Arquivos e Planilhas (aba Plugins) para exportar a planilha.")
+    r = resumo.resumo(s, pessoa, min(max(dias, 1), 365))
+    colunas = ["tipo", "nome", "area", "execucoes", "concluidas", "custo_brl", "ganho_brl", "horas_liberadas", "roi"]
+    linhas = [{"tipo": x["tipo"], "nome": x["nome"], "area": x["area"], "execucoes": x["execucoes"], "concluidas": x["concluidas"],
+               "custo_brl": x["custo_brl"], "ganho_brl": x["ganho_brl"], "horas_liberadas": x["horas_liberadas"],
+               "roi": "" if x["roi"] is None else x["roi"]} for x in r["por_agente"]]
+    quando = agora()
+    nome = "financas-%s.csv" % quando.strftime("%Y-%m-%d-%H%M%S")
+    try:
+        a = arquivos.criar_pelo_sistema(s, pessoa, nome, colunas, linhas, 1, ["gestao"])
+    except arquivos.ErroArquivo as e:
+        raise HTTPException(status_code=e.status, detail=str(e))
+    return {"arquivo": arquivos.publico(a, pessoa), "linhas": len(linhas), "dias": r["dias"]}
+
+
 @rotas.get("/financas/comparativo")
 def financas_comparativo(modelo: str | None = None, dias: int = 30, pessoa: Persona = Depends(usuario_atual),
                          s: Session = Depends(sessao)):
@@ -69,6 +92,18 @@ def orcamento(agente_id: str, pedido: PedidoOrcamento, pessoa: Persona = Depends
     avaliar_seguro(s)
     s.refresh(a)
     return a.model_dump()
+
+
+@rotas.put("/processos/{processo_id}/orcamento")
+def orcamento_processo(processo_id: str, pedido: PedidoOrcamento, pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
+    from ..processos.tipo import ciclo as ciclo_processos
+    try:
+        p = ciclo_processos.definir_orcamento(s, pessoa, processo_id, pedido.valor_brl)
+    except ciclo.ErroCiclo as e:
+        raise HTTPException(status_code=e.status, detail=str(e))
+    avaliar_seguro(s)
+    s.refresh(p)
+    return p.model_dump()
 
 
 @rotas.post("/demo/historico")

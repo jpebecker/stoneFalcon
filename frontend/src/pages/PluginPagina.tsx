@@ -3,8 +3,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { api, type ConsolidadoPlugin, type JanelaPlugin, type PedidoPlugin, type Persona, type Plugin } from "../api/cliente";
+import ArquivosPlugin from "../components/ArquivosPlugin";
 import { COR_SAUDE, NOME_SAUDE, ms, reais } from "../components/formato";
-import { AcoesPlugin, CartaoPedidoPlugin, classeSelo, COR_ESTADO_PLUGIN, IconeCategoria, NOME_ESTADO_PLUGIN, SeloSimulado } from "../components/Plugin";
+import { AcoesPlugin, CartaoPedidoPlugin, classeSelo, COR_ESTADO_PLUGIN, IconeCategoria, NOME_ESTADO_PLUGIN, SeloDoPlugin } from "../components/Plugin";
 
 function Numero({ rotulo, valor, nota }: { rotulo: string; valor: string; nota?: string }) {
   return (
@@ -177,7 +178,7 @@ export default function PluginPagina({ pessoa }: { pessoa: Persona }) {
         <IconeCategoria categoria={p.categoria} tamanho={56} />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-3xl">{p.nome}</h1><SeloSimulado />
+            <h1 className="text-3xl">{p.nome}</h1><SeloDoPlugin real={p.real} interno={p.interno} />
             <span className={"selo " + COR_ESTADO_PLUGIN[p.estado]}>{NOME_ESTADO_PLUGIN[p.estado]}</span>
             <span className={"selo " + classeSelo(p.classificacao)}>{p.classificacao}</span>
           </div>
@@ -202,7 +203,7 @@ export default function PluginPagina({ pessoa }: { pessoa: Persona }) {
 
       <section className="caixa p-6">
         <h2 className="text-lg">O que este plugin traz</h2>
-        <p className="mt-1 text-sm text-tinta-3">O plugin nunca é executado: só as ferramentas abaixo, com o mesmo contrato do Catálogo.</p>
+        <p className="mt-1 text-sm text-tinta-3">{p.interno ? "Plugin interno conceitual: as ferramentas seguem a especificação aprovada e devolvem dados fictícios, com as mesmas regras de permissão, confirmação e auditoria." : p.real ? "Este plugin funciona de verdade: as ferramentas abaixo leem e escrevem nos arquivos enviados, com o mesmo contrato do Catálogo." : "O plugin nunca é executado: só as ferramentas abaixo, com o mesmo contrato do Catálogo."}</p>
         <div className="mt-3 overflow-x-auto">
           <table className="w-full min-w-[640px] text-sm">
             <thead><tr className="border-b border-linha text-left text-xs uppercase tracking-wide text-tinta-3">
@@ -237,6 +238,7 @@ export default function PluginPagina({ pessoa }: { pessoa: Persona }) {
         </section>
       )}
 
+      {p.estado === "integrado" && p.id === "arquivos" && <ArquivosPlugin pessoa={pessoa} />}
       {p.estado === "integrado" && <Consolidado id={p.id} />}
     </div>
   );

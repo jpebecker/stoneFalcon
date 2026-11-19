@@ -4,11 +4,12 @@ from sqlmodel import Field, SQLModel
 
 
 class Rotina(SQLModel, table=True):
-    """Agenda de um agente publicado, com uma entrada fixa. Roda em nome de quem agendou."""
+    """Agenda de um agente ou processo publicado, com uma entrada fixa. Roda em nome de quem agendou."""
     __tablename__ = "rotina"
 
     id: str = Field(primary_key=True)
-    agente_id: str = Field(index=True)
+    agente_id: str = Field(index=True)          # id do agente OU do processo (veja dono_tipo); o nome da coluna vem da v7
+    dono_tipo: str = Field(default="agente", index=True)   # "agente" | "processo" (linhas antigas = agente)
     dono: str                                   # quem agendou: a execução usa as permissões dele
     frequencia: str                             # "diaria" | "semanal"
     dia_semana: int | None = None               # 0 = segunda ... 6 = domingo (só na semanal)

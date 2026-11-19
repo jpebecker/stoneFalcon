@@ -76,11 +76,16 @@ function Orcamento({ uso, gasto, limite, editavel, aoMudar }: {
 export default function Financas({ pessoa }: { pessoa: Persona }) {
   const qc = useQueryClient();
   const [dias, setDias] = useState(30);
+  const [exportado, setExportado] = useState<string | null>(null);
   const q = useQuery({ queryKey: ["financas", dias], queryFn: () => api<ResumoFinancas>("/financas/resumo?dias=" + dias) });
   const gestor = pessoa.papeis.includes("gestor_ia");
   const orcamento = useMutation({
-    mutationFn: ({ id, valor }: { id: string; valor: number }) => api(`/agentes/${id}/orcamento`, { valor_brl: valor }, "PUT"),
+    mutationFn: ({ id, valor, tipo }: { id: string; valor: number; tipo: string }) => api(`/${tipo === "processo" ? "processos" : "agentes"}/${id}/orcamento`, { valor_brl: valor }, "PUT"),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["financas"] }),
+  });
+  const exportar = useMutation({
+    mutationFn: () => api<{ arquivo: { nome: string }; linhas: number }>(`/financas/exportar-planilha?dias=${dias}`, {}),
+    onSuccess: (x) => setExportado(x.arquivo.nome),
   });
   const gerar = useMutation({
     mutationFn: () => api("/demo/historico", {}),
@@ -102,8 +107,16 @@ export default function Financas({ pessoa }: { pessoa: Persona }) {
             ))}
           </div>
           <Link to="/financas/calculadora" className="botao-claro">Calculadora de investimento</Link>
+          {gestor && <button className="botao-claro" disabled={exportar.isPending} onClick={() => exportar.mutate()}>{exportar.isPending ? "Exportando…" : "Exportar para planilha"}</button>}
         </div>
       </div>
+
+      {exportar.isError && <p className="text-sm text-erro" role="alert">{(exportar.error as Error).message}</p>}
+      {exportado && (
+        <p className="rounded-caixa border border-pedra/40 bg-pedra-fundo px-4 py-2 text-sm" role="status">
+          Planilha <b>{exportado}</b> criada. <Link to="/plugins/arquivos" className="font-semibold text-pedra-forte underline">Ver e baixar no plugin Arquivos e Planilhas</Link>
+        </p>
+      )}
 
       {r?.tem_demo && (
         <p className="rounded-caixa border border-alerta/40 bg-alerta-fundo/60 px-4 py-2 text-sm">
@@ -160,7 +173,7 @@ export default function Financas({ pessoa }: { pessoa: Persona }) {
             <table className="w-full text-sm">
               <thead className="bg-papel text-left text-xs uppercase tracking-wide text-tinta-3">
                 <tr>
-                  <th className="px-4 py-2.5">Agente</th><th className="px-4 py-2.5 text-right">Execuções</th>
+                  <th className="px-4 py-2.5">Processo / agente</th><th className="px-4 py-2.5 text-right">Execuções</th>
                   <th className="px-4 py-2.5 text-right">Custo</th><th className="px-4 py-2.5 text-right">Custo/execução</th>
                   <th className="px-4 py-2.5 text-right">Horas liberadas</th><th className="px-4 py-2.5 text-right">Valor gerado</th>
                   <th className="px-4 py-2.5 text-right">Retorno</th><th className="px-4 py-2.5">Orçamento do mês</th>
@@ -169,8 +182,16 @@ export default function Financas({ pessoa }: { pessoa: Persona }) {
               <tbody className="divide-y divide-linha">
                 {r.por_agente.map((a) => (
                   <tr key={a.id}>
-                    <td className="px-4 py-2.5"><Link to={"/agentes/" + a.id} className="font-medium hover:text-pedra-forte">{a.nome}</Link>
-                      <div className="text-xs text-tinta-3">{a.area} · {a.minutos_manual} min à mão</div></td>
+                    <td className="px-4 py-2.5"><Link to={(a.tipo === "processo" ? "/processos/" : "/agentes/") + a.id} className="font-medium hover:text-pedra-forte">{a.nome}</Link>
+                      <div className="text-xs text-tinta-3">{a.tipo === "processo" ? "processo" : "agente"} · {a.area} · {a.minutos_manual} min à mão</div>
+                      {a.agentes && a.agentes.length > 0 && (
+                        <details className="mt-1 text-xs text-tinta-2">
+                          <summary className="cursor-pointer text-pedra-forte">Agentes dentro do processo</summary>
+                          <ul className="mt-1 space-y-0.5">{a.agentes.map((x) => (
+                            <li key={x.id}><Link to={"/agentes/" + x.id} className="hover:text-pedra-forte">{x.nome}</Link> · {num(x.execucoes)} execuções · {reais(x.custo_brl)}</li>
+                          ))}</ul>
+                        </details>
+                      )}</td>
                     <td className="px-4 py-2.5 text-right">{num(a.execucoes)}<div className="text-xs text-tinta-3">{num(a.concluidas)} concluídas</div></td>
                     <td className="px-4 py-2.5 text-right">{reais(a.custo_brl)}</td>
                     <td className="px-4 py-2.5 text-right">{reais(a.custo_medio_brl)}</td>
@@ -179,13 +200,13 @@ export default function Financas({ pessoa }: { pessoa: Persona }) {
                     <td className="px-4 py-2.5 text-right font-semibold">{a.roi == null ? "—" : num(a.roi) + "×"}</td>
                     <td className="px-4 py-2.5">
                       <Orcamento uso={a.uso_orcamento} gasto={a.gasto_mes_brl} limite={a.orcamento_mensal_brl}
-                        editavel={gestor} aoMudar={(v) => orcamento.mutate({ id: a.id, valor: v })} />
+                        editavel={gestor} aoMudar={(v) => orcamento.mutate({ id: a.id, valor: v, tipo: a.tipo })} />
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            {r.por_agente.length === 0 && <p className="p-5 text-sm text-tinta-3">Nenhum agente visível.</p>}
+            {r.por_agente.length === 0 && <p className="p-5 text-sm text-tinta-3">Nenhum processo ou agente visível.</p>}
           </section>
           <p className="text-xs text-tinta-3">
             Valor gerado = execuções concluídas × (minutos à mão − {String(r.premissas?.minutos_revisao_humana ?? 2)} min de conferência) × R$ {String(r.premissas?.custo_hora ?? 45)}/h × {pct(Number(r.premissas?.aproveitamento ?? 0.5))} de aproveitamento.

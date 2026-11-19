@@ -21,6 +21,7 @@ from ..core.identidade import Classificacao
 from ..seed.conhecimento import BASE_INICIAL
 from ..texto.semelhanca import Indice
 from . import dados_ficticios as fx
+from .contexto import AcessoNegado, Contexto, ErroFerramenta  # noqa: F401  (reexportados: o resto do código importa daqui)
 
 TODAS = "*"
 
@@ -31,10 +32,6 @@ MODULOS = {
     "comunicacao": "Comunicação e conhecimento",
     "plugins": "Plugins integrados",
 }
-
-
-class ErroFerramenta(Exception):
-    """Erro esperado de um conector (entrada inválida, registro não encontrado...)."""
 
 
 @dataclass(frozen=True)
@@ -53,6 +50,7 @@ class Especificacao:
     limite_por_minuto: int = 30
     latencia_ms: int = 120             # latência típica do sistema (simulada)
     plugin: str | None = None          # id do plugin que trouxe a ferramenta (só vale enquanto ele está integrado)
+    aprovacao_se: Callable[..., bool] | None = None   # (sessão, entrada, contexto) -> exige confirmação NESTA chamada (depende do dado)
 
     def para_modelo(self) -> dict:
         """Definição no formato de ferramenta da API da Anthropic."""
@@ -67,15 +65,6 @@ class Especificacao:
             },
             "strict": True,
         }
-
-
-@dataclass
-class Contexto:
-    """Quem está executando. Ferramentas rodam com as permissões de quem DISPAROU o agente."""
-    persona_id: str
-    agente_id: str | None = None
-    execucao_id: str | None = None
-    extras: dict = field(default_factory=dict)
 
 
 # =============================================================

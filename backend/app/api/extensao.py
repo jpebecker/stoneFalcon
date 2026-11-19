@@ -1,8 +1,8 @@
-"""Extensão copiloto: dado o trecho selecionado, sugere o agente e já preenche os campos detectados.
+"""Extensão copiloto: dado o trecho selecionado, sugere o processo (ou o agente) e já preenche os campos detectados.
 
 A extensão não tem lógica de IA: esta rota só lê o texto, procura lojistas e colaboradores citados e ordena
-os agentes que a pessoa pode executar pela semelhança com o trecho. Quem roda o agente continua sendo a
-plataforma, com as permissões de quem está logado.
+os processos e agentes que a pessoa pode executar pela semelhança com o trecho (processos primeiro: são o fluxo completo;
+o agente é um trabalhador avulso). Quem roda continua sendo a plataforma, com as permissões de quem está logado.
 """
 import re
 import secrets
@@ -21,6 +21,8 @@ from ..audit import trilha
 from ..core.db import sessao
 from ..core.identidade import CONSULTA_COLABORADORES, PERSONAS, Persona, exigir_aba, usuario_atual
 from ..plugins import planilhas
+from ..processos import modelos as pm
+from ..processos.blueprint import ProcessoBlueprint
 from ..texto.semelhanca import Indice
 from ..tools import dados_ficticios as fx
 
@@ -55,15 +57,30 @@ def detectar_colaborador(trecho: str, pessoa: Persona) -> dict | None:
 _cache_indice: dict[tuple, Indice] = {}
 
 
+def _titulos(bp) -> list[str]:
+    return [p.titulo for p in (bp.blocos if isinstance(bp, ProcessoBlueprint) else bp.passos)]
+
+
 def _indice(executaveis) -> Indice:
-    """O índice só muda quando muda o conjunto de agentes/versões publicados."""
+    """O índice só muda quando muda o conjunto de agentes, processos e versões publicados."""
     chave = tuple(sorted((a.id, a.versao_publicada) for a, _ in executaveis))
     if chave not in _cache_indice:
         if len(_cache_indice) > 32:
             _cache_indice.clear()
         _cache_indice[chave] = Indice([{"id": a.id, "pergunta": "%s. %s" % (a.nome, bp.objetivo),
-                                        "variacoes": [p.titulo for p in bp.passos]} for a, bp in executaveis])
+                                        "variacoes": _titulos(bp)} for a, bp in executaveis])
     return _cache_indice[chave]
+
+
+def _executaveis(s: Session, pessoa: Persona) -> list[tuple]:
+    """Processos e agentes publicados que o perfil pode rodar, cada um com o blueprint da versão publicada."""
+    saida = []
+    for tabela, versao_cls, modelo in ((pm.Processo, pm.VersaoProcesso, ProcessoBlueprint), (am.Agente, am.VersaoAgente, Blueprint)):
+        publicados = [a for a in s.exec(select(tabela).where(tabela.estado == am.PUBLICADO)).all() if ciclo.pode_executar(pessoa, a)]
+        ids = ["%s-v%d" % (a.id, a.versao_publicada) for a in publicados]
+        versoes = {v.id: v for v in s.exec(select(versao_cls).where(versao_cls.id.in_(ids))).all()} if ids else {}
+        saida += [(a, modelo.model_validate(versoes["%s-v%d" % (a.id, a.versao_publicada)].blueprint)) for a in publicados]
+    return saida
 
 
 class PedidoAnalise(BaseModel):
@@ -75,20 +92,18 @@ def analisar(pedido: PedidoAnalise, pessoa: Persona = Depends(usuario_atual), s:
     trecho = pedido.trecho.strip()
     lojista = detectar_lojista(trecho)
     colaborador = detectar_colaborador(trecho, pessoa)
-    publicados = [a for a in s.exec(select(am.Agente).where(am.Agente.estado == am.PUBLICADO)).all()
-                  if ciclo.pode_executar(pessoa, a)]
-    ids = ["%s-v%d" % (a.id, a.versao_publicada) for a in publicados]
-    versoes = {v.id: v for v in s.exec(select(am.VersaoAgente).where(am.VersaoAgente.id.in_(ids))).all()} if ids else {}
-    executaveis = [(a, Blueprint.model_validate(versoes["%s-v%d" % (a.id, a.versao_publicada)].blueprint)) for a in publicados]
+    executaveis = _executaveis(s, pessoa)
 
     ordem: dict[str, float] = {}
     similaridade: dict[str, float] = {}
     if trecho and executaveis:
         for achado in _indice(executaveis).buscar(trecho, len(executaveis)):
             ordem[achado["entrada"]["id"]] = similaridade[achado["entrada"]["id"]] = achado["nota"]
-        for a, bp in executaveis:   # citar um lojista favorece agentes que pedem um lojista
+        for a, bp in executaveis:   # citar um lojista favorece quem pede um lojista; o processo desempata a favor dele
             if lojista and any(c.tipo == "lojista" for c in bp.campos):
                 ordem[a.id] = ordem.get(a.id, 0) + 0.1
+            if isinstance(a, pm.Processo):
+                ordem[a.id] = ordem.get(a.id, 0) + 0.05
 
     saida = []
     for a, bp in executaveis:
@@ -109,7 +124,8 @@ def analisar(pedido: PedidoAnalise, pessoa: Persona = Depends(usuario_atual), s:
                 valor = next((o for o in c.opcoes if _norm(o) in _norm(trecho)), None)
             if valor:
                 preenchido[c.id] = valor
-        saida.append({"id": a.id, "nome": a.nome, "objetivo": bp.objetivo, "risco": a.risco,
+        saida.append({"id": a.id, "tipo": "processo" if isinstance(a, pm.Processo) else "agente", "nome": a.nome,
+                      "objetivo": bp.objetivo, "risco": a.risco,
                       "pontuacao": round(ordem.get(a.id, 0.0), 3), "campos": [c.model_dump() for c in bp.campos],
                       "preenchido": preenchido, "detectado": detectado})
     saida.sort(key=lambda x: -x["pontuacao"])

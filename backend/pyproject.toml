@@ -1,6 +1,6 @@
 [project]
 name = "stonefalcon"
-version = "7.0.0"
+version = "8.0.0"
 description = "StoneFalcon: plataforma agêntica institucional (protótipo acadêmico UFSC / StoneLab)"
 requires-python = ">=3.11"
 dependencies = [
@@ -9,6 +9,7 @@ dependencies = [
   "sqlmodel>=0.0.22",
   "anthropic>=1.0",
   "python-dotenv>=1.0",
+  "openpyxl>=3.1",
 ]
 
 [dependency-groups]

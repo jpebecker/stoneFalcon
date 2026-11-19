@@ -19,6 +19,9 @@ from ..core.db import trava
 from ..core.identidade import PERSONAS
 from ..core.relogio import agora
 from ..llm import precos, registro
+from ..processos import modelos as pm
+from ..processos.blueprint import ProcessoBlueprint
+from ..processos.compilar import compilar
 from ..runtime import modelos as rm
 
 # Parte das execuções do histórico roda em outros provedores (todos simulados), para os gráficos de Finanças
@@ -39,14 +42,41 @@ def _tokens_do_custo(chave: str, custo_usd: float) -> tuple[int, int]:
 VOLUME_DIA = {"atendimento": 22, "risco": 9, "pessoas": 12, "logistica": 10}   # execuções por dia útil
 
 
+def _passos(bp: Blueprint, est, custo_usd: float, status: str, motivo: str | None) -> dict:
+    """Registro por passo do histórico de um processo: o agente que rodou e a parte do custo que coube a ele."""
+    pesos = {p.id: est.por_passo.get(p.id, {}).get("custo_brl", 0.0) for p in bp.passos}
+    total = sum(pesos.values()) or 1.0
+    saida: dict = {}
+    for p in bp.passos:
+        saida[p.id] = {"id": p.id, "titulo": p.titulo, "tipo": p.tipo, "status": "concluido", "saida": None, "motivo": None,
+                       "bloco": p.bloco, "agente": p.agente_ref, "modelo_chave": est.por_passo.get(p.id, {}).get("modelo_chave"),
+                       "custo_usd": round(custo_usd * pesos[p.id] / total, 8), "duracao_ms": 0, "duracao_estimada_ms": 0,
+                       "ferramentas": [], "iteracoes": 0, "pendencia": None}
+        if status == rm.ESCALADA and motivo and motivo.startswith(p.titulo):
+            saida[p.id].update(status="escalado", motivo=motivo.split(": ", 1)[-1])
+            break
+    return saida
+
+
 def gerar(s: Session, dias: int = 30, semente: int = 7) -> int:
     rnd = random.Random(semente)
     hoje = agora()
     criadas = []
-    agentes = s.exec(select(am.Agente).where(am.Agente.estado == am.PUBLICADO)).all()
-    for a in agentes:
+    # v8: o histórico é dos PROCESSOS; cada passo guarda o agente trabalhador que rodou nele, para o detalhe por agente
+    donos: list[tuple] = []
+    em_processo: set[str] = set()
+    for p in s.exec(select(pm.Processo).where(pm.Processo.estado == am.PUBLICADO)).all():
+        v = s.get(pm.VersaoProcesso, "%s-v%d" % (p.id, p.versao_publicada))
+        pbp = ProcessoBlueprint.model_validate(v.blueprint)
+        em_processo |= {b.agente_id for b in pbp.blocos if b.agente_id}
+        donos.append((p, compilar(s, pbp, None, "publicada")))
+    for a in s.exec(select(am.Agente).where(am.Agente.estado == am.PUBLICADO)).all():   # agentes que rodam sozinhos (ex.: o do pitch)
+        if a.id in em_processo:   # o trabalhador de um processo já está contado na execução do processo
+            continue
         v = s.get(am.VersaoAgente, "%s-v%d" % (a.id, a.versao_publicada))
-        bp = Blueprint.model_validate(v.blueprint)
+        donos.append((a, Blueprint.model_validate(v.blueprint)))
+    for a, bp in donos:
+        processo = isinstance(a, pm.Processo)
         est = estimar_custo(bp)
         pessoas = [p.id for p in PERSONAS.values() if p.area == a.area] or [a.dono]
         modelos_usados = [x["modelo_chave"] for x in est.por_passo.values() if x.get("modelo_chave")]
@@ -74,9 +104,11 @@ def gerar(s: Session, dias: int = 30, semente: int = 7) -> int:
                     custo_usd *= registro.obter(usado).peso / registro.obter(chave).peso
                 t_in, t_out = _tokens_do_custo(usado, custo_usd)
                 criadas.append(rm.Execucao(
-                    id=uuid.uuid4().hex[:12], agente_id=a.id, versao=a.versao_publicada, agente_nome=a.nome, area=a.area,
+                    id=uuid.uuid4().hex[:12], agente_id=None if processo else a.id, dono_tipo="processo" if processo else "agente",
+                    dono_id=a.id, versao=a.versao_publicada, agente_nome=a.nome, area=a.area,
                     persona=rnd.choice(pessoas), status=status, motivo=motivo, entrada={}, blueprint=bp.model_dump(),
-                    passos={}, resultado=None if status != rm.CONCLUIDA else "(histórico de demonstração)",
+                    passos=_passos(bp, est, custo_usd, status, motivo) if processo else {},
+                    resultado=None if status != rm.CONCLUIDA else "(histórico de demonstração)",
                     chamadas_modelo=est.chamadas_modelo, custo_usd=round(custo_usd, 8),
                     custo_tudo_forte_usd=round(tudo_forte_usd, 8),
                     tokens_entrada=t_in, tokens_saida=t_out,

@@ -1,9 +1,9 @@
 """Reinício da demonstração: volta ao estado inicial, geral ou o exato de um roteiro."""
 from sqlmodel import Session, SQLModel, select
 
-from ..agents import ciclo
-from ..agents import modelos as am
-from ..agents.blueprint import Blueprint
+from ..processos import modelos as pm
+from ..processos.blueprint import Bloco, ProcessoBlueprint
+from ..processos.tipo import ciclo as ciclo_processos
 from ..core import db
 from .. import rotinas
 from ..llm import balanceador
@@ -16,22 +16,17 @@ from .catalogo import ROTEIROS
 
 
 def _versao_em_revisao(s: Session) -> None:
-    """Lucas: uma nova versão da triagem (aviso por Slack) esperando a revisão de segurança."""
+    """Lucas: uma nova versão do processo de triagem (aviso por Slack) esperando a revisão de segurança."""
     rafael = PERSONAS["rafael"]
-    agente = s.exec(select(am.Agente).where(am.Agente.nome == "Triagem de chargebacks")).first()
-    if agente is None:
+    processo = s.exec(select(pm.Processo).where(pm.Processo.nome == "Triagem de chargebacks")).first()
+    if processo is None:
         return
-    atual = Blueprint.model_validate(ciclo.versao(s, agente.id, agente.ultima_versao).blueprint)
-    passos = []
-    for p in atual.passos:
-        if p.id == "acao":
-            p = p.model_copy(update={
-                "ferramentas": sorted(set(p.ferramentas) | {"enviar_notificacao"}),
-                "instrucao": p.instrucao + " Avise o canal #time-risco no Slack com o resumo do caso."})
-        passos.append(p)
-    ciclo.editar(s, rafael, agente.id, atual.model_copy(update={"passos": passos}),
-                 "Passei a avisar o canal #time-risco no Slack quando o caso é encaminhado.")
-    ciclo.publicar(s, rafael, agente.id)   # risco alto: vai para a revisão da Segurança
+    atual = ProcessoBlueprint.model_validate(ciclo_processos.versao(s, processo.id, processo.ultima_versao).blueprint)
+    aviso = Bloco(id="aviso_slack", tipo="saida", titulo="Avisar o canal #time-risco no Slack", depende_de=["retencao"], ferramenta="enviar_notificacao",
+                  entrada={"canal": "slack", "destino": "#time-risco", "mensagem": "Caso de {{passos.cadastro.saida.nome}} encaminhado: {{passos.analise.saida}}"})
+    ciclo_processos.editar(s, rafael, processo.id, atual.model_copy(update={"blocos": [*atual.blocos, aviso]}),
+                           "Passei a avisar o canal #time-risco no Slack quando o caso é encaminhado.")
+    ciclo_processos.publicar(s, rafael, processo.id)   # risco alto: vai para a revisão da Segurança
 
 
 def _pitch(s: Session) -> None:
