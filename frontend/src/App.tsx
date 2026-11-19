@@ -19,6 +19,7 @@ import Financas from "./pages/Financas";
 import Inicio from "./pages/Inicio";
 import Painel from "./pages/Painel";
 import PluginPagina from "./pages/PluginPagina";
+import PluginCriar from "./pages/PluginCriar";
 import Plugins from "./pages/Plugins";
 import ProcessoDetalhe from "./pages/ProcessoDetalhe";
 import ProcessoEditor from "./pages/ProcessoEditor";
@@ -196,7 +197,8 @@ export default function App() {
                 <Route path="/roteiro/:id" element={<RoteiroPagina pessoa={pessoa} />} />
                 <Route path="/mapa" element={<Guarda pessoa={pessoa} aba="mapa"><MapaIAPagina /></Guarda>} />
                 <Route path="/perguntas" element={<Guarda pessoa={pessoa} aba="perguntas"><Perguntas /></Guarda>} />
-                <Route path="/plugins" element={<Guarda pessoa={pessoa} aba="plugins"><Plugins /></Guarda>} />
+                <Route path="/plugins" element={<Guarda pessoa={pessoa} aba="plugins"><Plugins pessoa={pessoa} /></Guarda>} />
+                <Route path="/plugins/criar" element={<Guarda pessoa={pessoa} aba="plugins"><PluginCriar /></Guarda>} />
                 <Route path="/plugins/:id" element={<Guarda pessoa={pessoa} aba="plugins"><PluginPagina pessoa={pessoa} /></Guarda>} />
                 <Route path="/estudio" element={<Guarda pessoa={pessoa} aba="estudio"><Estudio pessoa={pessoa} /></Guarda>} />
                 <Route path="/agentes" element={<Agentes pessoa={pessoa} />} />

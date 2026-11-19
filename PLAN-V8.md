@@ -260,16 +260,16 @@ v7 gave the platform a live AI Map, multiple model providers and scheduled tasks
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] New role `ai_analyst` assigned to Helena in the identity module; persona count stays 6.
-- [ ] Only creators and engineering see "Create your plugin"; others see the marketplace as before. The API enforces it (403).
-- [ ] The wizard collects: market tool name, pasted public description (required, length-limited), purpose, areas, data sensitivity; a notice says only public information may be used, no logos/trademarks/code.
-- [ ] Draft generation: real mode uses the model (with injection guardrails on the pasted text); simulated mode uses a deterministic template, so the demo works without a key.
-- [ ] The draft shows capabilities, proposed tools (name, read/write, inputs, classification), areas, risks and build-vs-buy numbers, all editable before submitting.
-- [ ] The generated plugin uses a generic internal name ("Internal scheduling tool", not the market brand) and a generic category icon.
-- [ ] Submitting creates a request (state "awaiting AI analyst"), notifies Helena, and is recorded in the audit trail; the requester can see the request status.
-- [ ] Back-end tests: access control, draft generation in simulated mode, injection text in the pasted description is isolated, request creation and audit.
+- [x] New role `ai_analyst` assigned to Helena in the identity module; persona count stays 6.
+- [x] Only creators and engineering see "Create your plugin"; others see the marketplace as before. The API enforces it (403).
+- [x] The wizard collects: market tool name, pasted public description (required, length-limited), purpose, areas, data sensitivity; a notice says only public information may be used, no logos/trademarks/code.
+- [x] Draft generation: real mode uses the model (with injection guardrails on the pasted text); simulated mode uses a deterministic template, so the demo works without a key.
+- [x] The draft shows capabilities, proposed tools (name, read/write, inputs, classification), areas, risks and build-vs-buy numbers, all editable before submitting.
+- [x] The generated plugin uses a generic internal name ("Internal scheduling tool", not the market brand) and a generic category icon.
+- [x] Submitting creates a request (state "awaiting AI analyst"), notifies Helena, and is recorded in the audit trail; the requester can see the request status.
+- [x] Back-end tests: access control, draft generation in simulated mode, injection text in the pasted description is isolated, request creation and audit.
 
 ### 13: Approve and publish internal plugins
 

@@ -53,3 +53,33 @@ class ArquivoPlugin(SQLModel, table=True):
     atualizado_em: str
     atualizado_por: str
     demo: bool = False                             # arquivo do estado inicial da demo
+
+
+# estados de um pedido "Crie o seu plugin" (v8/12 e 13)
+INT_AGUARDA_ANALISTA = "aguardando_analista"
+INT_AGUARDA_SEGURANCA = "aguardando_seguranca"
+INT_APROVADO = "aprovado"            # decidido, ainda sem publicar (a publicação é imediata na prática)
+INT_PUBLICADO = "publicado"
+INT_RECUSADO = "recusado"
+INT_REMOVIDO = "removido"
+
+
+class PedidoPluginInterno(SQLModel, table=True):
+    """Pedido "Crie o seu plugin": a pessoa descreve uma ferramenta de mercado e a plataforma rascunha a especificação interna."""
+    __tablename__ = "plugin_interno_pedido"
+
+    id: str = Field(primary_key=True)
+    solicitante: str = Field(index=True)
+    area: str
+    ferramenta_mercado: str                         # só para o analista saber do que se trata; não vai para o plugin
+    descricao_publica: str                          # o texto público colado (limitado)
+    finalidade: str
+    areas: list = Field(default_factory=list, sa_column=Column(JSON))
+    classificacao: int = 1
+    spec: dict = Field(default_factory=dict, sa_column=Column(JSON))        # a especificação editada e enviada
+    estado: str = Field(default=INT_AGUARDA_ANALISTA, index=True)
+    plugin_id: str | None = None                    # id do plugin interno publicado (v8/13)
+    decisao_analista: dict | None = Field(default=None, sa_column=Column(JSON))     # {por, aprovar, parecer, quando}
+    decisao_seguranca: dict | None = Field(default=None, sa_column=Column(JSON))
+    criado_em: str
+    atualizado_em: str

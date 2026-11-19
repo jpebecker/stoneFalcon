@@ -2,10 +2,18 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { api, type Plugin } from "../api/cliente";
+import { api, type PedidoPluginInterno, type Persona, type Plugin } from "../api/cliente";
+import { quando } from "../components/formato";
 import { AcoesPlugin, classeSelo, COR_ESTADO_PLUGIN, IconeCategoria, NOME_ESTADO_PLUGIN, SeloDoPlugin } from "../components/Plugin";
 
-export default function Plugins() {
+const NOME_ESTADO_INTERNO: Record<PedidoPluginInterno["estado"], string> = {
+  aguardando_analista: "aguardando a analista de IA", aguardando_seguranca: "aguardando a Segurança", aprovado: "aprovado",
+  publicado: "publicado no marketplace", recusado: "recusado", removido: "removido",
+};
+
+export default function Plugins({ pessoa }: { pessoa: Persona }) {
+  const podePedir = pessoa.papeis.includes("criador") || pessoa.papeis.includes("engenharia");
+  const pedidos = useQuery({ queryKey: ["plugins-internos"], queryFn: () => api<PedidoPluginInterno[]>("/plugins-internos"), refetchInterval: 8000 });
   const q = useQuery({ queryKey: ["plugins"], queryFn: () => api<Plugin[]>("/plugins") });
   const [categoria, setCategoria] = useState("");
   const [busca, setBusca] = useState("");
@@ -18,7 +26,9 @@ export default function Plugins() {
     <div className="space-y-6">
       <div>
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-3xl">Plugins</h1><span className="selo bg-papel text-tinta-2" title="A maioria dos plugins é simulada; o Arquivos e Planilhas é de verdade">simulados · 1 real</span>
+          <h1 className="text-3xl">Plugins</h1>
+<span className="selo bg-papel text-tinta-2" title="A maioria dos plugins é simulada; o Arquivos e Planilhas é de verdade">simulados · 1 real</span>
+          {podePedir && <Link to="/plugins/criar" className="botao-pedra ml-auto">Crie o seu plugin</Link>}
         </div>
         <p className="mt-1 max-w-3xl text-tinta-2">
           Marketplace de integrações homologadas. Os plugins simulados nunca são executados: só as ferramentas que eles trazem; o Arquivos e Planilhas funciona de verdade. Integrar as coloca no
@@ -36,6 +46,23 @@ export default function Plugins() {
           ))}
         </div>
       </div>
+
+      {pedidos.data && pedidos.data.length > 0 && (
+        <section className="caixa p-5" aria-label="Pedidos de plugin">
+          <h2 className="text-lg">Pedidos “Crie o seu plugin”</h2>
+          <ul className="mt-2 divide-y divide-linha">
+            {pedidos.data.map((x) => (
+              <li key={x.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
+                <b>{x.spec.nome}</b>
+                <span className="selo bg-papel text-tinta-2">{NOME_ESTADO_INTERNO[x.estado]}</span>
+                <span className="text-tinta-3">{x.meu ? "seu pedido" : "de " + x.solicitante_nome} · {quando(x.criado_em)}</span>
+                {x.plugin_id && <Link className="ml-auto font-semibold text-pedra-forte" to={"/plugins/" + x.plugin_id}>Abrir plugin</Link>}
+                {x.decisao_analista && !x.decisao_analista.aprovar && <span className="w-full text-xs text-erro">Recusado: {x.decisao_analista.parecer}</span>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {q.isError && <p className="text-erro">{(q.error as Error).message}</p>}
       {q.data && lista.length === 0 && <p className="caixa p-5 text-tinta-3">Nenhum plugin com esses filtros.</p>}

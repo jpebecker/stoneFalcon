@@ -359,6 +359,26 @@ export type Plugin = {
   pedido_pendente: { id: string; solicitante: string; meu: boolean; pode_decidir: boolean } | null; meu_pedido: PedidoMeu | null;
 };
 
+export type EspecFerramenta = {
+  id: string; nome: string; acao: "leitura" | "escrita"; descricao: string; entradas: { nome: string; descricao: string }[]; saida: string;
+  classificacao: string; exige_confirmacao: boolean;
+};
+export type EspecPlugin = {
+  nome: string; categoria: string; resumo: string; capacidades: string[]; ferramentas: EspecFerramenta[]; classificacao: string; areas: string[];
+  riscos: string[]; avisos?: string[];
+  comprar_ou_construir: { usuarios_estimados: number; licenca_anual_brl: number; construir_inicial_brl: number; operar_por_ano_brl: number;
+    custo_3_anos_comprar_brl: number; custo_3_anos_construir_brl: number; recomendacao: "comprar" | "construir"; premissas: string[] };
+};
+export type RascunhoPlugin = { spec: EspecPlugin; origem: string; aviso_publico: string; suspeitas: string[] };
+export type RegrasPluginInterno = { pode_pedir: boolean; aviso_publico: string; max_descricao: number; min_descricao: number; max_ferramentas: number };
+export type DecisaoPluginInterno = { por: string; por_nome?: string; aprovar: boolean; parecer: string; quando: string };
+export type PedidoPluginInterno = {
+  id: string; estado: "aguardando_analista" | "aguardando_seguranca" | "aprovado" | "publicado" | "recusado" | "removido"; solicitante: string;
+  solicitante_nome: string; area: string; finalidade: string; areas: string[]; classificacao: string; spec: EspecPlugin; plugin_id: string | null;
+  criado_em: string; atualizado_em: string; meu: boolean; ferramenta_mercado?: string; descricao_publica?: string;
+  decisao_analista: DecisaoPluginInterno | null; decisao_seguranca: DecisaoPluginInterno | null;
+};
+
 export type PedidoPlugin = {
   id: string; plugin_id: string; plugin_nome: string; categoria_nome: string; classificacao: string;
   ferramentas: { id: string; nome: string; acao: string }[]; solicitante: string; solicitante_nome: string; area_nome: string;
