@@ -87,9 +87,14 @@ def inicio_do_mes() -> str:
     return agora().replace(day=1, hour=0, minute=0, second=0).isoformat()
 
 
-def gasto_no_mes(s: Session, agente_id: str) -> float:
-    execs = s.exec(select(rm.Execucao).where(rm.Execucao.agente_id == agente_id)
-                   .where(rm.Execucao.inicio >= inicio_do_mes())).all()
+def gasto_no_mes(s: Session, dono_id: str, tipo: str = "agente") -> float:
+    """Gasto do mês de um agente ou de um processo (as execuções antigas, sem dono gravado, valem pelo agente_id)."""
+    q = select(rm.Execucao).where(rm.Execucao.inicio >= inicio_do_mes())
+    if tipo == "agente":
+        q = q.where(rm.Execucao.agente_id == dono_id)
+    else:
+        q = q.where(rm.Execucao.dono_tipo == tipo).where(rm.Execucao.dono_id == dono_id)
+    execs = s.exec(q).all()
     return round(brl(sum(e.custo_usd for e in execs)), 4)
 
 

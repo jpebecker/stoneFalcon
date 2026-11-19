@@ -147,7 +147,7 @@ def executar(s: Session, pessoa: Persona, conector_id: str, entrada: dict, ctx: 
     def fim(r: Resultado, evento: str) -> Resultado:
         r.latencia_ms = r.latencia_ms or int((time.perf_counter() - inicio) * 1000)
         entrada_masc, _, _ = guardrails.mascarar(json.dumps(entrada, ensure_ascii=False))
-        trilha.registrar(s, evento, pessoa.id, agente_id=ctx.agente_id, dados={
+        trilha.registrar(s, evento, pessoa.id, agente_id=ctx.agente_id, dono_tipo=ctx.dono_tipo, dados={
             "conector": conector_id, "execucao": ctx.execucao_id, "ok": r.ok, "tipo_erro": r.tipo_erro,
             "erro": r.erro, "entrada": entrada_masc, "latencia_ms": r.latencia_ms,
             "mascarados": r.mascarados, "suspeitas": r.suspeitas, "aprovado_por": aprovado_por,

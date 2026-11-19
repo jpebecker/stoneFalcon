@@ -30,15 +30,19 @@ class EventoAuditoria(SQLModel, table=True):
     tipo: str = Field(index=True)
     quando: str
     ator: str = Field(index=True)            # persona que causou o evento ("sistema" para automações)
-    agente_id: str | None = Field(default=None, index=True)
+    agente_id: str | None = Field(default=None, index=True)   # id do dono do evento (agente ou processo)
+    dono_tipo: str = Field(default="agente", index=True)      # "agente" ou "processo"
     dados: dict = Field(default_factory=dict, sa_column=Column(JSON))
     hash_anterior: str
     hash: str
 
 
 def _corpo(e: EventoAuditoria) -> dict:
-    return {"seq": e.seq, "id": e.id, "tipo": e.tipo, "quando": e.quando, "ator": e.ator,
-            "agente_id": e.agente_id, "dados": e.dados, "hash_anterior": e.hash_anterior}
+    corpo = {"seq": e.seq, "id": e.id, "tipo": e.tipo, "quando": e.quando, "ator": e.ator,
+             "agente_id": e.agente_id, "dados": e.dados, "hash_anterior": e.hash_anterior}
+    if e.dono_tipo != "agente":   # só entra no hash quando não é agente: a cadeia gravada antes da v8 continua íntegra
+        corpo["dono_tipo"] = e.dono_tipo
+    return corpo
 
 
 def calcular_hash(e: EventoAuditoria) -> str:
@@ -47,7 +51,7 @@ def calcular_hash(e: EventoAuditoria) -> str:
 
 
 def registrar(s: Session, tipo: str, ator: str, agente_id: str | None = None,
-              dados: dict[str, Any] | None = None, quando: str | None = None) -> EventoAuditoria:
+              dados: dict[str, Any] | None = None, quando: str | None = None, dono_tipo: str = "agente") -> EventoAuditoria:
     """Grava um evento no fim da cadeia. Os dados já devem chegar mascarados."""
     with _trava:
         ultimo = s.exec(select(EventoAuditoria).order_by(EventoAuditoria.seq.desc()).limit(1)).first()
@@ -58,6 +62,7 @@ def registrar(s: Session, tipo: str, ator: str, agente_id: str | None = None,
             quando=quando or agora().isoformat(),
             ator=ator,
             agente_id=agente_id,
+            dono_tipo=dono_tipo,
             dados=dados or {},
             hash_anterior=ultimo.hash if ultimo else INICIO,
             hash="",
@@ -81,10 +86,13 @@ def verificar(s: Session) -> dict:
     return {"integra": True, "quebra_em": None, "total": total}
 
 
-def listar(s: Session, agente_id: str | None = None, tipo: str | None = None, limite: int = 200) -> list[EventoAuditoria]:
+def listar(s: Session, agente_id: str | None = None, tipo: str | None = None, limite: int = 200,
+           dono_tipo: str | None = None) -> list[EventoAuditoria]:
     q = select(EventoAuditoria)
     if agente_id:
         q = q.where(EventoAuditoria.agente_id == agente_id)
+    if dono_tipo:
+        q = q.where(EventoAuditoria.dono_tipo == dono_tipo)
     if tipo:
         q = q.where(EventoAuditoria.tipo == tipo)
     return list(s.exec(q.order_by(EventoAuditoria.seq.desc()).limit(limite)))

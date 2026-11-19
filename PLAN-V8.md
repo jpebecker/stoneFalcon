@@ -123,13 +123,13 @@ v7 gave the platform a live AI Map, multiple model providers and scheduled tasks
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Lifecycle operations and version/diff logic accept an owner type, with agents as the only owner for now.
-- [ ] The runner executes a step graph given an owner reference instead of an agent id; budgets, escalation and approval resume still work.
-- [ ] Executions store the owner type and id; existing rows read as `agent` (existing databases keep working: new columns/tables only, `create_all` compatible).
-- [ ] Audit events carry the owner type.
-- [ ] The full existing back-end suite passes unchanged (no test edited except to add owner-type assertions).
+- [x] Lifecycle operations and version/diff logic accept an owner type, with agents as the only owner for now.
+- [x] The runner executes a step graph given an owner reference instead of an agent id; budgets, escalation and approval resume still work.
+- [x] Executions store the owner type and id; existing rows read as `agent` (existing databases keep working: new columns/tables only, `create_all` compatible).
+- [x] Audit events carry the owner type.
+- [x] The full existing back-end suite passes unchanged (no test edited except to add owner-type assertions).
 
 ### 04: Processes tab (tracer bullet)
 

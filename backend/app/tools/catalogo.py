@@ -73,7 +73,8 @@ class Especificacao:
 class Contexto:
     """Quem está executando. Ferramentas rodam com as permissões de quem DISPAROU o agente."""
     persona_id: str
-    agente_id: str | None = None
+    agente_id: str | None = None      # id do dono da execução (agente ou processo)
+    dono_tipo: str = "agente"
     execucao_id: str | None = None
     extras: dict = field(default_factory=dict)
 

@@ -28,7 +28,9 @@ from sqlmodel import Session
 from .. import guardrails
 from ..agents.blueprint import Blueprint, Passo
 from ..agents.governanca import avaliar_risco
-from ..agents.modelos import PUBLICADO, Agente
+from ..agents import dono as _dono
+from ..agents.dono import AGENTE, Dono
+from ..agents.modelos import PUBLICADO
 from ..audit import trilha
 from ..core import config, db
 from ..core.identidade import CURADOR, PERSONAS, Persona
@@ -162,11 +164,12 @@ class _Ambiente:
     def __init__(self, exe: m.Execucao, bp: Blueprint, pessoa: Persona, cliente: ClienteLLM,
                  orcamento: Orcamento, mapa: dict, simulado: bool):
         self.exe, self.bp, self.pessoa, self.cliente = exe, bp, pessoa, cliente
+        self.dono = dono_da(exe)
         self.orc, self.mapa, self.simulado = orcamento, mapa, simulado
         self.origens: dict[str, int] = {}
 
     def contexto(self, retidos: list[str] | None = None) -> Contexto:
-        return Contexto(persona_id=self.pessoa.id, agente_id=self.exe.agente_id, execucao_id=self.exe.id,
+        return Contexto(persona_id=self.pessoa.id, agente_id=self.dono.id, dono_tipo=self.dono.tipo, execucao_id=self.exe.id,
                         extras={"mapa": self.mapa, "origens": self.origens, "retidos": retidos or []})
 
     def entrada_para(self, conector_id: str, entrada: dict) -> tuple[dict, list[str]]:
@@ -224,22 +227,29 @@ def _conteudo_assistente(r: RespostaLLM) -> list:
     return blocos
 
 
-def _uso_do_orcamento(s: Session, agente_id: str | None) -> float:
-    """Quanto do orçamento mensal do agente já foi gasto (0 a 1+). Sem agente ou sem orçamento, 0."""
-    if not agente_id:
+def dono_da(exe: m.Execucao) -> Dono:
+    """Quem rodou: agente ou processo. As linhas gravadas antes da v8 não têm dono e valem como agente."""
+    tipo = exe.dono_tipo or AGENTE
+    return Dono(tipo, exe.dono_id or exe.agente_id or "", exe.versao)
+
+
+def _uso_do_orcamento(s: Session, dono: Dono) -> float:
+    """Quanto do orçamento mensal do dono (agente ou processo) já foi gasto (0 a 1+). Sem dono ou sem orçamento, 0."""
+    if not dono.id:
         return 0.0
-    agente = s.get(Agente, agente_id)
-    if agente is None or not agente.orcamento_mensal_brl:
+    entidade = s.get(_dono.tipo(dono.tipo).entidade, dono.id)
+    if entidade is None or not entidade.orcamento_mensal_brl:
         return 0.0
     from ..finance.resumo import gasto_no_mes
-    return gasto_no_mes(s, agente_id) / agente.orcamento_mensal_brl
+    gasto = gasto_no_mes(s, dono.id) if dono.tipo == AGENTE else gasto_no_mes(s, dono.id, dono.tipo)
+    return gasto / entidade.orcamento_mensal_brl
 
 
 def _passo_agente(s: Session, amb: _Ambiente, passo: Passo) -> dict:
     sistema = _sistema(amb.bp, passo)
     inicial = _mensagem_inicial(amb.bp, passo, amb.exe.entrada, amb.saidas())
     ferramentas = [CATALOGO[f].para_modelo() for f in passo.ferramentas]
-    uso = _uso_do_orcamento(s, amb.exe.agente_id)
+    uso = _uso_do_orcamento(s, amb.dono)
     decisao = roteador.decidir(passo.modelo, passo.instrucao + "\n" + inicial,
                                estimar_tokens(sistema) + estimar_tokens(inicial), n_ferramentas=len(passo.ferramentas),
                                risco=avaliar_risco(amb.bp).nivel, economia=uso >= balanceador.ORCAMENTO_APERTADO,
@@ -410,7 +420,7 @@ def _fechar(s: Session, amb: _Ambiente, inicio: float) -> m.Execucao:
         s.add(exe)
         s.commit()
         s.refresh(exe)
-    trilha.registrar(s, _EVENTO[exe.status], amb.pessoa.id, agente_id=exe.agente_id, dados={
+    trilha.registrar(s, _EVENTO[exe.status], amb.pessoa.id, agente_id=amb.dono.id or None, dono_tipo=amb.dono.tipo, dados={
         "execucao": exe.id, "versao": exe.versao, "motivo": exe.motivo, "custo_usd": exe.custo_usd,
         "chamadas_modelo": exe.chamadas_modelo, "pendencia": exe.pendencia,
         "passos": {pid: r["status"] for pid, r in exe.passos.items()},
@@ -420,14 +430,19 @@ def _fechar(s: Session, amb: _Ambiente, inicio: float) -> m.Execucao:
 
 
 def executar(s: Session, pessoa: Persona, bp: Blueprint, entrada: dict[str, Any], agente_id: str | None = None,
-             versao: int | None = None, simulado: bool | None = None) -> tuple[m.Execucao, dict]:
-    """Roda o agente. Devolve (execução persistida, mapa de marcadores só para a tela de quem disparou)."""
+             versao: int | None = None, simulado: bool | None = None, dono: Dono | None = None) -> tuple[m.Execucao, dict]:
+    """Roda um grafo de passos para um dono (agente ou processo). Sem `dono`, vale `agente_id`/`versao` como sempre.
+    Devolve (execução persistida, mapa de marcadores só para a tela de quem disparou)."""
+    if dono is None and agente_id:
+        dono = Dono(AGENTE, agente_id, versao)
     cliente = obter_cliente(simulado)
     eh_simulado = isinstance(cliente, ClienteSimulado)
     mapa: dict[str, str] = {}
     entrada_masc = json.loads(guardrails.mascarar(json.dumps(entrada, ensure_ascii=False), mapa)[0])
     exe = m.Execucao(
-        id=uuid.uuid4().hex[:12], agente_id=agente_id, versao=versao, agente_nome=bp.nome, area=bp.area,
+        id=uuid.uuid4().hex[:12], agente_id=dono.id if dono and dono.tipo == AGENTE else None,
+        dono_tipo=dono.tipo if dono else AGENTE, dono_id=dono.id if dono else None,
+        versao=dono.versao if dono else versao, agente_nome=bp.nome, area=bp.area,
         persona=pessoa.id, entrada=entrada_masc, blueprint=bp.model_dump(), passos={},
         simulado=eh_simulado, inicio=agora().isoformat(),
     )
@@ -435,8 +450,9 @@ def executar(s: Session, pessoa: Persona, bp: Blueprint, entrada: dict[str, Any]
         s.add(exe)
         s.commit()
         s.refresh(exe)
-    trilha.registrar(s, "execucao_iniciada", pessoa.id, agente_id=agente_id, dados={
-        "execucao": exe.id, "versao": versao, "entrada": entrada_masc, "simulado": eh_simulado})
+    trilha.registrar(s, "execucao_iniciada", pessoa.id, agente_id=dono.id if dono else None,
+                     dono_tipo=dono.tipo if dono else AGENTE, dados={
+        "execucao": exe.id, "versao": exe.versao, "entrada": entrada_masc, "simulado": eh_simulado})
     amb = _Ambiente(exe, bp, pessoa, cliente, Orcamento(bp, exe), mapa, eh_simulado)
     exe = _continuar(s, amb)
     if exe.status == m.AGUARDANDO:
@@ -478,12 +494,13 @@ def retomar(s: Session, execucao_id: str, aprovador: Persona, aprovar: bool,
         raise ErroRetomada("Só alguém da área %s pode decidir sobre esta ação." % exe.area)
     if not (aprovador.id == exe.persona or aprovador.tem(CURADOR)):
         raise ErroRetomada("Só quem disparou o agente ou um curador da área pode decidir sobre esta ação.")
-    if aprovar and exe.agente_id and exe.agente_id != "sandbox":
-        # botão de emergência: agente pausado ou depreciado não executa a ação pendente (recusar continua possível)
-        agente = s.get(Agente, exe.agente_id)
-        if agente is None or agente.estado != PUBLICADO:
-            raise ErroRetomada("O agente está %s: a ação pendente não pode ser confirmada, só recusada."
-                               % (agente.estado if agente else "removido"))
+    dono = dono_da(exe)
+    if aprovar and dono.id and dono.id != "sandbox":
+        # botão de emergência: agente/processo pausado ou depreciado não executa a ação pendente (recusar continua possível)
+        entidade = s.get(_dono.tipo(dono.tipo).entidade, dono.id)
+        if entidade is None or entidade.estado != PUBLICADO:
+            raise ErroRetomada("O %s está %s: a ação pendente não pode ser confirmada, só recusada."
+                               % (dono.tipo, entidade.estado if entidade else "removido"))
 
     bp = Blueprint.model_validate(exe.blueprint)
     disparador = PERSONAS[exe.persona]
@@ -491,7 +508,7 @@ def retomar(s: Session, execucao_id: str, aprovador: Persona, aprovar: bool,
     passo = bp.passo(pend["passo"])
     registro = dict(exe.passos[passo.id])
     trilha.registrar(s, "aprovacao_concedida" if aprovar else "aprovacao_recusada", aprovador.id,
-                     agente_id=exe.agente_id, dados={"execucao": exe.id, "pendencia": pend})
+                     agente_id=dono.id or None, dono_tipo=dono.tipo, dados={"execucao": exe.id, "pendencia": pend})
 
     cliente = obter_cliente(simulado)
     mapa, origens = _MAPAS_PENDENTES.pop(exe.id, ({}, {}))
