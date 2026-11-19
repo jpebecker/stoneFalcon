@@ -91,3 +91,17 @@ h1, h2, h3 { @apply font-titulo font-semibold tracking-tight; }
 @media (prefers-reduced-motion: reduce) {
   .mapa-no-novo, .mapa-vivo, .mapa-pulso-ponto { animation: none; }
 }
+
+/* Seletor radial de persona (tela de entrada): a fatia ativa cresce para fora, as outras encolhem um pouco */
+.roda-fatia { transform-box: view-box; transform-origin: 360px 360px; transition: transform .22s cubic-bezier(.2, .8, .2, 1), filter .22s ease; cursor: pointer; outline: none; }
+.roda-fatia.ativa { transform: scale(1.08); filter: brightness(1.06) saturate(1.05); }
+.roda-fatia.vizinha { transform: scale(.97); }
+.roda-forma { stroke: rgb(var(--folha)); stroke-width: 2; transition: stroke .22s ease; }
+.roda-sombra { fill: #000; fill-opacity: .22; pointer-events: none; transition: fill-opacity .22s ease; }
+.roda-fatia.ativa .roda-sombra { fill-opacity: 0; }
+.roda-fatia:focus-visible .roda-forma { stroke: rgb(var(--pedra)); stroke-width: 7; }
+.roda-nome { fill: #fff; font: 600 22px "Bricolage", "Segoe UI", system-ui, sans-serif; paint-order: stroke; stroke: rgb(0 0 0 / .55); stroke-width: 4px; pointer-events: none; }
+.roda-iniciais { fill: #fff; font: 600 64px "Bricolage", "Segoe UI", system-ui, sans-serif; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) {
+  .roda-fatia, .roda-forma, .roda-sombra { transition: none; }
+}

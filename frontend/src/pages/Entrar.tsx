@@ -3,12 +3,8 @@ import { useState } from "react";
 import { api, type Persona } from "../api/cliente";
 import Avatar from "../components/Avatar";
 import Marca from "../components/Marca";
+import RodaPersonas, { PAPEL } from "../components/RodaPersonas";
 import { useControle } from "../roteiro/Controle";
-
-const PAPEL: Record<string, string> = {
-  criador: "cria agentes", curador: "aprova conhecimento", revisor_seguranca: "revisa segurança",
-  engenharia: "mantém o catálogo", gestor_ia: "vê custos e auditoria",
-};
 
 export default function Entrar({ aoEntrar, aviso }: { aoEntrar: (id: string) => void; aviso?: string }) {
   const perfis = useQuery({ queryKey: ["perfis"], queryFn: () => api<Persona[]>("/perfis") });
@@ -23,18 +19,23 @@ export default function Entrar({ aoEntrar, aviso }: { aoEntrar: (id: string) => 
   };
 
   return (
-    <div className="flex min-h-full items-center justify-center px-6 py-14">
+    <div className="flex min-h-full items-center justify-center px-6 py-10 md:py-6">
       <div className="w-full max-w-5xl">
         <Marca />
         {aviso && <p role="alert" className="mt-6 rounded-caixa border border-alerta/40 bg-alerta-fundo p-3 text-sm text-alerta">{aviso}</p>}
-        <h1 className="mt-8 text-4xl">Quem é você hoje?</h1>
-        <p className="mt-3 max-w-2xl text-tinta-2">
+        <h1 className="mt-8 text-4xl md:sr-only">Quem é você hoje?</h1>
+        <p className="mt-3 max-w-2xl text-tinta-2 md:hidden">
           Cada pessoa vê a plataforma pelo seu trabalho: o que cria, o que governa, o que mede. Escolha um perfil para entrar,
           ou inicie o <b>roteiro guiado</b> dele: a mesma jornada, do mesmo jeito, sempre.
         </p>
         {perfis.isError && <p className="mt-4 text-erro">Não consegui falar com o servidor. Ele está ligado?</p>}
         {erro && <p className="mt-4 text-erro">{erro}</p>}
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {perfis.data && (
+          <div className="mt-2 hidden md:block">
+            <RodaPersonas pessoas={perfis.data} iniciando={iniciando} aoEntrar={aoEntrar} aoIniciarRoteiro={comRoteiro} />
+          </div>
+        )}
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 md:hidden">
           {perfis.data?.map((p) => (
             <article key={p.id} className="caixa flex flex-col p-5 transition hover:border-pedra">
               <div className="flex items-center gap-3">

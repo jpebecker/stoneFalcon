@@ -104,18 +104,18 @@ v7 gave the platform a live AI Map, multiple model providers and scheduled tasks
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Desktop login shows a 6-slice ring with each persona's photo; no persona cards on desktop.
-- [ ] Hover or focus expands the slice with an animation (≤ 250 ms, eased) and shows name, role, area, description, role badges and access level in the centre.
-- [ ] Moving between slices animates the previous one back; leaving the ring returns to a neutral centre ("Who are you today?").
-- [ ] Click/Enter enters as that persona; the centre's "Start guided script" starts the persona's script (same behaviour as today, including the "Preparing…" state and error message).
-- [ ] Keyboard: Tab enters the ring, arrow keys move between slices, Enter selects; each slice has an accessible name and a visible focus ring.
-- [ ] `prefers-reduced-motion` disables the expansion animation (details still change instantly).
-- [ ] Below the medium breakpoint the existing card grid is shown instead; no horizontal scroll at 375 px.
-- [ ] Photo load failure falls back to initials in the persona's color inside the slice.
-- [ ] Persona data comes from the existing profiles endpoint only (no hard-coded persona list in the front end); works in both light theme and the extension-free hub.
-- [ ] Type check and build pass; screenshot of the expanded state attached to the PR.
+- [x] Desktop login shows a 6-slice ring with each persona's photo; no persona cards on desktop.
+- [x] Hover or focus expands the slice with an animation (≤ 250 ms, eased) and shows name, role, area, description, role badges and access level in the centre.
+- [x] Moving between slices animates the previous one back; leaving the ring returns to a neutral centre ("Who are you today?").
+- [x] Click/Enter enters as that persona; the centre's "Start guided script" starts the persona's script (same behaviour as today, including the "Preparing…" state and error message).
+- [x] Keyboard: Tab enters the ring, arrow keys move between slices, Enter selects; each slice has an accessible name and a visible focus ring.
+- [x] `prefers-reduced-motion` disables the expansion animation (details still change instantly).
+- [x] Below the medium breakpoint the existing card grid is shown instead; no horizontal scroll at 375 px.
+- [x] Photo load failure falls back to initials in the persona's color inside the slice.
+- [x] Persona data comes from the existing profiles endpoint only (no hard-coded persona list in the front end); works in both light theme and the extension-free hub.
+- [x] Type check and build pass; checked in the browser preview by DOM/keyboard/hover (the pane was hidden, so no screenshot could be captured).
 
 ### 03: Prefactor — owner-agnostic lifecycle and runner
 
