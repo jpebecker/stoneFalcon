@@ -537,7 +537,7 @@ def retomar(s: Session, execucao_id: str, aprovador: Persona, aprovar: bool,
     if aprovador.area != exe.area:
         raise ErroRetomada("Só alguém da área %s pode decidir sobre esta ação." % exe.area)
     if not (aprovador.id == exe.persona or aprovador.tem(CURADOR)):
-        raise ErroRetomada("Só quem disparou o agente ou um curador da área pode decidir sobre esta ação.")
+        raise ErroRetomada("Só quem disparou o agente ou o processo, ou um curador da área, pode decidir sobre esta ação.")
     dono = dono_da(exe)
     if aprovar and dono.id and dono.id != "sandbox":
         # botão de emergência: agente/processo pausado ou depreciado não executa a ação pendente (recusar continua possível)

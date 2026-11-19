@@ -1,4 +1,4 @@
-"""v7/11: roteiro do pitch integrado (planilha -> extensão -> Estúdio -> rotina -> Mapa de IA -> provedores -> Finanças)."""
+"""v8/14: roteiro do pitch v8 (seletor radial -> agente -> processo -> plugin real -> "Crie o seu plugin" -> Mapa de IA e Finanças)."""
 from app import rotinas
 from app.llm import balanceador
 from app.plugins import estado as plugins_estado

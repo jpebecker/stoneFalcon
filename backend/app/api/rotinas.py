@@ -48,12 +48,12 @@ def criar_do_processo(processo_id: str, pedido: PedidoRotina, pessoa: Persona = 
 
 @rotas.get("/processos/{processo_id}/rotinas")
 def do_processo(processo_id: str, pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
-    return rotinas.listar(s, pessoa, processo_id)
+    return rotinas.listar(s, pessoa, processo_id, tipo="processo")
 
 
 @rotas.get("/agentes/{agente_id}/rotinas")
 def do_agente(agente_id: str, pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
-    return rotinas.listar(s, pessoa, agente_id)
+    return rotinas.listar(s, pessoa, agente_id, tipo="agente")
 
 
 @rotas.get("/rotinas")

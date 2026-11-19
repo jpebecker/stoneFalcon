@@ -186,7 +186,7 @@ def criar(s: Session, pessoa: Persona, agente_id: str, frequencia: str, dia_sema
     guardrails.mascarar(json.dumps(entrada, ensure_ascii=False), mapa)
     if mapa:
         raise ErroRotina("A entrada fixa de uma rotina não pode ter dado pessoal (CPF, e-mail, telefone...).", 422)
-    if len(s.exec(select(Rotina).where(Rotina.agente_id == agente_id)).all()) >= MAX_POR_AGENTE:
+    if len(s.exec(select(Rotina).where(Rotina.agente_id == agente_id).where(Rotina.dono_tipo == tipo)).all()) >= MAX_POR_AGENTE:
         raise ErroRotina("Este %s já tem %d rotinas." % ("processo" if tipo == PROCESSO else "agente", MAX_POR_AGENTE), 409)
     agora = relogio.agora()
     r = Rotina(id=uuid.uuid4().hex[:10], agente_id=agente_id, dono_tipo=tipo, dono=pessoa.id, frequencia=frequencia,
@@ -228,10 +228,13 @@ def remover(s: Session, pessoa: Persona, rotina_id: str) -> None:
     trilha.registrar(s, "rotina_removida", pessoa.id, agente_id, {"rotina": rotina_id, "agenda": agenda}, dono_tipo=tipo)
 
 
-def listar(s: Session, pessoa: Persona, agente_id: str | None = None) -> list[dict]:
+def listar(s: Session, pessoa: Persona, agente_id: str | None = None, tipo: str | None = None) -> list[dict]:
+    """Rotinas que a pessoa vê; com `agente_id`, só as daquele agente ou processo (`tipo` separa os dois: ids não colidem por acaso)."""
     q = select(Rotina)
     if agente_id:
         q = q.where(Rotina.agente_id == agente_id)
+    if tipo:
+        q = q.where(Rotina.dono_tipo == tipo)
     saida = []
     for r in s.exec(q.order_by(Rotina.criada_em)):
         a = s.get(pm.Processo if r.dono_tipo == PROCESSO else am.Agente, r.agente_id)

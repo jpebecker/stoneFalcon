@@ -31,7 +31,7 @@ Nunca coloque a chave no código, na extensão ou no Git (`.env` está no `.giti
 ```bash
 cd backend && uv sync && uv run uvicorn app.main:app --reload --port 8765   # um processo só (sem --workers): os plugins integrados ficam num cache em memória
 cd frontend && npm install && npm run dev        # http://localhost:5173 (repassa /api ao backend)
-cd backend && uv run pytest -q                   # 698 testes, sem chave nem internet
+cd backend && uv run pytest -q                   # 700 testes, sem chave nem internet
 ```
 
 ### Extensão copiloto (Chrome/Edge)
@@ -199,7 +199,7 @@ Cada roteiro termina num cartão **AS IS × TO BE** nos 5 critérios (tempo, cus
 
 ## O que foi testado e o que não foi
 
-- **698 testes automáticos** (`uv run pytest -q`): semelhança de texto e guardrails portados do v3, catálogo e permissões, runtime (paralelismo real, aprovação, retomada com o dado real, limites, escalada), Estúdio, ciclo de vida e revisão, alertas, finanças e as rotas da API. O **ensaio geral** (`tests/test_roteiros.py`) percorre os seis roteiros do início ao fim pela API (e `tests/test_pitch.py`, o roteiro do pitch v7); `tests/test_matriz_v7.py` confere a matriz de acesso da v7 para os seis perfis; `tests/test_acesso.py` confere a matriz de acesso (abas × perfis, roteiros × perfis, cada passo dos roteiros com o perfil do passo) e `tests/test_plugins.py` o marketplace.
+- **700 testes automáticos** (`uv run pytest -q`): semelhança de texto e guardrails portados do v3, catálogo e permissões, runtime (paralelismo real, aprovação, retomada com o dado real, limites, escalada), Estúdio, ciclo de vida e revisão, alertas, finanças e as rotas da API. O **ensaio geral** (`tests/test_roteiros.py`) percorre os seis roteiros do início ao fim pela API (e `tests/test_pitch.py`, o roteiro do pitch v8); `tests/test_matriz_v7.py` confere a matriz de acesso da v7 para os seis perfis; `tests/test_acesso.py` confere a matriz de acesso (abas × perfis, roteiros × perfis, cada passo dos roteiros com o perfil do passo) e `tests/test_plugins.py` o marketplace.
 - **Testado no navegador:** as telas da v4 e, na v5, os roteiros da Marina (até o helpdesk com o painel do copiloto), do Rafael (criação, revisão do Lucas, execução com confirmação e cartão AS IS × TO BE) e do Lucas (até o catálogo), o consolidado da Helena e as perguntas; na v6, o menu por perfil (Marina e Helena), a redireção de endereço sem permissão, a vitrine de plugins, a integração do Zendesk (Marina) e a do Slack no roteiro do Thiago até a criação do agente, além das capturas de tela refeitas.
 - **Não testado:** chamadas à API real da Anthropic (não havia chave neste ambiente; o formato segue o SDK oficial `anthropic` 2.8), a **extensão carregada no Chrome** (os arquivos foram checados e o painel foi testado dentro do helpdesk fictício, mas o botão flutuante, o menu do botão direito e o painel lateral nativo não foram exercitados), os roteiros de Carla, Thiago e o restante do Lucas e da Helena na interface (cobertos só pelo ensaio via API), `iniciar.bat` numa máquina limpa e o Edge. Os tempos AS IS dos roteiros são hipóteses.
 

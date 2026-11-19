@@ -245,6 +245,14 @@ def test_baixa_a_versao_atual_em_csv_e_xlsx(api):
     assert linhas[0] == ["modelo", "qtd"] and linhas[1] == ["Pro", 3] and linhas[2][0] == "'=1+1"       # fórmula não executa ao abrir
 
 
+def test_baixar_arquivo_com_nome_fora_do_latin1_nao_quebra_o_cabecalho(api):
+    _integrar(api)
+    aid = _enviar(api, "thiago", "relatório – maio.csv", _csv("a\n1\n"), areas=["logistica"]).json()["id"]
+    r = api.get(f"{BASE}/arquivos/{aid}/download", headers=como("thiago"))
+    assert r.status_code == 200
+    assert "filename*=UTF-8''relat%C3%B3rio%20%E2%80%93%20maio.csv" in r.headers["content-disposition"]
+
+
 def test_so_quem_enviou_remove(api):
     _integrar(api)
     aid = _enviar(api, "thiago", "geral.csv", _csv("a\n1\n"), areas=["*"]).json()["id"]

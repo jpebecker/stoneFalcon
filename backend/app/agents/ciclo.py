@@ -9,7 +9,7 @@ Regras de governança (todas registradas na trilha encadeada):
   - o que foi depreciado não executa nem volta: o histórico fica para auditoria.
 
 A lógica é uma só para os dois tipos de dono (`Ciclo`, parametrizado por `TipoDono`). As funções do módulo
-(`criar`, `editar`, `publicar`...) são o ciclo do AGENTE; o ciclo do processo está em app/processos/ciclo.py.
+(`criar`, `editar`, `publicar`...) são o ciclo do AGENTE; o ciclo do processo está em app/processos/tipo.py.
 """
 from __future__ import annotations
 

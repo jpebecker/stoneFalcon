@@ -104,6 +104,13 @@ def test_so_criador_com_acesso_ao_processo_agenda(api, sessao):
     assert _criar_processo(api, triagem, "rafael", **corpo).status_code == 200
 
 
+def test_rotinas_de_processo_e_de_agente_nao_se_misturam(api, sessao):
+    triagem = _processo_triagem(api)
+    assert _criar_processo(api, triagem, "rafael", entrada={"lojista_id": "L1001"}).status_code == 200
+    assert len(api.get(f"{V1}/processos/{triagem}/rotinas", headers=como("rafael")).json()) == 1
+    assert api.get(f"{V1}/agentes/{triagem}/rotinas", headers=como("rafael")).json() == []   # a rota do agente só lista rotinas de agente
+
+
 # ---------- relógio controlado ----------
 def test_com_o_relogio_controlado_a_rotina_dispara_sozinha_na_hora_marcada(api):
     aid = _agente(api)

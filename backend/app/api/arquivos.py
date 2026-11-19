@@ -1,4 +1,6 @@
 """Plugin Arquivos e Planilhas (real): enviar, listar, abrir (prévia), baixar e remover os arquivos da página do plugin."""
+from urllib.parse import quote
+
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
@@ -75,7 +77,13 @@ def baixar(arquivo_id: str, pessoa: Persona = Depends(usuario_atual), s: Session
         conteudo, tipo, nome = arquivos.baixar(s, pessoa, arquivo_id)
     except ErroArquivo as e:
         _erro(e)
-    return Response(content=conteudo, media_type=tipo, headers={"Content-Disposition": 'attachment; filename="%s"' % nome.replace('"', "")})
+    return Response(content=conteudo, media_type=tipo, headers={"Content-Disposition": _disposicao(nome)})
+
+
+def _disposicao(nome: str) -> str:
+    """Cabeçalho de download que aceita qualquer nome: ASCII como reserva e o nome real em UTF-8 (RFC 6266/5987)."""
+    reserva = "".join(c if 32 <= ord(c) < 127 and c not in '"\\' else "_" for c in nome) or "arquivo"
+    return "attachment; filename=\"%s\"; filename*=UTF-8''%s" % (reserva, quote(nome, safe=""))
 
 
 @rotas.delete("/arquivos/{arquivo_id}")
