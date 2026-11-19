@@ -120,28 +120,57 @@ def test_reiniciar_devolve_planilha_plugin_agenda_e_balanceador_ao_estado_inicia
 def test_roteiro_do_pitch_so_aparece_para_a_helena_mas_o_thiago_consegue_carregar(api):
     assert "pitch" in [r["id"] for r in api.get(f"{V1}/roteiros", headers=como("helena")).json()]
     assert "pitch" not in [r["id"] for r in api.get(f"{V1}/roteiros", headers=como("thiago")).json()]
-    for perfil, ok in [("thiago", True), ("helena", True), ("marina", False), ("rafael", False), ("carla", False), ("lucas", False)]:
+    for perfil, ok in [("thiago", True), ("helena", True), ("marina", False), ("rafael", False), ("carla", False), ("lucas", True)]:      # o Lucas participa do passo de segurança
         assert (api.get(f"{V1}/roteiros/pitch", headers=como(perfil)).status_code == 200) == ok, perfil
 
 
-def test_falas_marcam_onde_cada_recurso_da_v7_aparece_e_cabem_no_tempo():
-    marcas = {pid: _passo(pid).fala for pid in ("criar", "testar", "rotina", "mapa", "queda", "financas")}
-    assert all("[v7:" in f for f in marcas.values()), marcas
+def test_falas_marcam_onde_cada_recurso_aparece_e_cabem_no_tempo():
+    v8 = {pid: _passo(pid).fala for pid in ("seletor", "criar", "processo", "arquivos", "criarplugin", "aprovar", "seguranca", "mapa", "financas")}
+    assert all("[v8:" in f for f in v8.values()), v8
+    v7 = {pid: _passo(pid).fala for pid in ("testar", "rotina")}
+    assert all("[v7:" in f for f in v7.values()), v7
+    assert [p.id for p in R.passos][:2] == ["contexto", "seletor"] and R.passos[-1].id == "medir"      # abre no seletor, fecha no AS IS x TO BE
     palavras = sum(len(p.fala.split()) for p in R.passos)
     assert palavras / 150 <= 5          # fala corrida (150 palavras/min) <= 5 min; o resto do tempo são cliques e telas
-    assert R.duracao_min <= 10          # o pitch de 8 a 10 minutos (ENSAIO-GERAL.md)
+    assert 8 <= R.duracao_min <= 10     # o pitch de 8 a 10 minutos
 
 
 def test_perguntas_novas_apontam_para_passos_do_pitch_com_o_perfil_certo():
-    novas = [q for q in PERGUNTAS if q["id"] in ("helena-6", "helena-7", "thiago-6")]
-    assert len(novas) == 3
+    novas = [q for q in PERGUNTAS if q["id"] in ("helena-7", "helena-8", "thiago-6", "thiago-7", "thiago-8")]
+    assert len(novas) == 5
     for q in novas:
         passo = _passo(q["prova"]["passo"])
         assert q["prova"]["roteiro"] == "pitch" and passo.perfil == q["prova"]["perfil"]
-    assert "simulados" in next(q for q in novas if q["id"] == "helena-6")["resposta"]
+    assert "simulados" in next(q for q in PERGUNTAS if q["id"] == "helena-6")["resposta"]
+    # as três perguntas do v8, cada uma com a resposta curta e a tela para mostrar
+    v8 = {q["pergunta"]: q for q in novas}
+    assert {"Por que separar agentes e processos?", "O plugin é de verdade?", "Como evitar que alguém clone a ferramenta de um fornecedor?"} <= set(v8)
+    assert all(len(q["resposta"].split()) <= 75 and q["prova"]["rota"] for q in novas)
+    for persona in ("helena", "thiago"):
+        assert 3 <= len([q for q in PERGUNTAS if q["persona"] == persona]) <= 8
 
 
 def test_plano_b_para_o_que_depende_do_navegador_e_da_internet():
     """O roteiro nunca depende da internet: a planilha é a local e o helpdesk fictício vem da própria plataforma."""
-    assert _passo("planilha").externa and _passo("planilha").rota.startswith("/demo/")
+    assert _passo("criar").preenche["fonte"]["url"].startswith("local:")
     assert _passo("criar").preenche["fonte"]["url"] == "local:pedidos-troca"
+
+
+def test_o_pitch_v8_pede_um_plugin_e_o_aprova_com_a_helena_e_a_seguranca(api):
+    """Passos criarplugin, aprovar e seguranca: o pedido já preenchido, os dois pareceres do roteiro e o plugin no marketplace."""
+    _iniciar(api)
+    pedido = {**_passo("criarplugin").preenche["plugin"], "aceita_aviso_publico": True}
+    rasc = api.post(f"{V1}/plugins-internos/rascunho", json=pedido, headers=como("thiago")).json()
+    assert rasc["spec"]["nome"] == "Ferramenta interna de agendamento" and "Exemplo" not in str(rasc["spec"])
+    pid = api.post(f"{V1}/plugins-internos", json={**pedido, "spec": rasc["spec"]}, headers=como("thiago")).json()["id"]
+    r = api.post(f"{V1}/plugins-internos/{pid}/analista", json={"aprovar": True, "parecer": _passo("aprovar").preenche["parecer"]}, headers=como("helena"))
+    assert r.json()["estado"] == "aguardando_seguranca"                       # dado confidencial: segue para o Lucas
+    r = api.post(f"{V1}/plugins-internos/{pid}/seguranca", json={"aprovar": True, "parecer": _passo("seguranca").preenche["parecer"]}, headers=como("lucas"))
+    assert r.json()["estado"] == "publicado"
+    lista = api.get(f"{V1}/plugins", headers=como("thiago")).json()
+    novo = next(x for x in lista if x["interno"])
+    assert novo["nome"] == "Ferramenta interna de agendamento" and novo["simulado"] is True
+    assert next(x for x in lista if x["id"] == "arquivos")["real"] is True and next(x for x in lista if x["id"] == "arquivos")["estado"] == "integrado"
+    # o passo "arquivos": o plugin real tem o arquivo de pedidos para mostrar
+    assert any(a["nome"] == "pedidos-troca.csv" for a in api.get(f"{V1}/plugins/arquivos/arquivos", headers=como("thiago")).json())
+    assert api.get(f"{V1}/auditoria/verificar", headers=como("helena")).json()["integra"] is True

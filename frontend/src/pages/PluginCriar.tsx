@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, type EspecPlugin, type PedidoPluginInterno, type RascunhoPlugin, type RegrasPluginInterno } from "../api/cliente";
 import { reais } from "../components/formato";
+import { usePreenche } from "../roteiro/estado";
 
 const AREAS: [string, string][] = [
   ["atendimento", "Atendimento"], ["risco", "Prevenção a Fraudes"], ["pessoas", "Pessoas (RH)"], ["logistica", "Logística"],
@@ -13,12 +14,13 @@ const AREAS: [string, string][] = [
 export default function PluginCriar() {
   const navegar = useNavigate();
   const regras = useQuery({ queryKey: ["plugins-internos-regras"], queryFn: () => api<RegrasPluginInterno>("/plugins-internos/regras") });
-  const [marca, setMarca] = useState("");
-  const [descricao, setDescricao] = useState("");
-  const [finalidade, setFinalidade] = useState("");
-  const [areas, setAreas] = useState<string[]>([]);
-  const [classificacao, setClassificacao] = useState("interna");
-  const [aceita, setAceita] = useState(false);
+  const pre = usePreenche("criarplugin")?.plugin;     // roteiro guiado: o pedido já vem preenchido
+  const [marca, setMarca] = useState(pre?.ferramenta_mercado ?? "");
+  const [descricao, setDescricao] = useState(pre?.descricao_publica ?? "");
+  const [finalidade, setFinalidade] = useState(pre?.finalidade ?? "");
+  const [areas, setAreas] = useState<string[]>(pre?.areas ?? []);
+  const [classificacao, setClassificacao] = useState(pre?.classificacao ?? "interna");
+  const [aceita, setAceita] = useState(!!pre);
   const [spec, setSpec] = useState<EspecPlugin | null>(null);
   const [avisos, setAvisos] = useState<string[]>([]);
   const corpo = { ferramenta_mercado: marca, descricao_publica: descricao, finalidade, areas, classificacao, aceita_aviso_publico: aceita };

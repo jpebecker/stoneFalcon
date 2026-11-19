@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { api, type PedidoPluginInterno, type Persona, type Plugin } from "../api/cliente";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { reais } from "../components/formato";
+import { usePreenche } from "../roteiro/estado";
 import { quando } from "../components/formato";
 import { AcoesPlugin, classeSelo, COR_ESTADO_PLUGIN, IconeCategoria, NOME_ESTADO_PLUGIN, SeloDoPlugin } from "../components/Plugin";
 
@@ -15,7 +16,7 @@ const NOME_ESTADO_INTERNO: Record<PedidoPluginInterno["estado"], string> = {
 
 function DecidirPedido({ x }: { x: PedidoPluginInterno }) {
   const qc = useQueryClient();
-  const [parecer, setParecer] = useState("");
+  const [parecer, setParecer] = useState(usePreenche(["aprovar", "seguranca"])?.parecer ?? "");
   const decidir = useMutation({
     mutationFn: (aprovar: boolean) => api<PedidoPluginInterno>(`/plugins-internos/${x.id}/${x.etapa}`, { aprovar, parecer }),
     onSuccess: () => { setParecer(""); qc.invalidateQueries({ queryKey: ["plugins-internos"] }); qc.invalidateQueries({ queryKey: ["plugins"] }); },

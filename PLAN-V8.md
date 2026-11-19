@@ -294,13 +294,13 @@ v7 gave the platform a live AI Map, multiple model providers and scheduled tasks
 
 **Blocked by:** 01, 02, 09, 11, 13
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Pitch script v8 (Helena's Scripts tab) covers wheel → agent → process → real plugin → create your plugin → AI Map/Finances, in 8–10 minutes, fully in simulated mode.
-- [ ] Each persona's script still ends on its AS IS × TO BE card, now based on processes.
-- [ ] Three new "Perguntas da Ferramenta": "Why separate agents and processes?", "Is the plugin real?", "How do you stop someone cloning a vendor tool?" — each with a short answer and "Show on screen".
-- [ ] README: "What's new in v8", updated access matrix, Files & Sheets usage, Create your plugin rules, updated architecture diagram and test count.
-- [ ] Rehearsal checklist updated with the v8 flow.
+- [x] Pitch script v8 (Helena's Scripts tab) covers wheel → agent → process → real plugin → create your plugin → AI Map/Finances, in 8–10 minutes, fully in simulated mode.
+- [x] Each persona's script still ends on its AS IS × TO BE card, now based on processes.
+- [x] Three new "Perguntas da Ferramenta": "Why separate agents and processes?", "Is the plugin real?", "How do you stop someone cloning a vendor tool?" — each with a short answer and "Show on screen".
+- [x] README: "What's new in v8", updated access matrix, Files & Sheets usage, Create your plugin rules, updated architecture diagram and test count.
+- [x] Rehearsal checklist updated with the v8 flow.
 
 ### 15: v8 release check
 

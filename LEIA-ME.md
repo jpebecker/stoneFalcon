@@ -31,7 +31,7 @@ Nunca coloque a chave no código, na extensão ou no Git (`.env` está no `.giti
 ```bash
 cd backend && uv sync && uv run uvicorn app.main:app --reload --port 8765   # um processo só (sem --workers): os plugins integrados ficam num cache em memória
 cd frontend && npm install && npm run dev        # http://localhost:5173 (repassa /api ao backend)
-cd backend && uv run pytest -q                   # 558 testes, sem chave nem internet
+cd backend && uv run pytest -q                   # 698 testes, sem chave nem internet
 ```
 
 ### Extensão copiloto (Chrome/Edge)
@@ -46,7 +46,7 @@ cd backend && uv run pytest -q                   # 558 testes, sem chave nem int
 
 ## Como contribuir
 
-- **Um ticket = um branch = um PR.** Branch `v7/NN-nome-curto` saindo de `main`; PR para `main` com o número do ticket no título e os critérios de aceite como checklist (o plano está em [PLANO-V7.md](PLANO-V7.md)).
+- **Um ticket = um commit** no branch `v8` (um PR por ticket também serve); os critérios de aceite estão em [PLAN-V8.md](PLAN-V8.md).
 - **A esteira de CI** (`.github/workflows/ci.yml`) roda em todo PR e em `main` e precisa estar verde para juntar:
   1. **Back:** `pytest` em Python 3.11 e 3.14, em modo simulado (sem chave da API).
   2. **Front:** checagem de tipos e compilação de produção (`npm run build`).
@@ -68,6 +68,39 @@ cd backend && uv run pytest -q                   # 558 testes, sem chave nem int
 | Gestão financeira | Custo por execução/agente/área/modelo, economia do roteador, retorno por agente, orçamento mensal com corte, calculadora (VPL, TIR, payback) | Finanças, Calculadora · `app/finance` |
 | Agente: decisão, ferramentas, sequência/paralelo, raciocínio | Grafo de passos (paralelos rodam juntos), loop pensar → agir → observar com tool use, limites de passos e de custo, escalada segura para humano | `app/runtime` |
 | Critérios de avaliação (tempo, custo, produtividade, erros, ROI) | Painel executivo com os 5, medidos nas execuções | Painel executivo |
+
+## Novidades da v8
+
+- **Seletor radial de persona** na tela de entrada: seis pessoas em roda, com mouse, teclado (setas, Enter) e `prefers-reduced-motion`; em tela estreita vira grade de cartões.
+- **Agente é um trabalhador, processo é o fluxo.** O **agente** faz UMA tarefa de IA (ler e raciocinar), é reutilizável e tem versões e revisão. O **processo** (aba nova **Processos**) é o fluxo de blocos de baixo código: *dados*, *agente*, *plugin/ação*, *aprovação*, *condição* e *saída*, montados num canvas, com dono, versões imutáveis, revisão da Segurança no risco alto, ação sensível com confirmação humana e custo estimado. Um agente novo com mais de um passo é recusado, com uma mensagem apontando para os Processos; agentes de vários passos de bancos antigos ainda rodam, são só leitura e têm **“Converter em processo”**.
+- **Tarefas de rotina, extensão, Mapa de IA e Finanças entendem processos**: agende um processo (“toda segunda às 9h”); a extensão lista processos e agentes agrupados; o Mapa ganhou a camada **processos** (criador → processo → agentes → modelos → plugins → plataformas) com pulsos; Finanças mostra custo, ganho e ROI **por processo**, com os agentes por dentro e o orçamento do processo.
+- **Plugin Arquivos e Planilhas, de verdade** (selo **real**; os demais seguem simulados): envie CSV ou Excel (até 2 MB, 5.000 linhas e 30 colunas), escolha a classificação (no máximo o seu nível) e as áreas; agentes e processos listam, leem (com filtro), acham, acrescentam e atualizam linhas. CPF, CNPJ, cartão, e-mail e telefone viram marcadores antes de qualquer modelo; escrita em arquivo confidencial ou restrito espera a confirmação de uma pessoa; cada escrita registra quem, qual agente ou processo e qual linha. A página mostra a prévia, a versão atual para baixar e os números de uso. Usa `openpyxl`.
+- **Crie o seu plugin** (aba Plugins, só criadores e Engenharia): cole a descrição **pública** de uma ferramenta de mercado e a plataforma rascunha um plugin **interno** (nome e ícone genéricos, ferramentas, riscos e a conta de comprar × construir). A **analista de IA** (Helena, papel `ai_analyst`) aprova com parecer; dado confidencial ou restrito ainda passa pela **Segurança**; ninguém decide o próprio pedido. Aprovado, o plugin entra no marketplace como **interno · conceitual** (simulado), pode ser integrado e usado como bloco de processo.
+- **Roteiros e pitch v8:** as quatro personas que criam fazem *agente → processo*; o pitch (Helena, 10 min) vai do seletor ao plugin criado pela equipe. Três Perguntas da Ferramenta novas: separar agentes e processos, o plugin é de verdade, como evitar clonar uma ferramenta de fornecedor.
+
+### Matriz de acesso da v8 (o que mudou)
+
+| Recurso | Quem | Regra |
+|---|---|---|
+| Aba **Processos** | todos veem; criadores da área criam e editam | executar exige a área e o nível; revisão da Segurança no risco alto |
+| Agente novo | criadores | só um passo; mais de um é recusado (422) |
+| Arquivos e Planilhas: enviar | qualquer perfil com a aba Plugins | classificação ≤ nível de quem envia; a área de quem envia sempre entra |
+| Arquivos e Planilhas: ler e escrever | quem tem a **área E o nível** do arquivo | de outra área ou nível menor: negado e auditado; escrita confidencial+ espera confirmação |
+| **Crie o seu plugin** | criadores e Engenharia (os demais recebem 403) | só informação pública; sem marca, logotipo nem código |
+| Decidir o pedido | **Helena** (analista de IA); **Lucas** (Segurança) no dado confidencial ou restrito | parecer obrigatório; nunca o próprio pedido (quando o pedido é do Lucas, a Helena decide a etapa dele) |
+
+### Arquivos e Planilhas: um uso por persona
+
+| Persona | Arquivo (dados fictícios) | Processo | Como chegar (≤ 3 cliques) |
+|---|---|---|---|
+| Marina | `faq-atendimento.csv` (interno) | Consulta ao FAQ de atendimento | Processos → o processo → Executar |
+| Rafael | `chargebacks-triagem.csv` (restrito, risco) | Registro da decisão de triagem (grava só depois da confirmação) | Processos → o processo → Executar |
+| Carla | `beneficios-rh.csv` (confidencial, CPF e e-mail mascarados) | Consulta de benefícios do colaborador | Processos → o processo → Executar |
+| Thiago | `pedidos-troca.csv` (interno) | Pedidos de troca pendentes (marca o pedido tratado) | Processos → o processo → Executar |
+| Lucas | `registro-incidentes.csv` (interno) | Registro de incidente de sistema (compartilhado com a Engenharia) | Plugins → Arquivos e Planilhas → prévia |
+| Helena | `financas-resumo-inicial.csv` | **Exportar para planilha** em Finanças cria um arquivo novo que ela vê e baixa | Finanças → Exportar para planilha |
+
+**Reiniciar a demo** restaura os seis arquivos e remove os plugins criados pelos pedidos.
 
 ## Novidades da v7
 
@@ -93,7 +126,7 @@ Cada pessoa vê só o próprio roteiro (card “Seu roteiro guiado”, no Iníci
 
 **Fotos das personas** em `backend/app/static/avatares/<id>.png` (servidas em `/avatares/`); se a foto não carrega, aparecem as iniciais na cor da persona.
 
-**Marketplace de plugins (simulado).** A aba **Plugins** mostra 9 plugins homologados (Zendesk, Salesforce, Slack, Jira, Google Drive, Google Sheets, ServiceNow, SAP SuccessFactors, Datadog): nomes reais, ícone genérico por categoria e selo “simulado”, sem logo oficial. O plugin nunca é executado: só as ferramentas que ele traz, com o mesmo contrato do Catálogo.
+**Marketplace de plugins (simulado).** A aba **Plugins** mostra 10 plugins homologados (Arquivos e Planilhas, Zendesk, Salesforce, Slack, Jira, Google Drive, Google Sheets, ServiceNow, SAP SuccessFactors, Datadog), mais os criados pelos pedidos “Crie o seu plugin”: nomes reais, ícone genérico por categoria e selo “simulado”, sem logo oficial. Os plugins simulados nunca são executados: só as ferramentas que eles trazem, com o mesmo contrato do Catálogo. Na v8 há um décimo plugin, **Arquivos e Planilhas**, que funciona de verdade (selo “real”).
 
 - **Integrar** (criador da área do plugin ou Engenharia): plugin público/interno entra na hora; as ferramentas aparecem no Catálogo com a origem “plugin X” e viram passo no Estúdio. Plugin **confidencial ou restrito** (Salesforce, SAP) vira pedido na fila de Revisões do Lucas, com parecer; ninguém aprova o próprio pedido (o pedido feito pela Segurança é decidido pela Helena, na página do plugin); quem pediu recebe o resultado nos alertas. Escrita em dado confidencial (registrar interação no Salesforce) exige confirmação humana a cada execução. Quem não cria nem governa só registra o pedido.
 - **Página do plugin integrado:** agentes que usam, chamadas no mês, custo, latência e saúde (das execuções reais da demo) e, para Zendesk, Slack e Jira, uma janela simulada do sistema externo. Sem nível para a classificação do plugin, só os números agregados.
@@ -129,8 +162,9 @@ Cada roteiro termina num cartão **AS IS × TO BE** nos 5 critérios (tempo, cus
                          │  /api/v1                         │
                          ▼                                  ▼
  backend FastAPI ── Estúdio ── Runtime (DAG + loop + roteador) ── Ciclo de vida ── Saúde ── Finanças
-        │                │                 │
-        │          Guardrails ──── Catálogo de ferramentas (mocks; em produção: webhooks n8n/APIs)
+        │                │          (agente = trabalhador · processo = fluxo de blocos)
+        │          Guardrails ──── Catálogo de ferramentas ── Plugins (simulados + Arquivos e Planilhas, real)
+        │                              (mocks; em produção: webhooks n8n/APIs)
         ▼
  SQLite (protótipo) / Postgres (produção) · trilha de auditoria encadeada por hash
         ▲
@@ -147,7 +181,8 @@ Cada roteiro termina num cartão **AS IS × TO BE** nos 5 critérios (tempo, cus
 | `backend/app/agents` | blueprint, risco e custo estimado, ciclo de vida, versões e diff |
 | `backend/app/observability` | métricas, alertas, nota de saúde |
 | `backend/app/finance` | premissas, resumo, ROI, calculadora, indicadores da banca |
-| `backend/app/plugins` | marketplace simulado: definições dos 9 plugins, sistemas externos fictícios, integração, pedidos e página consolidada |
+| `backend/app/processos` | processos de blocos: blueprint, compilação para o runtime, validação, ciclo de vida, conversão de fluxos antigos |
+| `backend/app/plugins` | marketplace: definições dos plugins, **Arquivos e Planilhas (real)**, pedidos “Crie o seu plugin” e plugins internos, sistemas externos fictícios, integração e página consolidada |
 | `backend/app/seed` | agentes de exemplo, demo inicial, histórico sintético |
 | `backend/app/roteiros` | roteiros por persona, valor medido (AS IS × TO BE), Perguntas da Ferramenta, reinício por roteiro |
 | `backend/app/runtime/respostas.py` | respostas pré-determinadas dos agentes (modo simulado e reserva do modo real) |
@@ -164,7 +199,7 @@ Cada roteiro termina num cartão **AS IS × TO BE** nos 5 critérios (tempo, cus
 
 ## O que foi testado e o que não foi
 
-- **558 testes automáticos** (`uv run pytest -q`): semelhança de texto e guardrails portados do v3, catálogo e permissões, runtime (paralelismo real, aprovação, retomada com o dado real, limites, escalada), Estúdio, ciclo de vida e revisão, alertas, finanças e as rotas da API. O **ensaio geral** (`tests/test_roteiros.py`) percorre os seis roteiros do início ao fim pela API (e `tests/test_pitch.py`, o roteiro do pitch v7); `tests/test_matriz_v7.py` confere a matriz de acesso da v7 para os seis perfis; `tests/test_acesso.py` confere a matriz de acesso (abas × perfis, roteiros × perfis, cada passo dos roteiros com o perfil do passo) e `tests/test_plugins.py` o marketplace.
+- **698 testes automáticos** (`uv run pytest -q`): semelhança de texto e guardrails portados do v3, catálogo e permissões, runtime (paralelismo real, aprovação, retomada com o dado real, limites, escalada), Estúdio, ciclo de vida e revisão, alertas, finanças e as rotas da API. O **ensaio geral** (`tests/test_roteiros.py`) percorre os seis roteiros do início ao fim pela API (e `tests/test_pitch.py`, o roteiro do pitch v7); `tests/test_matriz_v7.py` confere a matriz de acesso da v7 para os seis perfis; `tests/test_acesso.py` confere a matriz de acesso (abas × perfis, roteiros × perfis, cada passo dos roteiros com o perfil do passo) e `tests/test_plugins.py` o marketplace.
 - **Testado no navegador:** as telas da v4 e, na v5, os roteiros da Marina (até o helpdesk com o painel do copiloto), do Rafael (criação, revisão do Lucas, execução com confirmação e cartão AS IS × TO BE) e do Lucas (até o catálogo), o consolidado da Helena e as perguntas; na v6, o menu por perfil (Marina e Helena), a redireção de endereço sem permissão, a vitrine de plugins, a integração do Zendesk (Marina) e a do Slack no roteiro do Thiago até a criação do agente, além das capturas de tela refeitas.
 - **Não testado:** chamadas à API real da Anthropic (não havia chave neste ambiente; o formato segue o SDK oficial `anthropic` 2.8), a **extensão carregada no Chrome** (os arquivos foram checados e o painel foi testado dentro do helpdesk fictício, mas o botão flutuante, o menu do botão direito e o painel lateral nativo não foram exercitados), os roteiros de Carla, Thiago e o restante do Lucas e da Helena na interface (cobertos só pelo ensaio via API), `iniciar.bat` numa máquina limpa e o Edge. Os tempos AS IS dos roteiros são hipóteses.
 

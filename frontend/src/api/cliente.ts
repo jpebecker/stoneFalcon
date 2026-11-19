@@ -284,7 +284,8 @@ export type ProcessoPronto = Omit<ProcessoBlueprint, "blocos"> & { blocos: (Omit
 
 export type PassoRoteiro = {
   id: string; titulo: string; perfil: string; rota: string; acao: string; fala: string;
-  preenche: { descricao?: string; nome_agente?: string; processo?: ProcessoPronto; entrada?: Record<string, string>; parecer?: string; fonte?: { tipo: string; url: string };
+  preenche: { descricao?: string; nome_agente?: string; processo?: ProcessoPronto;
+    plugin?: { ferramenta_mercado: string; descricao_publica: string; finalidade: string; areas: string[]; classificacao: string }; entrada?: Record<string, string>; parecer?: string; fonte?: { tipo: string; url: string };
     frequencia?: "semanal" | "diaria"; dia_semana?: number; hora?: string }; externa: boolean;
 };
 
