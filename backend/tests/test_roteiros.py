@@ -384,7 +384,7 @@ def test_resultado_de_todos_os_roteiros_responde(api):
         d = r.json()
         assert d["linhas"] or d["indicadores"]
     ind = {i["nome"]: i for i in api.get(f"{V1}/roteiros/lucas/resultado", headers=como("lucas")).json()["indicadores"]}
-    assert ind["Agentes e processos publicados sem código novo"]["valor"] == 8
+    assert ind["Agentes e processos publicados sem código novo"]["valor"] == 13
     assert ind["Revisões de segurança feitas"]["valor"] == 1
 
 
@@ -483,7 +483,7 @@ def test_reiniciar_a_demo_devolve_o_estado_inicial_exato(api, sessao):
 
     assert api.post(f"{V1}/demo/reiniciar", headers=h).json()["ok"]
     inicial = foto()
-    assert len(inicial[0]) == 4 and len(inicial[1]) == 4 and all(p[1] == "publicado" for p in inicial[1])
+    assert len(inicial[0]) == 4 and len(inicial[1]) == 9 and all(p[1] == "publicado" for p in inicial[1])
     pid = next(p["id"] for p in api.get(f"{V1}/processos", headers=h).json() if p["nome"] == "Orientação de férias")
     assert api.post(f"{V1}/processos/{pid}/pausar", json={"motivo": "teste"}, headers=como("lucas")).status_code == 200
     _executar_processo(api, "marina", next(p["id"] for p in api.get(f"{V1}/processos", headers=h).json()
@@ -498,10 +498,11 @@ def test_reiniciar_a_demo_devolve_o_estado_inicial_exato(api, sessao):
 def test_extensao_lista_processos_e_agentes_so_do_que_o_perfil_pode_rodar(api):
     _iniciar(api, "helena")
     marina = api.post(f"{V1}/extensao/analisar", json={"trecho": ""}, headers=como("marina")).json()["agentes"]
-    assert {x["nome"] for x in marina if x["tipo"] == "processo"} == {"Resposta a dúvidas de lojistas"}
+    assert {x["nome"] for x in marina if x["tipo"] == "processo"} == {"Resposta a dúvidas de lojistas", "Consulta ao FAQ de atendimento"}
     assert {x["nome"] for x in marina if x["tipo"] == "agente"} == {NOME_AGENTE["duvida"]}
     rafael = api.post(f"{V1}/extensao/analisar", json={"trecho": ""}, headers=como("rafael")).json()["agentes"]
-    assert [x["tipo"] for x in rafael] == ["processo", "agente"] and rafael[0]["nome"] == "Triagem de chargebacks"
+    assert {x["nome"] for x in rafael if x["tipo"] == "processo"} == {"Triagem de chargebacks", "Registro da decisão de triagem"}
+    assert [x["tipo"] for x in rafael][-1] == "agente" and rafael[0]["tipo"] == "processo"
     # rodar o processo pela extensão mostra os blocos: a execução traz um passo por bloco
     exe = _executar_processo(api, "marina", marina[0]["id"], marina[0]["preenchido"] or {"lojista_id": "L1001", "pergunta": "Prazo de estorno?"})
     assert [p["id"] for p in exe["blueprint"]["passos"]] == ["cadastro", "politica", "resposta"] and exe["dono_tipo"] == "processo"

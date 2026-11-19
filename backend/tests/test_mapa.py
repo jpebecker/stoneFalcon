@@ -89,7 +89,7 @@ def test_mapa_e_coerente_com_o_catalogo_e_os_agentes_publicados(api, sessao):
     assert {n["rotulo"] for n in m["nos"] if n["tipo"] == "agente"} == publicados
     assert m["totais"]["agentes"] == len(publicados)
     processos = {p["nome"] for p in api.get(f"{V1}/processos", headers=como("helena")).json() if p["estado"] == "publicado"}
-    assert {n["rotulo"] for n in m["nos"] if n["tipo"] == "processo"} == processos and len(processos) == 4
+    assert {n["rotulo"] for n in m["nos"] if n["tipo"] == "processo"} == processos and len(processos) == 9
     # colunas coerentes com o tipo
     coluna = {"criador": "criadores", "processo": "processos", "agente": "agentes", "modelo": "modelos", "ferramenta": "ferramentas",
               "plugin": "ferramentas", "sistema": "plataformas"}

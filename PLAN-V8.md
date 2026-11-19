@@ -245,14 +245,14 @@ v7 gave the platform a live AI Map, multiple model providers and scheduled tasks
 
 **Blocked by:** 05, 10
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Six seeded files, one per persona, with fictional data and the right classification/areas.
-- [ ] Marina, Rafael, Carla and Thiago each have a seeded process that uses a Files & Sheets block and runs green in simulated mode.
-- [ ] Lucas: the "system down" flow appends to the incident log (visible in the plugin preview).
-- [ ] Helena: "Export to sheet" in Finances writes a new file she can preview and download.
-- [ ] Each use is reachable in ≤ 3 clicks from the persona's home and is listed in the README.
-- [ ] Back-end tests for each persona's use, including a denied cross-area read.
+- [x] Six seeded files, one per persona, with fictional data and the right classification/areas.
+- [x] Marina, Rafael, Carla and Thiago each have a seeded process that uses a Files & Sheets block and runs green in simulated mode.
+- [x] Lucas: the "system down" flow appends to the incident log (visible in the plugin preview).
+- [x] Helena: "Export to sheet" in Finances writes a new file she can preview and download.
+- [x] Each use is reachable in ≤ 3 clicks from the persona's home and is listed in the README.
+- [x] Back-end tests for each persona's use, including a denied cross-area read.
 
 ### 12: "Create your plugin" — request and draft spec
 

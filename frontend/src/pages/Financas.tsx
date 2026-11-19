@@ -76,11 +76,16 @@ function Orcamento({ uso, gasto, limite, editavel, aoMudar }: {
 export default function Financas({ pessoa }: { pessoa: Persona }) {
   const qc = useQueryClient();
   const [dias, setDias] = useState(30);
+  const [exportado, setExportado] = useState<string | null>(null);
   const q = useQuery({ queryKey: ["financas", dias], queryFn: () => api<ResumoFinancas>("/financas/resumo?dias=" + dias) });
   const gestor = pessoa.papeis.includes("gestor_ia");
   const orcamento = useMutation({
     mutationFn: ({ id, valor, tipo }: { id: string; valor: number; tipo: string }) => api(`/${tipo === "processo" ? "processos" : "agentes"}/${id}/orcamento`, { valor_brl: valor }, "PUT"),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["financas"] }),
+  });
+  const exportar = useMutation({
+    mutationFn: () => api<{ arquivo: { nome: string }; linhas: number }>(`/financas/exportar-planilha?dias=${dias}`, {}),
+    onSuccess: (x) => setExportado(x.arquivo.nome),
   });
   const gerar = useMutation({
     mutationFn: () => api("/demo/historico", {}),
@@ -102,8 +107,16 @@ export default function Financas({ pessoa }: { pessoa: Persona }) {
             ))}
           </div>
           <Link to="/financas/calculadora" className="botao-claro">Calculadora de investimento</Link>
+          {gestor && <button className="botao-claro" disabled={exportar.isPending} onClick={() => exportar.mutate()}>{exportar.isPending ? "Exportando…" : "Exportar para planilha"}</button>}
         </div>
       </div>
+
+      {exportar.isError && <p className="text-sm text-erro" role="alert">{(exportar.error as Error).message}</p>}
+      {exportado && (
+        <p className="rounded-caixa border border-pedra/40 bg-pedra-fundo px-4 py-2 text-sm" role="status">
+          Planilha <b>{exportado}</b> criada. <Link to="/plugins/arquivos" className="font-semibold text-pedra-forte underline">Ver e baixar no plugin Arquivos e Planilhas</Link>
+        </p>
+      )}
 
       {r?.tem_demo && (
         <p className="rounded-caixa border border-alerta/40 bg-alerta-fundo/60 px-4 py-2 text-sm">

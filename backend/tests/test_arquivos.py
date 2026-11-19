@@ -256,12 +256,12 @@ def test_so_quem_enviou_remove(api):
 # ---------------------------------------------------------------- reiniciar a demo
 def test_reiniciar_a_demo_restaura_os_arquivos_do_estado_inicial(api, sessao):
     semear(sessao)
-    assert [a["nome"] for a in api.get(f"{BASE}/arquivos", headers=como("marina")).json()] == ["faq-atendimento.csv"]
+    assert [a["nome"] for a in api.get(f"{BASE}/arquivos", headers=como("marina")).json()] == ["faq-atendimento.csv", "pedidos-troca.csv"]
     _enviar(api, "marina", "extra.csv", _csv("a\n1\n"))
     _ferramenta(api, "marina", "arquivos_adicionar_linha", {"arquivo": "faq-atendimento.csv", "valores": '{"assunto": "Novo"}'})
     assert api.post(f"{V1}/demo/reiniciar", headers=como("helena")).status_code == 200
     depois = api.get(f"{BASE}/arquivos", headers=como("marina")).json()
-    assert [a["nome"] for a in depois] == ["faq-atendimento.csv"] and depois[0]["total_linhas"] == 8 and depois[0]["demo"] is True
+    assert [a["nome"] for a in depois] == ["faq-atendimento.csv", "pedidos-troca.csv"] and depois[0]["total_linhas"] == 8 and depois[0]["demo"] is True
     assert api.get(f"{V1}/plugins/arquivos", headers=como("marina")).json()["estado"] == "integrado"
 
 

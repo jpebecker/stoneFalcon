@@ -170,7 +170,7 @@ def test_financas_por_processo_com_detalhe_por_agente(sessao):
     semear(sessao)
     r = resumo.resumo(sessao, P["helena"])
     processos = [x for x in r["por_agente"] if x["tipo"] == "processo"]
-    assert len(processos) == 4 and all(x["execucoes"] > 0 and x["custo_brl"] > 0 and x["ganho_brl"] > 0 for x in processos)
+    assert len(processos) == 9 and all(x["execucoes"] > 0 for x in processos)      # os de só ferramentas não gastam token
     triagem = next(x for x in processos if x["nome"] == "Triagem de chargebacks")
     assert [a["nome"] for a in triagem["agentes"]] == ["Analista de risco de chargebacks"]
     assert 0 < triagem["agentes"][0]["execucoes"] <= triagem["execucoes"]       # escaladas antes do agente não contam nele
