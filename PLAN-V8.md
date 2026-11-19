@@ -308,14 +308,14 @@ v7 gave the platform a live AI Map, multiple model providers and scheduled tasks
 
 **Blocked by:** 14
 
-**Status:** ready-for-agent
+**Status:** done, with the open items listed below
 
-- [ ] Back-end suite green in Python 3.11 and 3.14, simulated mode, no API key.
-- [ ] Front-end type check and production build green; extension and version checks green.
-- [ ] `iniciar.bat` (Windows) and `iniciar.sh` (Linux) start v8 and answer 8.0.0 on the health route, from a fresh folder and from a folder with a v7 database (which opens without errors).
-- [ ] Every guided script runs end to end; Reset demo restores the initial state.
-- [ ] Manual browser pass: radial selector (mouse, keyboard, reduced motion, narrow screen), Processes editor, Files & Sheets upload/preview/download, Create your plugin request → approval → use in a process.
-- [ ] Ticket statuses in this file updated; open issues listed at the end of this file.
+- [x] Back-end suite green in Python 3.11 and 3.14, simulated mode, no API key (698 tests on both, run locally).
+- [x] Front-end type check and production build green; extension and version checks green.
+- [ ] `iniciar.bat` (Windows) and `iniciar.sh` (Linux) start v8 and answer 8.0.0 on the health route, from a fresh folder and from a folder with a v7 database (which opens without errors). _Verified: `iniciar.bat` on Windows against a copy of a real v7 database (answered 8.0.0 in 47 s) and the v7 fixture test. Not verified here: `iniciar.sh` on Linux (CI job) and a truly fresh folder._
+- [x] Every guided script runs end to end; Reset demo restores the initial state (`test_roteiros.py`, `test_pitch.py`, exact-state reset test).
+- [ ] Manual browser pass: radial selector (mouse, keyboard, reduced motion, narrow screen), Processes editor, Files & Sheets upload/preview/download, Create your plugin request → approval → use in a process. _Done in the in-app browser (pane hidden, DOM checks only): wheel renders, Files & Sheets page with preview, “Create your plugin” page. Not done: mouse/keyboard/reduced-motion/narrow-screen behaviour of the wheel, Processes editor drag-and-drop, file upload and download by hand. The request → approval → use-in-process path is covered by API tests._
+- [x] Ticket statuses in this file updated; open issues listed at the end of this file.
 
 ## 6. Risks and mitigations
 
@@ -335,3 +335,15 @@ v7 gave the platform a live AI Map, multiple model providers and scheduled tasks
 - Access is decided by the back end (tab list + API checks); the front end only reads it.
 - Every state change that matters (create, publish, approve, integrate, write) is in the hash-chained audit trail.
 - Reset demo restores the exact initial state after the ticket's changes.
+
+## 8. Open issues at the end of v8
+
+1. **Linux and fresh folder:** `iniciar.sh` and a start from an empty folder were not run locally (only `iniciar.bat` on Windows, in a folder that already had the virtualenv); the CI smoke job covers Linux.
+2. **Manual browser pass is partial:** the in-app browser pane was hidden, so only DOM checks ran. The wheel's mouse, keyboard, reduced-motion and narrow-screen behaviour, the process canvas, and hand uploads/downloads need a human pass in a visible browser.
+3. **“Confidential and restricted files need the security approval path” (ticket 10):** implemented as a classification cap by the uploader's level, per-file area + level access, and human confirmation on writes to confidential-or-above files. Integrating the plugin itself is direct (its tools are internal-level), so uploading a confidential file does not open a Security request. If the intent was a Security sign-off per file, it is a follow-up.
+4. **Alerts are still per agent:** the health alert rules (failures, slowness, budget) evaluate agents; processes get cost, budget (with cutoff), map and finance views, but no own alert rules.
+5. **Process templating limits:** file-tool arguments that carry JSON (`valores`) are filled by text templates, so a value with a double quote breaks the JSON and the block fails with a clear error. A structured-object input would remove this.
+6. **Pitch timing is an estimate** (word count and clicks, under 5 minutes of speech); it has not been timed live.
+7. **Extension in Chrome:** not exercised in a real browser (only the side panel inside the fictitious helpdesk and the manifest checks).
+8. **Real model mode:** the “Create your plugin” draft in real mode (model call with the pasted text wrapped as data) and the real-key paths were not run (no API key); simulated mode is deterministic.
+9. **Legacy multi-step agents** from old databases stay readable and runnable and convert to processes; a v7 database fixture (`backend/tests/fixtures/banco_v7.db`) is tested. They can no longer be edited into new multi-step versions.
