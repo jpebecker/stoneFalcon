@@ -185,6 +185,8 @@ class Ciclo:
         v = self.versao(s, a.id, a.ultima_versao)
         if v.estado != m.V_RASCUNHO:
             raise ErroCiclo("Não há rascunho para publicar (última versão: %s)." % v.estado)
+        if self.t.antes_de_publicar:
+            self.t.antes_de_publicar(s, self.t.modelo.model_validate(v.blueprint))
         if v.risco == ALTO:
             v.estado = m.V_EM_REVISAO
             if a.versao_publicada is None:

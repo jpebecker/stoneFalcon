@@ -131,7 +131,12 @@ def revisoes(pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sess
     saida = []
     for a, v in ciclo.pendentes_revisao(s):
         anterior = ciclo.versao(s, a.id, a.versao_publicada).blueprint if a.versao_publicada else None
-        saida.append({"agente": a.model_dump(), "versao": v.model_dump(), "mudancas": comparar(anterior, v.blueprint)})
+        saida.append({"tipo": "agente", "agente": a.model_dump(), "versao": v.model_dump(), "mudancas": comparar(anterior, v.blueprint)})
+    from ..processos.diff import comparar as comparar_processo
+    from ..processos.tipo import ciclo as ciclo_processos
+    for p, v in ciclo_processos.pendentes_revisao(s):   # processos de risco alto esperam a mesma revisão
+        anterior = ciclo_processos.versao(s, p.id, p.versao_publicada).blueprint if p.versao_publicada else None
+        saida.append({"tipo": "processo", "agente": p.model_dump(), "versao": v.model_dump(), "mudancas": comparar_processo(anterior, v.blueprint)})
     return saida
 
 

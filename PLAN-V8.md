@@ -137,15 +137,15 @@ v7 gave the platform a live AI Map, multiple model providers and scheduled tasks
 
 **Blocked by:** 03
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] The `processes` tab is in the back end's per-profile tab list (single source of truth) for all personas; the menu shows "Processes" between "Agents" and "Plugins"; the API enforces edit rights (403 for non-creators or other areas).
-- [ ] A process stores: name, goal, owner, area, optional linked script/process, input fields, blocks (graph), limits, manual minutes (ROI baseline); versioned like agents.
-- [ ] The canvas lets a creator add Agent blocks (picking from published agents they can run), connect them, and remove them; cycles and dangling references are rejected with a plain-language message.
-- [ ] Sandbox test runs the draft and shows the timeline per block; publish follows the agent rules (high risk → security review).
-- [ ] Running a published process records one process execution with nested per-block results; cost and time are summed per process.
-- [ ] Process list shows owner, area, state, version, linked AS IS process, executions and cost; process detail shows versions, lifecycle history and a run form.
-- [ ] Back-end tests: create → test → publish → run; parallel blocks run together; permission checks; a paused agent inside a process escalates with the reason.
+- [x] The `processes` tab is in the back end's per-profile tab list (single source of truth) for all personas; the menu shows "Processes" between "Agents" and "Plugins"; the API enforces edit rights (403 for non-creators or other areas).
+- [x] A process stores: name, goal, owner, area, optional linked script/process, input fields, blocks (graph), limits, manual minutes (ROI baseline); versioned like agents.
+- [x] The canvas lets a creator add Agent blocks (picking from published agents they can run), connect them, and remove them; cycles and dangling references are rejected with a plain-language message.
+- [x] Sandbox test runs the draft and shows the timeline per block; publish follows the agent rules (high risk → security review).
+- [x] Running a published process records one process execution with nested per-block results; cost and time are summed per process.
+- [x] Process list shows owner, area, state, version, linked AS IS process, executions and cost; process detail shows versions, lifecycle history and a run form.
+- [x] Back-end tests: create → test → publish → run; parallel blocks run together; permission checks; a paused agent inside a process escalates with the reason.
 
 ### 05: Low-code block palette
 

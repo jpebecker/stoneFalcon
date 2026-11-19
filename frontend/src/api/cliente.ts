@@ -98,12 +98,13 @@ export type RegistroPasso = {
   motivos_modelo: string[]; modelo_chave?: string | null; esforco?: string | null; balanceador?: DecisaoBalanceador | null; provedor?: string | null; modelo_simulado?: boolean | null; reserva?: string; ferramentas: UsoFerramenta[]; iteracoes: number; custo_usd: number;
   duracao_ms: number; duracao_estimada_ms: number;
   pendencia: Pendencia | null;
+  bloco?: string | null; agente?: { id: string; nome: string; versao: number } | null;   // v8: passo que veio de um bloco de processo
 };
 
 export type Pendencia = { passo: string; tipo: "ferramenta" | "aprovacao"; conector?: string; conector_nome?: string; entrada?: Record<string, unknown>; justificativa?: string | null; titulo?: string };
 
 export type Execucao = {
-  id: string; agente_id: string | null; agente_nome: string; area: string; persona: string; status: string;
+  id: string; agente_id: string | null; dono_tipo?: "agente" | "processo"; dono_id?: string | null; versao?: number | null; agente_nome: string; area: string; persona: string; status: string;
   motivo: string | null; entrada: Record<string, unknown>; blueprint: Blueprint; passos: Record<string, RegistroPasso>;
   pendencia: Pendencia | null; resultado: string | null; chamadas_modelo: number; tokens_entrada: number;
   tokens_saida: number; custo_usd: number; custo_brl: number; duracao_ms: number; duracao_estimada_ms: number;
@@ -182,7 +183,35 @@ export type AgenteDetalhe = Agente & { versoes: VersaoAgente[]; pode_executar: b
 
 export type Mudanca = { tipo: "adicionado" | "removido" | "alterado"; alvo: string; campo: string | null; antes: unknown; depois: unknown };
 
-export type ItemRevisao = { agente: Agente; versao: VersaoAgente; mudancas: Mudanca[] };
+export type ItemRevisao = { tipo?: "agente" | "processo"; agente: Agente; versao: VersaoAgente; mudancas: Mudanca[] };
+
+// ---------- processos (v8): fluxos de blocos ----------
+export type TipoBloco = "dados" | "agente" | "plugin" | "aprovacao" | "condicao" | "saida";
+export type Regra = { fonte: string; operador: "igual" | "contem" | "maior"; valor: string };
+export type Bloco = {
+  id: string; tipo: TipoBloco; titulo: string; depende_de: string[]; ramo: { condicao: string; valor: "sim" | "nao" } | null;
+  agente_id: string | null; ferramenta: string | null; entrada: Record<string, unknown>; regra: Regra | null; texto: string;
+};
+export type ProcessoBlueprint = {
+  nome: string; objetivo: string; area: string; campos: Campo[]; blocos: Bloco[];
+  limites: { max_custo_brl: number; max_chamadas_modelo: number }; minutos_manual: number; roteiro_id: string | null;
+};
+export type Processo = {
+  id: string; nome: string; area: string; dono: string; estado: Agente["estado"]; versao_publicada: number | null; ultima_versao: number;
+  risco: "baixo" | "medio" | "alto"; compartilhado_com: string[]; motivo_estado: string | null; orcamento_mensal_brl: number;
+  roteiro_id: string | null; criado_em: string; atualizado_em: string; execucoes: number; escaladas: number; custo_brl: number;
+  as_is: { roteiro_id: string; processo: string; persona: string } | null; agentes: string[];
+};
+export type VersaoProcesso = Omit<VersaoAgente, "blueprint" | "agente_id"> & { processo_id: string; blueprint: ProcessoBlueprint };
+export type ProcessoDetalhe = Processo & { versoes: VersaoProcesso[]; pode_executar: boolean; pode_editar: boolean; historico: EventoAuditoria[] };
+export type AgenteDisponivel = {
+  id: string; nome: string; objetivo: string; estado: string; area: string; publicado: boolean; trabalhador: boolean;
+  ferramentas: string[]; modelo: string | null; motivo: string | null;
+};
+export type ValidacaoProcesso =
+  | { valido: false; erros: string[] }
+  | { valido: true; erros: []; niveis: string[][]; sem_permissao: Record<string, string>; bloqueios: Record<string, string>; risco: Risco;
+      estimativa: Estimativa & { duracao_ms: number }; blocos?: Record<string, string[]> };
 
 export type Alerta = {
   id: string; regra: string; severidade: "atencao" | "critico"; agente_id: string | null; conector: string | null;

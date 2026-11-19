@@ -42,6 +42,7 @@ from ..texto.semelhanca import estimar_tokens
 from ..tools import executor
 from ..tools.catalogo import CATALOGO, Contexto
 from . import modelos as m
+from . import regras
 from . import simulacao  # noqa: F401  (registra a política do modo simulado)
 
 
@@ -93,12 +94,14 @@ class Orcamento:
 # Montagem de prompts
 # =============================================================
 def _sistema(bp: Blueprint, passo: Passo) -> str:
+    ctx = passo.contexto_agente or {}   # passo de um bloco de processo: quem fala é o agente trabalhador, não o processo
     partes = [
-        "Você é o agente \"%s\", da área %s, na plataforma StoneFalcon." % (bp.nome, bp.area),
-        "Objetivo do agente: %s" % bp.objetivo,
+        "Você é o agente \"%s\", da área %s, na plataforma StoneFalcon." % (ctx.get("nome") or bp.nome, bp.area),
+        "Objetivo do agente: %s" % (ctx.get("objetivo") or bp.objetivo),
     ]
-    if bp.instrucoes.strip():
-        partes.append("Regras da área: %s" % bp.instrucoes.strip())
+    regras = ctx["instrucoes"] if ctx else bp.instrucoes
+    if regras.strip():
+        partes.append("Regras da área: %s" % regras.strip())
     partes += [
         "Responda em português do Brasil, de forma objetiva.",
         "Dados pessoais chegam mascarados como marcadores entre colchetes, por exemplo [CPF_1]. "
@@ -113,6 +116,8 @@ def _sistema(bp: Blueprint, passo: Passo) -> str:
 def _mensagem_inicial(bp: Blueprint, passo: Passo, entrada: dict, saidas: dict[str, Any]) -> str:
     blocos = ["<entrada>%s</entrada>" % json.dumps(entrada, ensure_ascii=False)]
     for dep in passo.depende_de:
+        if dep not in saidas:   # dependência pulada (ramo não escolhido): não há o que mostrar
+            continue
         conteudo = saidas.get(dep)
         texto = conteudo if isinstance(conteudo, str) else json.dumps(conteudo, ensure_ascii=False)
         blocos.append(injecao.envelopar("passo:" + dep, texto))
@@ -189,7 +194,8 @@ def _registro(passo: Passo, status: str, **campos) -> dict:
     r = {"id": passo.id, "titulo": passo.titulo, "tipo": passo.tipo, "status": status,
          "saida": None, "motivo": None, "modelo": None, "modelo_chave": None, "provedor": None,
          "modelo_simulado": None, "esforco": None, "balanceador": None, "motivos_modelo": [], "ferramentas": [],
-         "iteracoes": 0, "custo_usd": 0.0, "duracao_ms": 0, "duracao_estimada_ms": 0, "pendencia": None}
+         "iteracoes": 0, "custo_usd": 0.0, "duracao_ms": 0, "duracao_estimada_ms": 0, "pendencia": None,
+         "bloco": passo.bloco, "agente": passo.agente_ref}
     r.update(campos)
     return r
 
@@ -339,13 +345,38 @@ def _passo_agente(s: Session, amb: _Ambiente, passo: Passo) -> dict:
                      duracao_estimada_ms=estimado, **base)
 
 
+def _passo_condicao(amb: _Ambiente, passo: Passo) -> dict:
+    """Bloco de condição: avalia a regra sobre a entrada ou a saída de um bloco anterior; o resultado é "sim" ou "nao"."""
+    regra = passo.regra or {}
+    try:
+        valor = _resolver("{{%s}}" % regra["fonte"], amb.exe.entrada, amb.saidas())
+        sim = regras.avaliar(regra["operador"], valor, regra.get("valor", ""))
+    except (ValueError, regras.ErroRegra) as e:
+        return _registro(passo, "escalado", motivo="Não consegui avaliar a regra: %s" % str(e).removeprefix("Valor ausente para "))
+    return _registro(passo, "concluido", saida={"resultado": "sim" if sim else "nao"})
+
+
+def _passo_saida(amb: _Ambiente, passo: Passo) -> dict:
+    """Bloco de resposta final: monta o texto com as saídas dos blocos anteriores."""
+    try:
+        return _registro(passo, "concluido", saida=_texto(_resolver(passo.texto, amb.exe.entrada, amb.saidas())))
+    except ValueError as e:
+        return _registro(passo, "escalado", motivo=str(e))
+
+
 def _rodar_passo(amb: _Ambiente, passo_id: str) -> dict:
     passo = amb.bp.passo(passo_id)
     inicio = time.perf_counter()
     with Session(db.motor()) as s:   # uma sessão por thread
         try:
-            if passo.tipo == "ferramenta":
+            if passo.bloqueio:   # o agente do bloco não pode rodar agora: escala com o motivo, sem chamar modelo
+                r = _registro(passo, "escalado", motivo=passo.bloqueio)
+            elif passo.tipo == "ferramenta":
                 r = _passo_ferramenta(s, amb, passo)
+            elif passo.tipo == "condicao":
+                r = _passo_condicao(amb, passo)
+            elif passo.tipo == "saida":
+                r = _passo_saida(amb, passo)
             elif passo.tipo == "agente":
                 r = _passo_agente(s, amb, passo)
             else:
@@ -371,25 +402,38 @@ def _texto(v: Any) -> str:
     return v if isinstance(v, str) else json.dumps(v, ensure_ascii=False)
 
 
+def _deve_pular(amb: _Ambiente, passo: Passo) -> bool:
+    """Ramo não escolhido por uma condição, ou todos os blocos de que o passo depende foram pulados."""
+    estado = amb.exe.passos
+    if passo.ramo:
+        cond = estado.get(passo.ramo["condicao"], {})
+        if cond.get("status") == "pulado" or (cond.get("saida") or {}).get("resultado") != passo.ramo["valor"]:
+            return True
+    return bool(passo.depende_de) and all(estado.get(d, {}).get("status") == "pulado" for d in passo.depende_de)
+
+
 def _continuar(s: Session, amb: _Ambiente) -> m.Execucao:
     exe, bp = amb.exe, amb.bp
     inicio = time.perf_counter()
     for camada in bp.niveis():
-        pendentes = [pid for pid in camada if exe.passos.get(pid, {}).get("status") != "concluido"]
+        pendentes = [pid for pid in camada if exe.passos.get(pid, {}).get("status") not in ("concluido", "pulado")]
         if not pendentes:
             continue
-        if len(pendentes) == 1:
-            registros = [_rodar_passo(amb, pendentes[0])]
-        else:
-            with ThreadPoolExecutor(max_workers=min(len(pendentes), 8)) as pool:
-                registros = list(pool.map(lambda pid: _rodar_passo(amb, pid), pendentes))
+        pulados = [pid for pid in pendentes if _deve_pular(amb, bp.passo(pid))]
+        rodar = [pid for pid in pendentes if pid not in pulados]
+        registros = [_registro(bp.passo(pid), "pulado", motivo="Este caminho não foi o escolhido pela condição.") for pid in pulados]
+        if len(rodar) == 1:
+            registros += [_rodar_passo(amb, rodar[0])]
+        elif rodar:
+            with ThreadPoolExecutor(max_workers=min(len(rodar), 8)) as pool:
+                registros += list(pool.map(lambda pid: _rodar_passo(amb, pid), rodar))
         passos = dict(exe.passos)
         for r in registros:
             passos[r["id"]] = r
         exe.passos = passos
         exe.duracao_estimada_ms += max(r["duracao_estimada_ms"] for r in registros)
 
-        parada = next((r for r in registros if r["status"] != "concluido"), None)
+        parada = next((r for r in registros if r["status"] not in ("concluido", "pulado")), None)
         if parada:
             if parada["status"] == "aguardando":
                 exe.status, exe.pendencia = m.AGUARDANDO, parada["pendencia"]

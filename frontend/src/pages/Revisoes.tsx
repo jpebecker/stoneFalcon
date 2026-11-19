@@ -9,18 +9,20 @@ import { COR_RISCO, NOME_RISCO, quando } from "../components/formato";
 
 function Cartao({ item }: { item: ItemRevisao }) {
   const qc = useQueryClient();
+  const processo = item.tipo === "processo";
   const [parecer, setParecer] = useState("");
   const pre = usePreenche("revisao");
   useEffect(() => { if (pre?.parecer) setParecer(pre.parecer); }, [pre?.parecer]);
   const decidir = useMutation({
-    mutationFn: (aprovar: boolean) => api(`/agentes/${item.agente.id}/revisao`, { aprovar, parecer }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["revisoes"] }); qc.invalidateQueries({ queryKey: ["agentes"] }); },
+    mutationFn: (aprovar: boolean) => api(`/${processo ? "processos" : "agentes"}/${item.agente.id}/revisao`, { aprovar, parecer }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["revisoes"] }); qc.invalidateQueries({ queryKey: ["agentes"] }); qc.invalidateQueries({ queryKey: ["processos"] }); },
   });
   const bp = item.versao.blueprint;
   return (
     <article className="caixa space-y-4 p-5">
       <div className="flex flex-wrap items-center gap-3">
-        <Link to={"/agentes/" + item.agente.id} className="font-titulo text-xl font-semibold hover:text-pedra-forte">{item.agente.nome}</Link>
+        {processo && <span className="selo bg-info-fundo text-info">processo</span>}
+        <Link to={(processo ? "/processos/" : "/agentes/") + item.agente.id} className="font-titulo text-xl font-semibold hover:text-pedra-forte">{item.agente.nome}</Link>
         <span className="text-sm text-tinta-3">v{item.versao.numero} · área {item.agente.area} · por {item.versao.autor} em {quando(item.versao.criada_em)}</span>
         <span className={"selo ml-auto " + COR_RISCO[item.versao.risco]}>{NOME_RISCO[item.versao.risco]}</span>
       </div>

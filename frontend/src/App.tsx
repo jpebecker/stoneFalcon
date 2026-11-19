@@ -20,6 +20,9 @@ import Inicio from "./pages/Inicio";
 import Painel from "./pages/Painel";
 import PluginPagina from "./pages/PluginPagina";
 import Plugins from "./pages/Plugins";
+import ProcessoDetalhe from "./pages/ProcessoDetalhe";
+import ProcessoEditor from "./pages/ProcessoEditor";
+import Processos from "./pages/Processos";
 import Perguntas from "./pages/Perguntas";
 import Revisoes from "./pages/Revisoes";
 import RoteiroPagina from "./pages/RoteiroPagina";
@@ -39,6 +42,7 @@ const NAV: { aba: string; para: string; rotulo: string }[] = [
   { aba: "mapa", para: "/mapa", rotulo: "Mapa de IA" },
   { aba: "estudio", para: "/estudio", rotulo: "Estúdio" },
   { aba: "agentes", para: "/agentes", rotulo: "Agentes" },
+  { aba: "processos", para: "/processos", rotulo: "Processos" },
   { aba: "plugins", para: "/plugins", rotulo: "Plugins" },
   { aba: "revisoes", para: "/revisoes", rotulo: "Revisões" },
   { aba: "execucoes", para: "/execucoes", rotulo: "Execuções" },
@@ -197,6 +201,10 @@ export default function App() {
                 <Route path="/estudio" element={<Guarda pessoa={pessoa} aba="estudio"><Estudio pessoa={pessoa} /></Guarda>} />
                 <Route path="/agentes" element={<Agentes pessoa={pessoa} />} />
                 <Route path="/agentes/:id" element={<AgenteDetalhe pessoa={pessoa} />} />
+                <Route path="/processos" element={<Guarda pessoa={pessoa} aba="processos"><Processos pessoa={pessoa} /></Guarda>} />
+                <Route path="/processos/novo" element={<Guarda pessoa={pessoa} aba="estudio"><ProcessoEditor pessoa={pessoa} /></Guarda>} />
+                <Route path="/processos/:id" element={<Guarda pessoa={pessoa} aba="processos"><ProcessoDetalhe pessoa={pessoa} /></Guarda>} />
+                <Route path="/processos/:id/editar" element={<Guarda pessoa={pessoa} aba="estudio"><ProcessoEditor pessoa={pessoa} /></Guarda>} />
                 <Route path="/revisoes" element={<Guarda pessoa={pessoa} aba="revisoes"><Revisoes /></Guarda>} />
                 <Route path="/saude" element={<PaginaSaude />} />
                 <Route path="/alertas" element={<Alertas />} />

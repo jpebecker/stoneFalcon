@@ -117,6 +117,7 @@ ABAS: dict[str, tuple[str, ...] | None] = {
     "plugins": None,
     "estudio": (CRIADOR,),
     "agentes": None,
+    "processos": None,                              # v8: todos veem; só criadores da área editam (a API confere)
     "revisoes": (REVISOR_SEGURANCA,),
     "execucoes": None,
     "saude": None,

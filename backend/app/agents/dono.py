@@ -39,6 +39,7 @@ class TipoDono:
     executavel: Callable[..., Any]            # (s, pessoa, dono, blueprint_dict) -> Blueprint que o runtime executa
     normalizar: Callable[..., Any] | None = None    # (s, pessoa, bp) -> bp (por padrão só fixa a área)
     extras_criacao: Callable[..., dict] | None = None  # (bp) -> campos extras da entidade
+    antes_de_publicar: Callable[..., None] | None = None  # (s, bp) -> levanta ErroCiclo se algo impede a publicação
 
     @property
     def plural(self) -> str:

@@ -2,7 +2,7 @@ import SeloSimulado from "./SeloSimulado";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { api, type Execucao, type Persona, type RegistroPasso } from "../api/cliente";
-import { COR_STATUS, NOME_STATUS, NOME_TIPO, ms, reais } from "./formato";
+import { BLOCOS, COR_STATUS, NOME_STATUS, NOME_TIPO, ms, reais } from "./formato";
 
 function Saida({ valor }: { valor: unknown }) {
   if (valor == null) return null;
@@ -18,7 +18,7 @@ function CartaoPasso({ r, cotacao }: { r: RegistroPasso; cotacao: number }) {
         <span className={"selo " + COR_STATUS[r.status]}>{NOME_STATUS[r.status] ?? r.status}</span>
         <span className="flex-1 font-medium">{r.titulo}</span>
         <span className="flex items-center gap-1.5 text-xs text-tinta-3">
-          {NOME_TIPO[r.tipo]}{r.modelo ? " · " + r.modelo : ""}
+          {r.bloco ? BLOCOS[r.bloco]?.nome : NOME_TIPO[r.tipo]}{r.agente ? " · agente " + r.agente.nome : ""}{r.modelo ? " · " + r.modelo : ""}
           {r.modelo && r.modelo_simulado && <SeloSimulado />}
           {r.modelo && <span className="text-tinta-2">{reais(r.custo_usd * cotacao)}</span>}
         </span>
