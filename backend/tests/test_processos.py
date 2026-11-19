@@ -119,6 +119,25 @@ def test_blocos_sem_dependencia_rodam_em_paralelo(api, sessao):
     assert t["duracao_estimada_ms"] < sum(lentos) or max(lentos) == 0
 
 
+def test_muitos_blocos_paralelos_com_troca_agressiva_de_thread_nao_falham(api, sessao):
+    """Regressão do CI (Linux, Python 3.14): blocos paralelos consultam o banco ao mesmo tempo. Com uma conexão só
+    dividida entre threads, o sqlite3 falhava ("bad parameter or other API misuse") e o bloco saía como "falhou"."""
+    import sys
+    agentes = [agente_publicado(sessao, nome="Redator %d" % i) for i in range(8)]
+    corpo = fluxo()
+    corpo["blocos"] = [{"id": "a%d" % i, "tipo": "agente", "titulo": "Agente %d" % i, "agente_id": a.id} for i, a in enumerate(agentes)]
+    corpo["campos"] = []
+    antes = sys.getswitchinterval()
+    sys.setswitchinterval(1e-6)          # força as threads a se intercalarem como no CI
+    try:
+        for _ in range(3):
+            t = api.post("/api/v1/processos/testar", json={"blueprint": corpo, "entrada": {}}, headers=como("marina")).json()
+            falhas = {k: p["motivo"] for k, p in t["passos"].items() if p["status"] != "concluido"}
+            assert not falhas, falhas
+    finally:
+        sys.setswitchinterval(antes)
+
+
 def test_dois_agentes_em_sequencia(api, sessao):
     a1, a2 = agente_publicado(sessao, nome="Redator A"), agente_publicado(sessao, nome="Revisor B")
     t = api.post("/api/v1/processos/testar", json={"blueprint": fluxo(a1, a2), "entrada": ENTRADA}, headers=como("marina")).json()
