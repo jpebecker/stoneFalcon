@@ -21,7 +21,7 @@ from ..core.identidade import ANALISTA_IA, CRIADOR, ENGENHARIA_PLATAFORMA, PERSO
 from ..core.relogio import agora
 from ..guardrails import injecao, mascarar
 from ..llm.cliente import ClienteSimulado, obter_cliente
-from .modelos import INT_AGUARDA_ANALISTA, PedidoPluginInterno
+from .modelos import INT_AGUARDA_ANALISTA, INT_AGUARDA_SEGURANCA, INT_PUBLICADO, INT_RECUSADO, PedidoPluginInterno
 
 MAX_DESCRICAO = 6000
 MIN_DESCRICAO = 40
@@ -272,7 +272,12 @@ def publico(p: PedidoPluginInterno, quem: Persona) -> dict:
     d = {"id": p.id, "estado": p.estado, "solicitante": p.solicitante, "solicitante_nome": solicitante.nome if solicitante else p.solicitante,
          "area": p.area, "finalidade": p.finalidade, "areas": list(p.areas), "classificacao": Classificacao(p.classificacao).name.lower(),
          "spec": p.spec, "plugin_id": p.plugin_id, "criado_em": p.criado_em, "atualizado_em": p.atualizado_em, "meu": p.solicitante == quem.id,
-         "decisao_analista": p.decisao_analista, "decisao_seguranca": p.decisao_seguranca}
+         "decisao_analista": p.decisao_analista, "decisao_seguranca": p.decisao_seguranca,
+         "pode_decidir": ((p.estado == INT_AGUARDA_ANALISTA and pode_decidir_analista(quem, p))
+                          or (p.estado == INT_AGUARDA_SEGURANCA and pode_decidir_seguranca(quem, p))),
+         "etapa": {INT_AGUARDA_ANALISTA: "analista", INT_AGUARDA_SEGURANCA: "seguranca"}.get(p.estado),
+         "exige_seguranca": p.classificacao >= Classificacao.CONFIDENCIAL,
+         "estimativa": p.spec.get("comprar_ou_construir")}
     if quem.tem(ANALISTA_IA) or p.solicitante == quem.id:
         d["ferramenta_mercado"] = p.ferramenta_mercado
         d["descricao_publica"] = p.descricao_publica
@@ -290,4 +295,173 @@ def obter(s: Session, quem: Persona, pedido_id: str) -> PedidoPluginInterno:
     p = s.get(PedidoPluginInterno, pedido_id)
     if p is None or p not in listar(s, quem):
         raise ErroPedidoPlugin("Pedido não encontrado.", 404)
+    return p
+
+
+# =============================================================
+# Decidir (v8/13): analista de IA e, para dado confidencial ou restrito, a Segurança (quatro olhos)
+# =============================================================
+def _revisor(p: Persona) -> bool:
+    return p.tem("revisor_seguranca")
+
+
+def pode_decidir_analista(quem: Persona, p: PedidoPluginInterno) -> bool:
+    """A analista de IA decide; ninguém decide o próprio pedido (se a analista pediu, a Segurança decide por ela)."""
+    if quem.id == p.solicitante:
+        return False
+    autor = PERSONAS.get(p.solicitante)
+    return quem.tem(ANALISTA_IA) or (autor is not None and autor.tem(ANALISTA_IA) and _revisor(quem))
+
+
+def pode_decidir_seguranca(quem: Persona, p: PedidoPluginInterno) -> bool:
+    """A Segurança decide o dado sensível; se o pedido foi dela, a analista de IA assume. Nunca o próprio pedido."""
+    if quem.id == p.solicitante:
+        return False
+    autor = PERSONAS.get(p.solicitante)
+    return _revisor(quem) or (autor is not None and _revisor(autor) and quem.tem(ANALISTA_IA))
+
+
+def _parecer(texto: str) -> str:
+    texto = (texto or "").strip()
+    if len(texto) < 5:
+        raise ErroPedidoPlugin("Escreva o parecer: de uma a duas frases dizendo por que aprova ou recusa.", 422)
+    return texto[:1500]
+
+
+def _avisar_solicitante(s: Session, p: PedidoPluginInterno, titulo: str, detalhe: str, chave: str, severidade: str = "info") -> None:
+    from .servico import _avisar
+    _avisar(s, p.solicitante, titulo, detalhe, "interno:%s:%s" % (p.id, chave), severidade)
+
+
+def _gravar(s: Session, p: PedidoPluginInterno) -> None:
+    p.atualizado_em = agora().isoformat()
+    with trava:
+        s.add(p)
+        s.commit()
+        s.refresh(p)
+
+
+def decidir_analista(s: Session, quem: Persona, pedido_id: str, aprovar: bool, parecer: str) -> PedidoPluginInterno:
+    p = s.get(PedidoPluginInterno, pedido_id)
+    if p is None:
+        raise ErroPedidoPlugin("Pedido não encontrado.", 404)
+    if p.estado != INT_AGUARDA_ANALISTA:
+        raise ErroPedidoPlugin("Este pedido não está esperando a analista de IA.", 409)
+    if not pode_decidir_analista(quem, p):
+        raise ErroPedidoPlugin("Quem pediu não decide o próprio pedido." if quem.id == p.solicitante else "Só a analista de IA decide esta etapa.", 403)
+    parecer = _parecer(parecer)
+    p.decisao_analista = {"por": quem.id, "por_nome": quem.nome, "aprovar": bool(aprovar), "parecer": parecer, "quando": agora().isoformat()}
+    nome = p.spec.get("nome", "plugin")
+    if not aprovar:
+        p.estado = INT_RECUSADO
+        _gravar(s, p)
+        trilha.registrar(s, "plugin_interno_recusado", quem.id, None, {"pedido": p.id, "etapa": "analista", "parecer": parecer, "nome": nome})
+        _avisar_solicitante(s, p, "Pedido de plugin recusado: %s" % nome, "%s recusou: %s" % (quem.nome, parecer), "recusado", "atencao")
+        return p
+    if p.classificacao >= Classificacao.CONFIDENCIAL:
+        p.estado = INT_AGUARDA_SEGURANCA
+        _gravar(s, p)
+        trilha.registrar(s, "plugin_interno_aprovado_analista", quem.id, None, {"pedido": p.id, "parecer": parecer, "nome": nome,
+                                                                               "segue_para": "seguranca"})
+        from .servico import _avisar
+        for r in (x for x in PERSONAS.values() if _revisor(x) and x.id != p.solicitante):
+            _avisar(s, r.id, "Plugin com dado %s espera a Segurança: %s" % (Classificacao(p.classificacao).name.lower(), nome),
+                    "%s aprovou o pedido de %s; falta o seu parecer de segurança." % (quem.nome, PERSONAS[p.solicitante].nome), "interno:%s:seg" % p.id, "atencao")
+        return p
+    trilha.registrar(s, "plugin_interno_aprovado_analista", quem.id, None, {"pedido": p.id, "parecer": parecer, "nome": nome, "segue_para": "publicacao"})
+    return _publicar(s, p, quem)
+
+
+def decidir_seguranca(s: Session, quem: Persona, pedido_id: str, aprovar: bool, parecer: str) -> PedidoPluginInterno:
+    p = s.get(PedidoPluginInterno, pedido_id)
+    if p is None:
+        raise ErroPedidoPlugin("Pedido não encontrado.", 404)
+    if p.estado != INT_AGUARDA_SEGURANCA:
+        raise ErroPedidoPlugin("Este pedido não está esperando a Segurança.", 409)
+    if not pode_decidir_seguranca(quem, p):
+        raise ErroPedidoPlugin("Quem pediu não decide o próprio pedido." if quem.id == p.solicitante else "Só a Segurança decide esta etapa.", 403)
+    parecer = _parecer(parecer)
+    p.decisao_seguranca = {"por": quem.id, "por_nome": quem.nome, "aprovar": bool(aprovar), "parecer": parecer, "quando": agora().isoformat()}
+    nome = p.spec.get("nome", "plugin")
+    if not aprovar:
+        p.estado = INT_RECUSADO
+        _gravar(s, p)
+        trilha.registrar(s, "plugin_interno_recusado", quem.id, None, {"pedido": p.id, "etapa": "seguranca", "parecer": parecer, "nome": nome})
+        _avisar_solicitante(s, p, "Pedido de plugin recusado pela Segurança: %s" % nome, "%s recusou: %s" % (quem.nome, parecer), "recusado", "atencao")
+        return p
+    trilha.registrar(s, "plugin_interno_aprovado_seguranca", quem.id, None, {"pedido": p.id, "parecer": parecer, "nome": nome})
+    return _publicar(s, p, quem)
+
+
+# =============================================================
+# Publicar no marketplace: plugin "interno · conceitual", com ferramentas simuladas que seguem o esquema da especificação
+# =============================================================
+_contador: dict[str, int] = {}
+
+
+def _executor_simulado(plugin_nome: str, ferr: dict):
+    def executar(e: dict, c) -> dict:
+        _contador[ferr["id"]] = _contador.get(ferr["id"], 0) + 1
+        n = _contador[ferr["id"]]
+        base = {"simulado": True, "plugin": plugin_nome, "ferramenta": ferr["nome"], "entrada_recebida": {k: str(v)[:200] for k, v in e.items()}}
+        if ferr["acao"] == "escrita":
+            return {**base, "status": "registrado (simulado)", "registro_id": "INT-%04d" % n}
+        return {**base, "registro": {"codigo": str(next(iter(e.values()), "R-%03d" % n))[:40],
+                                     "resumo": "Dado fictício devolvido por %s." % ferr["nome"], "situacao": "ativo"}}
+    return executar
+
+
+def registrar_plugin(p: PedidoPluginInterno) -> str:
+    """Coloca o plugin interno (e as ferramentas dele) no marketplace e no catálogo. Idempotente."""
+    from ..tools.catalogo import CATALOGO, Especificacao
+    from .catalogo import PLUGINS, Plugin
+    spec = p.spec
+    plugin_id = p.plugin_id or "interno-%s-%s" % (re.sub(r"[^a-z0-9]+", "-", _norm(spec["nome"])).strip("-")[:28], p.id[:4])
+    nivel = Classificacao[spec["classificacao"].upper()]
+    areas = tuple(spec.get("areas") or ["*"])
+    prefixo = plugin_id.replace("-", "_")
+    esps = []
+    for f in spec["ferramentas"]:
+        entradas = f.get("entradas") or [{"nome": "codigo", "descricao": "Código do registro."}]
+        esc = f["acao"] == "escrita"
+        tid = ("%s__%s" % (prefixo, f["id"]))[:64]
+        esps.append(Especificacao(
+            tid, "%s (%s)" % (f["nome"], spec["nome"]), f.get("descricao") or f["nome"], "plugins", nivel, areas, f["acao"],
+            {x["nome"]: {"type": "string", "description": x.get("descricao", x["nome"])} for x in entradas},
+            tuple(x["nome"] for x in entradas), _executor_simulado(spec["nome"], f),
+            exige_aprovacao=esc and nivel >= Classificacao.CONFIDENCIAL, limite_por_minuto=10 if esc else 30, latencia_ms=140, plugin=plugin_id))
+    for e in esps:
+        CATALOGO[e.id] = e
+    PLUGINS[plugin_id] = Plugin(plugin_id, spec["nome"], spec.get("categoria", "outros"), "Plugin interno",
+                                spec.get("resumo", ""), False, tuple(esps), False, True)
+    return plugin_id
+
+
+def retirar_internos() -> None:
+    """Reiniciar a demo: os plugins internos saem do marketplace e do catálogo (os pedidos somem com o banco)."""
+    from ..tools.catalogo import CATALOGO
+    from .catalogo import PLUGINS
+    for pid in [k for k, v in PLUGINS.items() if v.interno]:
+        for f in PLUGINS[pid].ferramentas:
+            CATALOGO.pop(f.id, None)
+        del PLUGINS[pid]
+    _contador.clear()
+
+
+def carregar_internos(s: Session) -> None:
+    """Na partida: os plugins internos publicados voltam ao marketplace."""
+    for p in s.exec(select(PedidoPluginInterno).where(PedidoPluginInterno.estado == INT_PUBLICADO)).all():
+        registrar_plugin(p)
+
+
+def _publicar(s: Session, p: PedidoPluginInterno, quem: Persona) -> PedidoPluginInterno:
+    p.plugin_id = registrar_plugin(p)
+    p.estado = INT_PUBLICADO
+    _gravar(s, p)
+    nome = p.spec.get("nome", "plugin")
+    trilha.registrar(s, "plugin_interno_publicado", quem.id, None, {
+        "pedido": p.id, "plugin": p.plugin_id, "nome": nome, "ferramentas": [f["id"] for f in p.spec["ferramentas"]],
+        "classificacao": p.spec["classificacao"], "areas": p.spec.get("areas")})
+    _avisar_solicitante(s, p, "Seu plugin foi publicado: %s" % nome,
+                        "O plugin %s já está no marketplace (interno · conceitual). Integre-o para usar as ferramentas num processo." % nome, "publicado")
     return p

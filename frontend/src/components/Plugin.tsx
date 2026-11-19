@@ -46,7 +46,14 @@ export const SeloReal = () => (
 );
 
 /** O selo do plugin: "real" quando funciona de verdade, "simulado" nos demais. */
-export const SeloDoPlugin = ({ real }: { real?: boolean }) => (real ? <SeloReal /> : <SeloSimulado />);
+export const SeloDoPlugin = ({ real, interno }: { real?: boolean; interno?: boolean }) => (
+  real ? <SeloReal /> : interno ? (
+    <span className="inline-flex flex-wrap gap-1">
+      <span className="selo bg-alerta-fundo text-alerta" title="Criado pelo pedido Crie o seu plugin: as ferramentas são conceituais">interno · conceitual</span>
+      <SeloSimulado />
+    </span>
+  ) : <SeloSimulado />
+);
 
 export const SeloSimulado = () => (
   <span className="selo bg-papel text-tinta-2" title="Protótipo acadêmico: nenhum sistema externo real é chamado">simulado</span>

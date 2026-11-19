@@ -44,13 +44,17 @@ class ErroPlugin(Exception):
 # ---------------------------------------------------------------- estado
 def sincronizar(s: Session) -> None:
     """Recarrega o cache de plugins integrados a partir do banco (partida, depois de cada mudança, depois do reinício)."""
+    from . import interno
+    interno.carregar_internos(s)       # plugins internos publicados voltam ao marketplace antes de conferir quais estão integrados
     cache.INTEGRADOS.clear()
     cache.INTEGRADOS.update(i.plugin_id for i in s.exec(select(IntegracaoPlugin)))
 
 
 def zerar() -> None:
+    from . import interno
     cache.zerar()
     sx.zerar()
+    interno.retirar_internos()
 
 
 def _plugin(plugin_id: str) -> Plugin:
@@ -113,7 +117,7 @@ def publico(s: Session, p: Plugin, pessoa: Persona) -> dict:
     pode = pode_integrar(pessoa, p)
     return {
         "id": p.id, "nome": p.nome, "categoria": p.categoria, "categoria_nome": p.categoria_nome, "descricao": p.descricao,
-        "simulado": not p.real, "real": p.real, "janela": p.janela, "classificacao": p.classificacao.name.lower(), "sensivel": p.sensivel,
+        "simulado": not p.real, "real": p.real, "interno": p.interno, "janela": p.janela, "classificacao": p.classificacao.name.lower(), "sensivel": p.sensivel,
         "areas": ["todas"] if "*" in p.areas else list(p.areas),
         "areas_nomes": ["todas as áreas"] if "*" in p.areas else sorted({x.area_nome for x in PERSONAS.values() if x.area in p.areas}),
         "estado": estado, "vale_para_minha_area": vale,
@@ -245,13 +249,14 @@ def remover(s: Session, pessoa: Persona, plugin_id: str) -> dict:
     if not (pessoa.tem(ENGENHARIA_PLATAFORMA) or i.integrado_por == pessoa.id):
         raise ErroPlugin("Só quem integrou o plugin ou a Engenharia o removem.", 403)
     afetados = agentes_que_usam(s, p)
+    afetados_proc = processos_que_usam(s, p)
     with trava:
         s.delete(i)
         s.commit()
     sincronizar(s)
     trilha.registrar(s, "plugin_removido", pessoa.id, dados={
         "plugin": p.id, "nome": p.nome, "ferramentas": [f.id for f in p.ferramentas],
-        "agentes_afetados": [a.id for a in afetados]})
+        "agentes_afetados": [a.id for a in afetados], "processos_afetados": [x.id for x in afetados_proc]})
     # agentes que usam as ferramentas ficam sinalizados (não quebram em silêncio): alerta ao dono e à Engenharia
     engenharia = [x.id for x in PERSONAS.values() if x.tem(ENGENHARIA_PLATAFORMA)]
     for a in afetados:
@@ -259,7 +264,13 @@ def remover(s: Session, pessoa: Persona, plugin_id: str) -> dict:
                 "As ferramentas de %s saíram do Catálogo. O agente \"%s\" vai escalar para humano até o plugin ser integrado de novo "
                 "ou o passo ser trocado." % (p.nome, a.nome), "%s:%s" % (p.id, a.id), "atencao",
                 regra=REGRA_ALERTA_REMOVIDO, agente_id=a.id, extras=engenharia)
-    return {"resultado": "removido", "agentes_afetados": [{"id": a.id, "nome": a.nome} for a in afetados]}
+    for x in afetados_proc:   # processos que têm um bloco com ferramenta do plugin também ficam sinalizados
+        _avisar(s, x.dono, "Plugin %s removido: o processo %s depende dele" % (p.nome, x.nome),
+                "As ferramentas de %s saíram do Catálogo. O processo \"%s\" vai escalar para humano no bloco que as usa até o plugin ser "
+                "integrado de novo ou o bloco ser trocado." % (p.nome, x.nome), "%s:%s" % (p.id, x.id), "atencao",
+                regra=REGRA_ALERTA_REMOVIDO, extras=engenharia)
+    return {"resultado": "removido", "agentes_afetados": [{"id": a.id, "nome": a.nome} for a in afetados],
+            "processos_afetados": [{"id": x.id, "nome": x.nome} for x in afetados_proc]}
 
 
 # ---------------------------------------------------------------- agentes que usam um plugin
@@ -276,6 +287,28 @@ def agentes_que_usam(s: Session, p: Plugin) -> list[am.Agente]:
         bp = _blueprint_atual(s, a)
         if bp and bp.ferramentas_usadas() & ids:
             saida.append(a)
+    return saida
+
+
+def processos_que_usam(s: Session, p: Plugin) -> list:
+    """Processos (não depreciados) com um bloco que usa uma ferramenta do plugin, direto ou por um agente trabalhador dele."""
+    from ..processos import modelos as pm
+    from ..processos.blueprint import ProcessoBlueprint
+    ids = {f.id for f in p.ferramentas}
+    saida = []
+    for x in s.exec(select(pm.Processo).where(pm.Processo.estado != am.DEPRECIADO)):
+        v = s.get(pm.VersaoProcesso, "%s-v%d" % (x.id, x.versao_publicada or x.ultima_versao))
+        if v is None:
+            continue
+        bp = ProcessoBlueprint.model_validate(v.blueprint)
+        usadas = set(bp.ferramentas_diretas())
+        for aid in bp.agentes_usados():
+            ag = s.get(am.Agente, aid)
+            b = _blueprint_atual(s, ag) if ag else None
+            if b:
+                usadas |= set(b.ferramentas_usadas())
+        if usadas & ids:
+            saida.append(x)
     return saida
 
 

@@ -64,6 +64,33 @@ def listar(pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao
     return [interno.publico(p, pessoa) for p in interno.listar(s, pessoa)]
 
 
+class PedidoDecisao(BaseModel):
+    aprovar: bool
+    parecer: str = Field(default="", max_length=1500)
+
+
+@rotas.post("/{pedido_id}/analista")
+def decidir_analista(pedido_id: str, d: PedidoDecisao, pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
+    """A analista de IA aprova ou recusa (com parecer). Dado confidencial ou restrito segue para a Segurança."""
+    exigir_aba(pessoa, "plugins")
+    try:
+        p = interno.decidir_analista(s, pessoa, pedido_id, d.aprovar, d.parecer)
+    except ErroPedidoPlugin as e:
+        _erro(e)
+    return interno.publico(p, pessoa)
+
+
+@rotas.post("/{pedido_id}/seguranca")
+def decidir_seguranca(pedido_id: str, d: PedidoDecisao, pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
+    """A Segurança dá o aval final do dado sensível (quatro olhos: depois da analista, e nunca o próprio pedido)."""
+    exigir_aba(pessoa, "plugins")
+    try:
+        p = interno.decidir_seguranca(s, pessoa, pedido_id, d.aprovar, d.parecer)
+    except ErroPedidoPlugin as e:
+        _erro(e)
+    return interno.publico(p, pessoa)
+
+
 @rotas.get("/{pedido_id}")
 def detalhe(pedido_id: str, pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
     exigir_aba(pessoa, "plugins")

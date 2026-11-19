@@ -351,7 +351,7 @@ export type LimitesArquivos = { bytes: number; linhas: number; colunas: number; 
 export type PedidoMeu = { id: string; estado: "pendente" | "aprovado" | "recusado" | "registrado"; parecer: string | null; revisor: string | null };
 
 export type Plugin = {
-  id: string; nome: string; categoria: string; categoria_nome: string; descricao: string; simulado: boolean; real?: boolean; janela: boolean;
+  id: string; nome: string; categoria: string; categoria_nome: string; descricao: string; simulado: boolean; real?: boolean; interno?: boolean; janela: boolean;
   classificacao: string; sensivel: boolean; areas: string[]; areas_nomes: string[];
   estado: "disponivel" | "integrado" | "aguardando_aprovacao"; vale_para_minha_area: boolean;
   ferramentas: FerramentaPlugin[]; exige_aprovacao_para_integrar: boolean; integrado_por: string | null; integrado_em: string | null;
@@ -375,7 +375,8 @@ export type DecisaoPluginInterno = { por: string; por_nome?: string; aprovar: bo
 export type PedidoPluginInterno = {
   id: string; estado: "aguardando_analista" | "aguardando_seguranca" | "aprovado" | "publicado" | "recusado" | "removido"; solicitante: string;
   solicitante_nome: string; area: string; finalidade: string; areas: string[]; classificacao: string; spec: EspecPlugin; plugin_id: string | null;
-  criado_em: string; atualizado_em: string; meu: boolean; ferramenta_mercado?: string; descricao_publica?: string;
+  criado_em: string; atualizado_em: string; meu: boolean; ferramenta_mercado?: string; descricao_publica?: string; pode_decidir?: boolean;
+  etapa?: "analista" | "seguranca" | null; exige_seguranca?: boolean; estimativa?: EspecPlugin["comprar_ou_construir"];
   decisao_analista: DecisaoPluginInterno | null; decisao_seguranca: DecisaoPluginInterno | null;
 };
 

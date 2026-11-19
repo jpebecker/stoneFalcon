@@ -22,6 +22,7 @@ class Plugin:
     janela: bool                       # tem uma "janela" simulada do sistema externo (Zendesk, Slack, Jira)
     ferramentas: tuple[Especificacao, ...]
     real: bool = False                 # v8: funciona de verdade (não é um sistema de mentira)
+    interno: bool = False              # v8/13: plugin interno criado por um pedido "Crie o seu plugin" (conceitual, simulado)
 
     @property
     def classificacao(self) -> Classificacao:

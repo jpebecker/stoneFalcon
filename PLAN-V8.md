@@ -277,16 +277,16 @@ v7 gave the platform a live AI Map, multiple model providers and scheduled tasks
 
 **Blocked by:** 12
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Helena's queue lists pending "Create your plugin" requests with the spec, requester, areas, classification and build-vs-buy numbers.
-- [ ] Approve/reject requires an opinion; rejection closes the request and notifies the requester.
-- [ ] Confidential/restricted specs require Lucas's approval after Helena's; a request made by Helena or Lucas cannot be decided by themselves (the other one decides, as in the v6 plugin rule).
-- [ ] Approved plugin appears in the marketplace with "internal · conceptual" and "simulado" badges, its tools in the catalogue with origin "internal plugin X".
-- [ ] Its simulated tools return schema-valid fictional data; write tools follow the usual confirmation rules.
-- [ ] It can be integrated and used as a block in a process; removing it flags dependent processes like other plugins.
-- [ ] Every step (request, each decision, publication, removal) is in the audit trail; Reset demo removes internal plugins.
-- [ ] Back-end tests: four-eyes path, self-approval blocked, publication registers tools, process using an internal plugin runs.
+- [x] Helena's queue lists pending "Create your plugin" requests with the spec, requester, areas, classification and build-vs-buy numbers.
+- [x] Approve/reject requires an opinion; rejection closes the request and notifies the requester.
+- [x] Confidential/restricted specs require Lucas's approval after Helena's; a request made by Helena or Lucas cannot be decided by themselves (the other one decides, as in the v6 plugin rule).
+- [x] Approved plugin appears in the marketplace with "internal · conceptual" and "simulado" badges, its tools in the catalogue with origin "internal plugin X".
+- [x] Its simulated tools return schema-valid fictional data; write tools follow the usual confirmation rules.
+- [x] It can be integrated and used as a block in a process; removing it flags dependent processes like other plugins.
+- [x] Every step (request, each decision, publication, removal) is in the audit trail; Reset demo removes internal plugins.
+- [x] Back-end tests: four-eyes path, self-approval blocked, publication registers tools, process using an internal plugin runs.
 
 ### 14: v8 guided scripts, pitch and docs
 

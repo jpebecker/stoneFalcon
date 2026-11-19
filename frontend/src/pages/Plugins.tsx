@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { api, type PedidoPluginInterno, type Persona, type Plugin } from "../api/cliente";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { reais } from "../components/formato";
 import { quando } from "../components/formato";
 import { AcoesPlugin, classeSelo, COR_ESTADO_PLUGIN, IconeCategoria, NOME_ESTADO_PLUGIN, SeloDoPlugin } from "../components/Plugin";
 
@@ -10,6 +12,47 @@ const NOME_ESTADO_INTERNO: Record<PedidoPluginInterno["estado"], string> = {
   aguardando_analista: "aguardando a analista de IA", aguardando_seguranca: "aguardando a Segurança", aprovado: "aprovado",
   publicado: "publicado no marketplace", recusado: "recusado", removido: "removido",
 };
+
+function DecidirPedido({ x }: { x: PedidoPluginInterno }) {
+  const qc = useQueryClient();
+  const [parecer, setParecer] = useState("");
+  const decidir = useMutation({
+    mutationFn: (aprovar: boolean) => api<PedidoPluginInterno>(`/plugins-internos/${x.id}/${x.etapa}`, { aprovar, parecer }),
+    onSuccess: () => { setParecer(""); qc.invalidateQueries({ queryKey: ["plugins-internos"] }); qc.invalidateQueries({ queryKey: ["plugins"] }); },
+  });
+  const n = x.estimativa;
+  return (
+    <div className="mt-3 w-full space-y-3 rounded-lg border border-linha bg-papel p-4" data-testid="decidir-plugin">
+      <p className="text-xs font-semibold uppercase tracking-wide text-tinta-3">
+        {x.etapa === "seguranca" ? "Aval de segurança (dado " + x.classificacao + ")" : "Decisão da analista de IA"}
+        {x.exige_seguranca && x.etapa === "analista" && " · depois segue para a Segurança"}
+      </p>
+      <div className="grid gap-4 md:grid-cols-2">
+        <div>
+          <h4 className="text-sm font-semibold">O que foi pedido</h4>
+          <p className="text-xs text-tinta-3">Ferramenta de mercado: {x.ferramenta_mercado}</p>
+          <p className="mt-1 text-sm text-tinta-2">{x.finalidade}</p>
+          <p className="mt-1 max-h-32 overflow-y-auto rounded bg-folha p-2 text-xs text-tinta-3">{x.descricao_publica}</p>
+        </div>
+        <div>
+          <h4 className="text-sm font-semibold">Especificação interna proposta</h4>
+          <p className="text-xs text-tinta-3">{x.spec.nome} · {x.areas.join(", ")} · dado {x.classificacao}</p>
+          <ul className="mt-1 space-y-0.5 text-sm text-tinta-2">{x.spec.ferramentas.map((f) => <li key={f.id}>• {f.nome} <span className="text-xs text-tinta-3">({f.acao})</span></li>)}</ul>
+          {n && <p className="mt-2 text-xs text-tinta-2">Comprar {reais(n.custo_3_anos_comprar_brl)} × construir {reais(n.custo_3_anos_construir_brl)} em 3 anos → tende a compensar <b>{n.recomendacao}</b></p>}
+        </div>
+      </div>
+      <label className="block">
+        <span className="rotulo">Parecer (obrigatório)</span>
+        <textarea className="campo" rows={2} value={parecer} onChange={(e) => setParecer(e.target.value)} />
+      </label>
+      <div className="flex gap-2">
+        <button className="botao-pedra" disabled={decidir.isPending || parecer.trim().length < 5} onClick={() => decidir.mutate(true)}>Aprovar</button>
+        <button className="botao-claro" disabled={decidir.isPending || parecer.trim().length < 5} onClick={() => decidir.mutate(false)}>Recusar</button>
+      </div>
+      {decidir.isError && <p className="text-sm text-erro" role="alert">{(decidir.error as Error).message}</p>}
+    </div>
+  );
+}
 
 export default function Plugins({ pessoa }: { pessoa: Persona }) {
   const podePedir = pessoa.papeis.includes("criador") || pessoa.papeis.includes("engenharia");
@@ -57,7 +100,9 @@ export default function Plugins({ pessoa }: { pessoa: Persona }) {
                 <span className="selo bg-papel text-tinta-2">{NOME_ESTADO_INTERNO[x.estado]}</span>
                 <span className="text-tinta-3">{x.meu ? "seu pedido" : "de " + x.solicitante_nome} · {quando(x.criado_em)}</span>
                 {x.plugin_id && <Link className="ml-auto font-semibold text-pedra-forte" to={"/plugins/" + x.plugin_id}>Abrir plugin</Link>}
-                {x.decisao_analista && !x.decisao_analista.aprovar && <span className="w-full text-xs text-erro">Recusado: {x.decisao_analista.parecer}</span>}
+                {x.decisao_analista && !x.decisao_analista.aprovar && <span className="w-full text-xs text-erro">Recusado por {x.decisao_analista.por_nome}: {x.decisao_analista.parecer}</span>}
+                {x.decisao_seguranca && !x.decisao_seguranca.aprovar && <span className="w-full text-xs text-erro">Recusado pela Segurança: {x.decisao_seguranca.parecer}</span>}
+                {x.pode_decidir && <DecidirPedido x={x} />}
               </li>
             ))}
           </ul>
@@ -75,7 +120,7 @@ export default function Plugins({ pessoa }: { pessoa: Persona }) {
                 <h2 className="truncate text-lg leading-tight"><Link to={"/plugins/" + p.id} className="hover:text-pedra-forte">{p.nome}</Link></h2>
                 <div className="mt-0.5 text-xs text-tinta-3">{p.categoria_nome}</div>
               </div>
-              <SeloDoPlugin real={p.real} />
+              <SeloDoPlugin real={p.real} interno={p.interno} />
             </div>
             <p className="mt-3 text-sm text-tinta-2">{p.descricao}</p>
             <ul className="mt-3 space-y-1 text-sm">
