@@ -14,7 +14,7 @@ Precisa do **Python 3.11+** e, só na primeira vez, do **Node.js LTS** (para com
 - **Windows:** dois cliques em `iniciar.bat`.
 - **Mac/Linux:** `sh iniciar.sh`.
 
-**Atualizando de uma versão anterior (v6 ou antes):** é só rodar o script da versão nova na mesma pasta. Ele **recompila as telas** quando a versão ou o código delas mudou (por isso não abre mais as telas antigas) e **reinstala as dependências do back** quando o `backend/requirements.txt` mudou. O banco (`backend/dados`) continua valendo: a v7 só acrescenta tabelas. Se o Chrome ainda mostrar a extensão antiga, remova-a em `chrome://extensions` e carregue a pasta `extensao` de novo.
+**Atualizando de uma versão anterior (v7 ou antes):** é só rodar o script da versão nova na mesma pasta. Ele **recompila as telas** quando a versão ou o código delas mudou (por isso não abre mais as telas antigas) e **reinstala as dependências do back** quando o `backend/requirements.txt` mudou. O banco (`backend/dados`) continua valendo: a v8 só acrescenta tabelas e colunas. **Vindo da v7:** remova a extensão antiga em `chrome://extensions` e carregue a pasta `extensao` de novo (o Chrome guarda a versão antiga). Se o Chrome ainda mostrar a extensão antiga, remova-a em `chrome://extensions` e carregue a pasta `extensao` de novo.
 
 Mensagens claras em português para o que costuma dar errado: **Python abaixo de 3.11**, **Node.js ausente** (só quando falta compilar as telas) e **porta ocupada** (outra cópia aberta; use `STONEFALCON_PORTA=8766`). Variáveis opcionais: `STONEFALCON_PORTA` (padrão 8765), `STONEFALCON_SEM_NAVEGADOR=1` e, no Windows, `STONEFALCON_SEM_PAUSA=1`.
 
@@ -35,7 +35,7 @@ cd backend && uv run pytest -q                   # 558 testes, sem chave nem int
 ```
 
 ### Extensão copiloto (Chrome/Edge)
-> **Vinha da v6 (ou anterior)?** Remova a extensão antiga em `chrome://extensions` e carregue a pasta `extensao` de novo: o Chrome guarda a versão antiga até isso. Depois da troca, a página de extensões mostra **StoneFalcon 7.0** (versão 7.0.0).
+> **Vinha da v7 (ou anterior)?** Remova a extensão antiga em `chrome://extensions` e carregue a pasta `extensao` de novo: o Chrome guarda a versão antiga até isso. Depois da troca, a página de extensões mostra **StoneFalcon 8.0** (versão 8.0.0).
 
 `chrome://extensions` → Modo do desenvolvedor → **Carregar sem compactação** → pasta `extensao`. Na primeira vez abre uma tela de boas-vindas e testa a conexão com a plataforma (com diagnóstico: servidor desligado, endereço errado, demora). Depois:
 

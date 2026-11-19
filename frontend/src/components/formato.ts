@@ -1,6 +1,6 @@
 const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 4 });
 
-/** "7.0.0" -> "7.0", como a versão aparece para as pessoas. */
+/** "8.0.0" -> "8.0", como a versão aparece para as pessoas. */
 export const versaoCurta = (v: string) => v.split(".").slice(0, 2).join(".");
 
 export const reais = (v: number) => moeda.format(v);
