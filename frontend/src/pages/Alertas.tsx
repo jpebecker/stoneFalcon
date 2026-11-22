@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { api, type Alerta, type Persona } from "../api/cliente";
 import { quando } from "../components/formato";
 import Carregando from "../components/falcao/Carregando";
-import { alvoDe, useFalcao } from "../components/falcao/Voo";
+import { alvoDe, destacar, useFalcao } from "../components/falcao/Voo";
 import Vazio from "../components/falcao/Vazio";
 
 type Filtro = "abertos" | "tratamento" | "todos";
@@ -97,6 +97,17 @@ export default function Alertas({ pessoa }: { pessoa: Persona }) {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["alertas"] }); qc.invalidateQueries({ queryKey: ["notificacoes"] }); },
   });
   const lista = (q.data ?? []).filter((a) => filtro !== "tratamento" || (a.tratando_por && !a.resolvido_em));
+  // vindo do Início (/alertas?alerta=<id>): rola até o alerta e o destaca; só abrir a página não marca nada como lido
+  const [params] = useSearchParams();
+  const pedido = params.get("alerta");
+  useEffect(() => {
+    if (!pedido || !q.data) return;
+    const el = document.querySelector<HTMLElement>(`[data-alerta-id="${CSS.escape(pedido)}"]`);
+    if (!el) return;
+    el.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    el.focus({ preventScroll: true });
+    destacar(el, 2400);
+  }, [pedido, q.data]);
   return (
     <div className="max-w-4xl space-y-6">
       <div className="flex items-end justify-between gap-4">
@@ -116,7 +127,7 @@ export default function Alertas({ pessoa }: { pessoa: Persona }) {
       {lista.length === 0 && <Vazio>{filtro === "tratamento" ? "Nenhum alerta em tratamento." : "Tudo certo por aqui."}</Vazio>}
       <ul className="space-y-3">
         {lista.map((a) => (
-          <li key={a.id} className={"caixa border-l-4 p-4 " + (a.resolvido_em ? "border-l-linha opacity-70" : a.severidade === "critico" ? "border-l-erro" : "border-l-alerta")}>
+          <li key={a.id} data-alerta-id={a.id} tabIndex={-1} className={"caixa border-l-4 p-4 outline-none " + (a.resolvido_em ? "border-l-linha opacity-70" : a.severidade === "critico" ? "border-l-erro" : "border-l-alerta")}>
             <div className="flex flex-wrap items-center gap-2">
               <span className={"selo " + (a.severidade === "critico" ? "bg-erro-fundo text-erro" : "bg-alerta-fundo text-alerta")}>
                 {a.severidade === "critico" ? "Crítico" : "Atenção"}

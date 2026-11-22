@@ -88,7 +88,7 @@ What was checked in the code and in the local database before writing the ticket
 | 01 | Grouped, collapsible side menu | — | feito |
 | 02 | Seed version stamp: stale databases get the demo alerts | — | feito |
 | 03 | Rich demo alerts: pending, read, in treatment and resolved | 02 | feito |
-| 04 | Alerts on the Início of each persona | 03 | ready-for-agent |
+| 04 | Alerts on the Início of each persona | 03 | feito |
 | 05 | Shared process: verified end to end and visible on both sides | — | ready-for-agent |
 | 06 | Shared-process alerts reach the shared area | 02, 05 | ready-for-agent |
 | 07 | Share a process from the UI | 05 | ready-for-agent |
@@ -195,13 +195,13 @@ state uses the falcon's existing empty-state pattern.
 
 **Blocked by:** 03 (needs the richer alert mix to be meaningful).
 
-**Status:** ready-for-agent
+**Status:** feito
 
-- [ ] Card lists up to 3 open alerts visible to the persona (same visibility rule as the Alerts page), critical first.
-- [ ] Clicking an alert opens it on the Alerts page; "Ver todos" goes to the page.
-- [ ] Opening the Início does not mark alerts as read.
-- [ ] Empty state shown when the persona has no open alert.
-- [ ] `npm run build` passes; checked in the browser for all 6 personas.
+- [x] Card lists up to 3 open alerts visible to the persona (same visibility rule as the Alerts page), critical first.
+- [x] Clicking an alert opens it on the Alerts page; "Ver todos" goes to the page.
+- [x] Opening the Início does not mark alerts as read.
+- [x] Empty state shown when the persona has no open alert.
+- [x] `npm run build` passes; checked in the browser for all 6 personas.
 
 ---
 

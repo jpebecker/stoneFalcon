@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { api, type Execucao, type ItemRevisao, type Persona } from "../api/cliente";
+import CartaoAlertas from "../components/CartaoAlertas";
 import { COR_STATUS, NOME_STATUS, quando, reais } from "../components/formato";
 import { useControle } from "../roteiro/Controle";
 import { useEstadoRoteiro } from "../roteiro/estado";
@@ -47,6 +48,8 @@ export default function Inicio({ pessoa }: { pessoa: Persona }) {
           </div>
         </section>
       )}
+
+      <CartaoAlertas />
 
       {criador && (
         <Link to="/estudio" className="caixa flex items-center justify-between gap-6 border-pedra/30 bg-pedra-fundo/40 p-6 transition hover:border-pedra">
