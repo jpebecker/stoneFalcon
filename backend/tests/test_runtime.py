@@ -12,7 +12,7 @@ from app.core.identidade import PERSONAS
 from app.llm.cliente import ChamadaFerramenta, RespostaLLM, simulador
 from app.runtime import modelos as m
 from app.runtime import motor
-from app.seed.agentes_exemplo import DUVIDA_LOJISTA, TRIAGEM_CHARGEBACK
+from tests.legado import DUVIDA_LOJISTA, TRIAGEM_CHARGEBACK
 from app.tools import catalogo, dados_ficticios, executor
 from tests.conftest import como
 

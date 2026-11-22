@@ -16,7 +16,7 @@ from app.agents.ciclo import ErroCiclo
 from app.audit import trilha
 from app.core import db
 from app.core.identidade import PERSONAS as P
-from app.seed.agentes_exemplo import DUVIDA_LOJISTA, TRIAGEM_CHARGEBACK
+from tests.legado import DUVIDA_LOJISTA, TRIAGEM_CHARGEBACK
 from tests.conftest import como
 
 V1 = "/api/v1"
@@ -45,12 +45,13 @@ def test_a_api_nao_cria_nem_edita_agente_de_varios_passos(api):
     assert r.status_code == 422 and "Processos" in r.json()["detail"]
 
 
-def test_o_estudio_so_salva_o_trabalhador_e_o_fluxo_vira_processo(api):
+def test_o_estudio_sugere_o_trabalhador_que_ja_se_salva_e_o_processo_pronto(api):
     texto = ("Quando um lojista pergunta algo no chamado, eu abro o cadastro dele, procuro a regra na política de atendimento "
              "e escrevo a resposta com o tom certo. Levo uns 8 minutos por chamado.")
     sug = api.post(f"{V1}/estudio/sugerir", json={"descricao": texto}, headers=como("marina")).json()
-    assert api.post(f"{V1}/agentes", json={"blueprint": sug["blueprint"]}, headers=como("marina")).status_code == 422
-    assert api.post(f"{V1}/agentes", json={"blueprint": sug["trabalhador"]}, headers=como("marina")).status_code == 200
+    assert len(sug["blueprint"]["passos"]) == 1 and sug["blueprint"] == sug["trabalhador"]   # v8: um agente, uma tarefa
+    assert api.post(f"{V1}/agentes", json={"blueprint": sug["blueprint"]}, headers=como("marina")).status_code == 200
+    assert sug["processo"]["nome"] == "Resposta a dúvidas de lojistas"      # o processo vem pronto para montar
 
 
 # ---------- agente antigo que já está no banco: roda, é só leitura e converte ----------

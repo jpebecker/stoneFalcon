@@ -284,7 +284,7 @@ def test_reiniciar_a_demo_remove_as_agendas_e_volta_o_relogio(api):
 # ---------- v8/08: a rotina também agenda um PROCESSO ----------
 def _processo_triagem(api) -> str:
     """Processo de triagem (risco alto) publicado pelo Rafael, com a aprovação do Lucas; o agente trabalhador vem do roteiro."""
-    from app.seed.processos_demo import TRABALHADORES, processo
+    from app.seed.catalogo import TRABALHADORES, processo
     h = como("rafael")
     aid = api.post(f"{V1}/agentes", json={"blueprint": TRABALHADORES["triagem"].model_dump(), "nota": "rotina"}, headers=h).json()["id"]
     assert api.post(f"{V1}/agentes/{aid}/publicar", headers=h).json()["estado"] == "publicado"

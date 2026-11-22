@@ -178,7 +178,7 @@ def test_agente_inexistente_de_outra_area_ou_de_varios_passos(api, sessao):
     corpo["blocos"][0]["agente_id"] = risco.id
     r = api.post("/api/v1/processos", json={"blueprint": corpo}, headers=como("marina"))
     assert r.status_code == 422 and "não tem acesso ao agente" in r.json()["detail"]
-    from app.seed.agentes_exemplo import DUVIDA_LOJISTA
+    from tests.legado import DUVIDA_LOJISTA
     legado = ciclo.criar(sessao, P["marina"], DUVIDA_LOJISTA)
     corpo["blocos"][0]["agente_id"] = legado.id
     r = api.post("/api/v1/processos", json={"blueprint": corpo}, headers=como("marina"))

@@ -1,5 +1,6 @@
-"""Agentes de exemplo da demo (no formato que o Estúdio gera). Conteúdo fictício."""
-from ..agents.blueprint import Blueprint
+"""Fixtures do formato LEGADO (agente de vários passos, v7). Só os testes usam: a aplicação não tem mais blueprint de vários
+passos (os trabalhadores e processos da demo vivem em app/seed/catalogo.py). Conteúdo fictício."""
+from app.agents.blueprint import Blueprint
 
 TRIAGEM_CHARGEBACK = Blueprint.model_validate({
     "nome": "Triagem de chargebacks",
@@ -47,5 +48,3 @@ DUVIDA_LOJISTA = Blueprint.model_validate({
          "instrucao": "Escreva a resposta ao lojista em até 5 frases, usando a política encontrada e o plano dele."},
     ],
 })
-
-EXEMPLOS = {"triagem_chargeback": TRIAGEM_CHARGEBACK, "duvida_lojista": DUVIDA_LOJISTA}

@@ -8,7 +8,7 @@ from app.llm.cliente import ChamadaFerramenta, RespostaLLM, simulador
 from app.runtime import modelos as m
 from app.runtime import motor
 from app.agents.blueprint import Blueprint
-from app.seed.agentes_exemplo import TRIAGEM_CHARGEBACK
+from tests.legado import TRIAGEM_CHARGEBACK
 from app.tools import dados_ficticios, executor
 from tests.conftest import como
 

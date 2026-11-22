@@ -11,7 +11,7 @@ from app.observability import alertas
 from app.runtime import modelos as rm
 from app.runtime import motor
 from app.seed import historico
-from app.seed.agentes_exemplo import DUVIDA_LOJISTA
+from tests.legado import DUVIDA_LOJISTA
 from app.seed.demo import semear
 from app.tools import dados_ficticios, executor
 from tests.conftest import como

@@ -80,6 +80,8 @@ export type Sugestao = {
   entrada_sugerida?: Record<string, string>;
   trabalhador: Blueprint;       // v8: o agente único (um trabalhador) que o Estúdio cria a partir do fluxo sugerido
   multipasso: boolean;          // o fluxo é claramente de vários passos: oferece "Transformar em processo"
+  processo?: ProcessoPronto | null;   // padrão da galeria: o processo pronto para montar (o agente vem pelo nome)
+  acoes_no_processo?: string[];       // ações em outros sistemas que ficam por conta do processo
 };
 
 export type Validacao =

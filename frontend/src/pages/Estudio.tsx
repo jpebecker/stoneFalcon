@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-  api, type Agente, type AgenteDetalhe, type Blueprint, type Execucao, type Ferramenta, type Persona, type ProcessoBlueprint, type Saude, type Sugestao, type Validacao,
+  api, type Agente, type AgenteDetalhe, type Blueprint, type Execucao, type Ferramenta, type Persona, type ProcessoBlueprint, type ProcessoPronto, type Saude, type Sugestao, type Validacao,
 } from "../api/cliente";
 import CampoEntrada from "../components/CampoEntrada";
 import FormularioTrabalhador from "../components/FormularioTrabalhador";
@@ -24,6 +24,7 @@ export default function Estudio({ pessoa }: { pessoa: Persona }) {
   const [bp, setBp] = useState<Blueprint | null>(null);
   const [val, setVal] = useState<Validacao | null>(null);
   const [fluxo, setFluxo] = useState<Blueprint | null>(null);   // o fluxo de vários passos que a descrição sugeriu (vira processo)
+  const [processoPronto, setProcessoPronto] = useState<ProcessoPronto | null>(null);   // padrão da galeria: o processo pronto ao lado do trabalhador
   const [entrada, setEntrada] = useState<Record<string, string>>({});
   const [exe, setExe] = useState<Execucao | null>(null);
   const [params] = useSearchParams();
@@ -82,7 +83,7 @@ export default function Estudio({ pessoa }: { pessoa: Persona }) {
   const sugerir = useMutation({
     mutationFn: ({ d, fonte }: { d: string; fonte?: { tipo: string; url: string } | null }) =>
       api<Sugestao>("/estudio/sugerir", { descricao: d, fonte: fonte ?? null }),
-    onSuccess: (s) => { setSug(s); setBp(s.trabalhador); setFluxo(s.multipasso ? s.blueprint : null); setExe(null); setEntrada(s.entrada_sugerida ?? {}); },
+    onSuccess: (s) => { setSug(s); setBp(s.trabalhador); setFluxo(s.multipasso ? s.blueprint : null); setProcessoPronto(s.processo ?? null); setExe(null); setEntrada(s.entrada_sugerida ?? {}); },
   });
   const testar = useMutation({
     mutationFn: () => api<Execucao>("/estudio/testar", { blueprint: bp, entrada }),
@@ -99,6 +100,19 @@ export default function Estudio({ pessoa }: { pessoa: Persona }) {
   const valido = val?.valido ? val : null;
   const semPermissao = useMemo(() => new Set(Object.keys(valido?.sem_permissao ?? {})), [valido]);
   const legado = !!bp && ehLegado(bp);
+  // padrão da galeria: salva o trabalhador (rascunho) e abre o processo pronto com ele no bloco do agente
+  const montarProcesso = useMutation({
+    mutationFn: async (pronto: ProcessoPronto) => {
+      const a = await api<Agente>("/agentes", { blueprint: bp, nota: "Criado a partir de um padrão da galeria." });
+      const { blocos, ...resto } = pronto;
+      const processo: ProcessoBlueprint = {
+        ...resto, roteiro_id: resto.roteiro_id ?? null,
+        blocos: blocos.map(({ agente_nome, ...b }) => ({ ...b, ramo: b.ramo ?? null, agente_id: agente_nome ? a.id : b.agente_id ?? null })),
+      };
+      return { processo, agente: a };
+    },
+    onSuccess: ({ processo, agente }) => { registrarCtx({ agenteId: agente.id }); qc.invalidateQueries({ queryKey: ["agentes"] }); navegar("/processos/novo", { state: { rascunho: processo } }); },
+  });
   const emProcesso = useMutation({
     mutationFn: (f: Blueprint) => api<{ processo: ProcessoBlueprint; agentes: { id: string; nome: string }[] }>("/estudio/em-processo", { blueprint: f }),
     onSuccess: (r) => { qc.invalidateQueries({ queryKey: ["agentes"] }); navegar("/processos/novo", { state: { rascunho: r.processo } }); },
@@ -133,7 +147,7 @@ export default function Estudio({ pessoa }: { pessoa: Persona }) {
           <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-tinta-3">Ou comece por um exemplo</h2>
           <div className="grid gap-2 sm:grid-cols-2">
             {padroes.data?.map((p) => (
-              <button key={p.id} className="caixa p-3 text-left text-sm transition hover:border-pedra" onClick={() => setDescricao(p.exemplo)}>
+              <button key={p.id} className="caixa p-3 text-left text-sm transition hover:border-pedra" onClick={() => { setDescricao(p.exemplo); sugerir.mutate({ d: p.exemplo, fonte: null }); }}>
                 <div className="font-semibold">{p.titulo}</div>
                 <div className="mt-0.5 line-clamp-2 text-tinta-2">{p.exemplo}</div>
               </button>
@@ -155,7 +169,7 @@ export default function Estudio({ pessoa }: { pessoa: Persona }) {
             value={bp.objetivo} onChange={(e) => setBp({ ...bp, objetivo: e.target.value })} aria-label="Objetivo" />
         </div>
         <div className="flex gap-2">
-          {!agenteId && <button className="botao-claro" onClick={() => { setBp(null); setSug(null); setVal(null); setExe(null); setFluxo(null); }}>Recomeçar</button>}
+          {!agenteId && <button className="botao-claro" onClick={() => { setBp(null); setSug(null); setVal(null); setExe(null); setFluxo(null); setProcessoPronto(null); }}>Recomeçar</button>}
           <button className="botao-claro" disabled={!valido || salvar.isPending || legado} onClick={() => salvar.mutate(false)}>Salvar rascunho</button>
           <button className="botao-pedra" disabled={!valido || salvar.isPending || semPermissao.size > 0 || legado} onClick={() => salvar.mutate(true)}
             title={valido?.risco.exige_revisao_seguranca ? "Vai para a revisão da Segurança antes de ir ao ar" : "Vai ao ar agora"}>
@@ -189,6 +203,19 @@ export default function Estudio({ pessoa }: { pessoa: Persona }) {
           </button>
         </div>
       )}
+      {processoPronto && !agenteId && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-caixa border border-info/30 bg-info-fundo/50 p-4" data-testid="oferta-processo-pronto">
+          <p className="max-w-3xl text-sm">
+            <b>Este padrão vem com o processo “{processoPronto.nome}” pronto.</b> O agente só lê e raciocina
+            {sug?.acoes_no_processo && sug.acoes_no_processo.length > 0 ? <>; quem age em outros sistemas ({sug.acoes_no_processo.join(", ").toLowerCase()}) é o processo</> : null}.
+            Ajuste o agente aqui e, quando quiser, monte o processo: os blocos já vêm com ele.
+          </p>
+          <button className="botao-pedra" disabled={!valido || montarProcesso.isPending || semPermissao.size > 0} onClick={() => montarProcesso.mutate(processoPronto)}>
+            {montarProcesso.isPending ? "Montando o processo…" : "Montar o processo"}
+          </button>
+        </div>
+      )}
+      {montarProcesso.isError && <p className="text-sm text-erro">{(montarProcesso.error as Error).message}</p>}
       {emProcesso.isError && <p className="text-sm text-erro">{(emProcesso.error as Error).message}</p>}
       {legado && (
         <div className="rounded-caixa border border-alerta/40 bg-alerta-fundo/60 p-4 text-sm" role="alert" data-testid="aviso-legado">

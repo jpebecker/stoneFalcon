@@ -4,7 +4,7 @@ Roda uma vez, quando o banco está vazio (desligue com STONEFALCON_SEMEAR=0).
 Tudo passa pelas mesmas funções que a tela usa, então a auditoria já nasce íntegra.
 
 v8: cada agente de vários passos da v7 virou um trabalhador (um passo de IA) mais um processo de blocos que o usa
-(definições em processos_demo.py).
+(definições em catalogo.py, a fonte única).
 """
 from sqlmodel import Session, select
 
@@ -14,26 +14,20 @@ from ..core.identidade import PERSONAS
 from ..processos.blueprint import ProcessoBlueprint
 from ..processos.tipo import ciclo as ciclo_processos
 from . import arquivos_demo, historico
-from .processos_demo import CHAVES, ROTEIRO, TRABALHADORES, processo
-
-# quem cria cada um, o orçamento mensal do processo e o parecer da Segurança (só o que passa pela revisão de risco alto)
-_CRIADOR = {"duvida": "marina", "triagem": "rafael", "ferias": "carla", "troca": "thiago"}
-_ORCAMENTO = {"duvida": 120.0, "triagem": 300.0, "ferias": 80.0, "troca": 100.0}
-_PARECER = {"triagem": "Retenção de repasse protegida por confirmação humana; acesso restrito à área de risco. Aprovado."}
-_NOTA = {"duvida": "Primeira versão, a partir das perguntas mais comuns da fila.", "triagem": "Triagem diária de contestações.",
-         "ferias": "Dúvidas de férias e benefícios.", "troca": "Troca de maquininha com cadastro, regra e estoque em paralelo."}
+from .catalogo import CHAVES, DEMOS, ROTEIRO, TRABALHADORES, processo
 
 
 def criar_processo_demo(s: Session, chave: str):
     """Cria e publica o trabalhador e o processo de `chave` (revisão da Segurança incluída quando o risco é alto)."""
-    criador, lucas, helena = PERSONAS[_CRIADOR[chave]], PERSONAS["lucas"], PERSONAS["helena"]
-    trabalhador = ciclo.criar(s, criador, TRABALHADORES[chave], _NOTA[chave])
+    demo = DEMOS[chave]
+    criador, lucas, helena = PERSONAS[demo.persona], PERSONAS["lucas"], PERSONAS["helena"]
+    trabalhador = ciclo.criar(s, criador, TRABALHADORES[chave], demo.nota)
     ciclo.publicar(s, criador, trabalhador.id)
-    p = ciclo_processos.criar(s, criador, ProcessoBlueprint.model_validate(processo(chave, trabalhador.id)), _NOTA[chave])
+    p = ciclo_processos.criar(s, criador, ProcessoBlueprint.model_validate(processo(chave, trabalhador.id)), demo.nota)
     p = ciclo_processos.publicar(s, criador, p.id)   # risco alto: vai para a revisão da Segurança
     if p.estado == m.EM_REVISAO:
-        ciclo_processos.revisar(s, lucas, p.id, True, _PARECER[chave])
-    ciclo_processos.definir_orcamento(s, helena, p.id, _ORCAMENTO[chave])
+        ciclo_processos.revisar(s, lucas, p.id, True, demo.parecer or "Aprovado.")
+    ciclo_processos.definir_orcamento(s, helena, p.id, demo.orcamento)
     return p
 
 

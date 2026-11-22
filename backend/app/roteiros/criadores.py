@@ -1,11 +1,11 @@
 """Roteiros v8 das quatro pessoas que criam: criar o agente trabalhador -> montar o processo -> testar -> publicar -> usar.
 
-O fluxo de blocos de cada processo vem de seed/processos_demo.py (o mesmo do estado inicial da demo); aqui ele vai no `preenche`
+O fluxo de blocos de cada processo vem de seed/catalogo.py (o mesmo do estado inicial da demo); aqui ele vai no `preenche`
 do passo "montar" com o NOME do agente, que a tela troca pelo id do agente que a pessoa acabou de criar.
 """
 from __future__ import annotations
 
-from ..seed.processos_demo import NOME_AGENTE, NOME_PROCESSO, processo
+from ..seed.catalogo import NOME_AGENTE, NOME_PROCESSO, processo
 from .catalogo import Passo, Roteiro, _ctx, _medir, _min
 
 

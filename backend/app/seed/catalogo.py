@@ -1,26 +1,79 @@
-"""Os processos da demonstração (v8): cada agente de vários passos da v7 virou um agente TRABALHADOR (um passo de IA) mais
-um PROCESSO de blocos que o usa. Conteúdo fictício.
+"""Catálogo da demonstração: persona -> agente trabalhador + processo (v8). Conteúdo fictício. FONTE ÚNICA.
+
+O estado inicial (`seed/demo.py`), os roteiros guiados (`roteiros/criadores.py`, `roteiros/medicao.py`) e a galeria do
+Estúdio (`studio/modelos_prontos.py`) leem este catálogo; nenhum outro módulo define trabalhador ou processo de demonstração.
+(O formato antigo, de vários passos, existe só como fixture dos testes: `backend/tests/legado.py`.)
 
 Princípio: o trabalhador lê e raciocina; quem age em outros sistemas (abrir chamado, reter repasse, avisar) é um bloco do
-processo, onde a aprovação humana e a condição ficam à vista. As mesmas definições servem ao estado inicial da demo
-(`semear`) e aos roteiros guiados (que mostram a pessoa criando o trabalhador e montando o processo).
+processo, onde a aprovação humana e a condição ficam à vista.
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 
 from ..agents.blueprint import Blueprint
 
 LOJISTA = {"id": "lojista_id", "rotulo": "Lojista", "tipo": "lojista", "ajuda": "Escolha o lojista pelo nome."}
 
-# chave -> (roteiro, nome do trabalhador, nome do processo)
-CHAVES = ("duvida", "triagem", "ferias", "troca")
-ROTEIRO = {"duvida": "marina", "triagem": "rafael", "ferias": "carla", "troca": "thiago"}
-NOME_PROCESSO = {"duvida": "Resposta a dúvidas de lojistas", "triagem": "Triagem de chargebacks",
-                 "ferias": "Orientação de férias", "troca": "Troca de maquininha com estoque"}
-NOME_AGENTE = {"duvida": "Redator de respostas a lojistas", "triagem": "Analista de risco de chargebacks",
-               "ferias": "Orientador de férias e benefícios", "troca": "Analista de trocas de maquininha"}
-AREA = {"duvida": "atendimento", "triagem": "risco", "ferias": "pessoas", "troca": "logistica"}
+
+@dataclass(frozen=True)
+class Demo:
+    """Uma entrada do catálogo: o trabalhador e o processo de uma persona, com o que a demo precisa saber deles."""
+    chave: str                  # estável: "duvida", "triagem", "ferias", "troca"
+    persona: str                # quem cria (e dona do processo)
+    roteiro: str                # roteiro guiado que o realiza
+    area: str
+    nome_agente: str
+    nome_processo: str
+    orcamento: float            # orçamento mensal do processo, definido pela Helena
+    nota: str                   # nota da primeira versão
+    padrao: str                 # id do padrão na galeria do Estúdio
+    exemplos: tuple[str, ...]   # como uma pessoa descreveria o processo (o primeiro rotula o padrão)
+    parecer: str | None = None  # parecer da Segurança (só o que passa pela revisão de risco alto)
+
+
+DEMOS: dict[str, Demo] = {d.chave: d for d in (
+    Demo("duvida", "marina", "marina", "atendimento", "Redator de respostas a lojistas", "Resposta a dúvidas de lojistas", 120.0,
+         "Primeira versão, a partir das perguntas mais comuns da fila.", "duvida_lojista", (
+             "Responder dúvidas de lojistas sobre estorno, prazo e maquininha usando a política oficial",
+             "Montar a resposta para o lojista que pergunta sobre o prazo de estorno",
+             "Os lojistas mandam perguntas e eu procuro a regra na base para responder")),
+    Demo("triagem", "rafael", "rafael", "risco", "Analista de risco de chargebacks", "Triagem de chargebacks", 300.0,
+         "Triagem diária de contestações.", "triagem_chargeback", (
+             "Toda manhã confiro os lojistas com chargeback e decido se abro chamado ou bloqueio o repasse",
+             "Analisar contestações de vendas de um lojista e avaliar risco de fraude",
+             "Quero um agente que olhe as vendas contestadas e me diga se é fraude"),
+         parecer="Retenção de repasse protegida por confirmação humana; acesso restrito à área de risco. Aprovado."),
+    Demo("ferias", "carla", "carla", "pessoas", "Orientador de férias e benefícios", "Orientação de férias", 80.0,
+         "Dúvidas de férias e benefícios.", "ferias_colaborador", (
+             "Colaboradores perguntam quantos dias de férias têm e como pedir, eu olho a ficha e a política",
+             "Responder dúvidas de RH sobre férias e benefícios com base na ficha do colaborador",
+             "Consultar saldo de férias e explicar a regra para o colaborador")),
+    Demo("troca", "thiago", "thiago", "logistica", "Analista de trocas de maquininha", "Troca de maquininha com estoque", 100.0,
+         "Troca de maquininha com cadastro, regra e estoque em paralelo.", "troca_maquininha_estoque", (
+             "Quando o lojista pede troca de maquininha eu confiro o cadastro, a regra de troca e o estoque do modelo ao mesmo tempo, abro o chamado na logística e aviso o canal",
+             "Troca de equipamento com conferência de estoque, chamado na logística e aviso ao lojista",
+             "Conferir cadastro, regra de troca e estoque da maquininha antes de abrir o chamado",
+             "Quando o lojista diz que a maquininha quebrou eu confiro o cadastro e abro chamado de troca na logística",
+             "Maquininha com defeito: verificar o cliente e pedir a troca")),
+)}
+
+CHAVES = tuple(DEMOS)
+# visões por chave, para quem só precisa de um atributo
+ROTEIRO = {c: d.roteiro for c, d in DEMOS.items()}
+NOME_PROCESSO = {c: d.nome_processo for c, d in DEMOS.items()}
+NOME_AGENTE = {c: d.nome_agente for c, d in DEMOS.items()}
+AREA = {c: d.area for c, d in DEMOS.items()}
+
+
+def por_persona(persona: str) -> list[Demo]:
+    """O que a persona tem na demo (um trabalhador + um processo por entrada)."""
+    return [d for d in DEMOS.values() if d.persona == persona]
+
+
+def por_padrao(padrao_id: str) -> Demo | None:
+    return next((d for d in DEMOS.values() if d.padrao == padrao_id), None)
 
 
 def _trabalhador(chave: str, objetivo: str, instrucoes: str, ferramentas: list[str], instrucao: str, modelo: str) -> Blueprint:
@@ -113,3 +166,11 @@ def processo(chave: str, agente: str, slack: bool = False, por_nome: bool = Fals
                 _b("chamado", "plugin", "Abrir chamado na logística", ["analise"], ferramenta="abrir_chamado",
                    entrada={"fila": "logistica", "titulo": "Troca de {{entrada.modelo}}", "descricao": "{{passos.analise.saida}}"}),
                 aviso]}
+
+
+def fluxo(chave: str, slack: bool = False) -> Blueprint:
+    """O processo de `chave` compilado SEM banco, com o trabalhador do catálogo: a base das estimativas de custo e tempo
+    dos roteiros enquanto a pessoa ainda não criou o processo."""
+    from ..processos.blueprint import ProcessoBlueprint
+    from ..processos.compilar import compilar
+    return compilar(None, ProcessoBlueprint.model_validate(processo(chave, chave, slack=slack)), trabalhadores=TRABALHADORES)

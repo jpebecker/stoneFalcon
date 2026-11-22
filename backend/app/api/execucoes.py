@@ -18,7 +18,6 @@ from ..rotinas import marcar as marcar_rotina
 from ..observability import avaliar_seguro
 from ..runtime import modelos as m
 from ..runtime import motor
-from ..seed.agentes_exemplo import EXEMPLOS
 
 rotas = APIRouter(prefix="/api/v1", tags=["execucoes"])
 
@@ -37,14 +36,8 @@ def _pode_ver(p: Persona, exe: m.Execucao) -> None:
         raise HTTPException(status_code=403, detail="Você não tem acesso a esta execução.")
 
 
-@rotas.get("/agentes-exemplo")
-def agentes_exemplo(_p: Persona = Depends(usuario_atual)):
-    return {k: bp.model_dump() for k, bp in EXEMPLOS.items()}
-
-
 class PedidoExecucao(BaseModel):
     blueprint: Blueprint | None = None
-    exemplo: str | None = None
     entrada: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -53,9 +46,9 @@ def executar(pedido: PedidoExecucao, pessoa: Persona = Depends(usuario_atual), s
     """Sandbox de rascunhos (como o "Testar" do Estúdio): só para criadores, sempre na área de quem
     chama e marcado como teste. Agentes publicados rodam por /agentes/{id}/executar, com governança."""
     exigir(pessoa, CRIADOR)
-    bp = pedido.blueprint or EXEMPLOS.get(pedido.exemplo or "")
+    bp = pedido.blueprint
     if bp is None:
-        raise HTTPException(status_code=422, detail="Envie um blueprint ou o nome de um agente de exemplo.")
+        raise HTTPException(status_code=422, detail="Envie o blueprint do agente a testar.")
     bp = bp.model_copy(update={"area": pessoa.area})
     faltando = [c for c in bp.ids_campos() if pedido.entrada.get(c) in (None, "")]
     if faltando:
