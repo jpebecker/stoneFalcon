@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { api, type Persona, type Processo } from "../api/cliente";
+import SeloCompartilhado from "../components/SeloCompartilhado";
 import { COR_ESTADO, COR_RISCO, NOME_ESTADO, NOME_RISCO, reais } from "../components/formato";
 
 export default function Processos({ pessoa }: { pessoa: Persona }) {
@@ -24,6 +25,7 @@ export default function Processos({ pessoa }: { pessoa: Persona }) {
               <span className={"selo shrink-0 " + COR_ESTADO[p.estado]}>{NOME_ESTADO[p.estado]}</span>
             </div>
             <p className="mt-1 text-sm text-tinta-3">Área {p.area} · dono {p.dono} · v{p.versao_publicada ?? "–"} no ar{p.ultima_versao !== p.versao_publicada ? ` · v${p.ultima_versao} em edição` : ""}</p>
+            <SeloCompartilhado p={p} pessoa={pessoa} className="mt-2" />
             {p.as_is && <p className="mt-1 text-sm text-tinta-2">AS IS → TO BE: <b>{p.as_is.processo}</b></p>}
             <div className="mt-3 flex items-center gap-3 text-sm">
               <span className={"selo " + COR_RISCO[p.risco]}>{NOME_RISCO[p.risco]}</span>

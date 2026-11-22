@@ -89,7 +89,7 @@ What was checked in the code and in the local database before writing the ticket
 | 02 | Seed version stamp: stale databases get the demo alerts | — | feito |
 | 03 | Rich demo alerts: pending, read, in treatment and resolved | 02 | feito |
 | 04 | Alerts on the Início of each persona | 03 | feito |
-| 05 | Shared process: verified end to end and visible on both sides | — | ready-for-agent |
+| 05 | Shared process: verified end to end and visible on both sides | — | feito |
 | 06 | Shared-process alerts reach the shared area | 02, 05 | ready-for-agent |
 | 07 | Share a process from the UI | 05 | ready-for-agent |
 | 08 | Falcon companion: perch, speech bubble and the new motion rule | 01 | ready-for-agent |
@@ -216,17 +216,35 @@ Thiago". The other side can run it but not edit it. Write down what was broken a
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** feito
 
-- [ ] Back-end test: Lucas lists, opens and executes the shared process; Thiago sees Lucas's execution in the process history;
+- [x] Back-end test: Lucas lists, opens and executes the shared process; Thiago sees Lucas's execution in the process history;
       Lucas cannot edit it (403); Marina (no shared area) cannot see it in her list or open it.
-- [ ] Both personas see the "Compartilhado" badge with the right direction in the list and in the detail.
-- [ ] The shared process appears in Lucas's Início wherever his own processes appear.
-- [ ] Mapa de IA draws the connection between Logística and Engenharia through the process (or the gap is fixed).
-- [ ] A short "Findings" list is added under this ticket in this file (what worked, what was fixed).
-- [ ] `pytest -q` and `npm run build` green; checked in the browser as Thiago and as Lucas.
+- [x] Both personas see the "Compartilhado" badge with the right direction in the list and in the detail.
+- [x] The shared process appears in Lucas's Início wherever his own processes appear.
+- [x] Mapa de IA draws the connection between Logística and Engenharia through the process (or the gap is fixed).
+- [x] A short "Findings" list is added under this ticket in this file (what worked, what was fixed).
+- [x] `pytest -q` and `npm run build` green; checked in the browser as Thiago and as Lucas.
 
 ---
+
+**Findings (checked by reading the code and by running the reference case through the API):**
+
+- Worked already: Lucas lists, opens and executes the shared process; Marina (no shared area) gets 403 on open and execute and
+  does not see it in the list; Lucas cannot edit or re-share it (403); an execution by Lucas appears in Thiago's list and in the
+  process history; the sharing is in the audit trail (`processo_compartilhado`).
+- Fixed: Lucas's execution list (the one the Início shows) lacked Thiago's executions of the shared process, and he got 403 when
+  opening one from the process history. Both sides now see and open the executions of a process shared with their area (Marina
+  still does not).
+- Fixed: nothing showed that a process is shared. The process list and detail now return `area_nome`, `dono_nome` and
+  `compartilhado_nomes`, and the screens show the "Compartilhado" badge: the owner side reads "Compartilhado com Engenharia de
+  Plataforma", the receiving side "Compartilhado · de Logística · Thiago".
+- Fixed: the Mapa de IA drew only Thiago -> process. It now also draws the creators of the receiving area -> process, dotted
+  (`compartilhado: true` on the link).
+- Not changed (by design, other tickets): alerts of the shared process reach only the owner (ticket 06); the UI to share (07).
+- Pre-existing, left alone: Lucas has the Pausar button on any process because he is a security reviewer.
+- The Início of a persona has no process list; "wherever his own processes appear" is the recent executions, which now include the
+  shared process's.
 
 # 06: Shared-process alerts reach the shared area
 

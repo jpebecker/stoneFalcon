@@ -157,7 +157,7 @@ export type NoMapa = {
   rota?: string; usada_por?: number; integrado?: boolean; externo?: boolean; classificacao?: string; ferramentas?: string[] | number;
 };
 export type MapaIA = {
-  dias: number; colunas: { id: string; rotulo: string }[]; nos: NoMapa[]; ligacoes: { de: string; para: string; volume: number }[];
+  dias: number; colunas: { id: string; rotulo: string }[]; nos: NoMapa[]; ligacoes: { de: string; para: string; volume: number; compartilhado?: boolean }[];
   totais: { processos: number; agentes: number; modelos: number; plugins: number; ferramentas: number; plataformas: number; execucoes: number }; tem_demo: boolean;
   filtros: { area: string | null; provedor: string | null; areas: string[]; provedores: { id: string; nome: string }[] };
   execucoes_recentes: ExecucaoRecenteMapa[];
@@ -207,6 +207,8 @@ export type ProcessoBlueprint = {
 export type Processo = {
   id: string; nome: string; area: string; dono: string; estado: Agente["estado"]; versao_publicada: number | null; ultima_versao: number;
   risco: "baixo" | "medio" | "alto"; compartilhado_com: string[]; motivo_estado: string | null; orcamento_mensal_brl: number;
+  /** v8.3: nomes para a tela (a área e o dono do processo; as áreas com quem ele é dividido) */
+  area_nome?: string; dono_nome?: string; compartilhado_nomes?: string[];
   roteiro_id: string | null; criado_em: string; atualizado_em: string; execucoes: number; escaladas: number; custo_brl: number;
   as_is: { roteiro_id: string; processo: string; persona: string } | null; agentes: string[];
   agentes_info?: { id: string; nome: string; estado: string; motivo: string | null }[];

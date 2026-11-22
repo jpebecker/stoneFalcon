@@ -8,6 +8,7 @@ import ListaMudancas from "../components/ListaMudancas";
 import PainelRotina from "../components/PainelRotina";
 import { BLOCOS, COR_ESTADO, COR_RISCO, NOME_ESTADO, NOME_EVENTO, NOME_RISCO, quando, reais } from "../components/formato";
 import Icone from "../components/Icone";
+import SeloCompartilhado from "../components/SeloCompartilhado";
 import Carregando from "../components/falcao/Carregando";
 import { alvoDe, useFalcao } from "../components/falcao/Voo";
 
@@ -62,6 +63,7 @@ export default function ProcessoDetalhe({ pessoa }: { pessoa: Persona }) {
             <h1 className="text-3xl">{p.nome}</h1>
             <span className={"selo " + COR_ESTADO[p.estado]}>{NOME_ESTADO[p.estado]}</span>
             <span className={"selo " + COR_RISCO[p.risco]}>{NOME_RISCO[p.risco]}</span>
+            <SeloCompartilhado p={p} pessoa={pessoa} />
           </div>
           <p className="mt-1 text-tinta-2">{bp?.objetivo}</p>
           <p className="mt-1 text-sm text-tinta-3">Área {p.area} · dono {p.dono} · {p.execucoes} execuções · {reais(p.custo_brl)} gastos</p>

@@ -89,6 +89,11 @@ PERSONAS = {p.id: p for p in [
 ]}
 
 
+def nome_da_area(area: str) -> str:
+    """O nome de uma área como a tela mostra ("logistica" -> "Logística"); uma área sem ninguém na demo volta pelo próprio id."""
+    return next((p.area_nome for p in PERSONAS.values() if p.area == area), area)
+
+
 def obter_persona(persona_id: str) -> Persona:
     p = PERSONAS.get((persona_id or "").strip().lower())
     if not p:

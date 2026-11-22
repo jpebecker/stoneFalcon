@@ -13,7 +13,7 @@ from sqlmodel import Session, select
 from ..agents import modelos as am
 from ..agents.blueprint import Blueprint
 from ..agents.governanca import estimar_custo
-from ..core.identidade import PERSONAS
+from ..core.identidade import CRIADOR, PERSONAS
 from ..llm import precos, registro
 from ..observability import metricas
 from ..plugins import catalogo as plugins_catalogo
@@ -89,6 +89,7 @@ def grafo(s: Session, dias: int = 7, area: str | None = None, provedor: str | No
     ligacoes: dict[tuple[str, str], int] = defaultdict(int)
     caminho_do_agente: dict[str, dict] = {}     # para montar o caminho de cada execução
     chamadas: list[tuple] = []                  # processo -> agente trabalhador (-> modelos que o processo usou)
+    compartilhadas: set[tuple[str, str]] = set()   # ligações de área com quem recebe o processo (tracejadas na tela)
 
     def ligar(de: str, para: str, volume: int) -> None:
         ligacoes[(de, para)] += volume
@@ -127,6 +128,16 @@ def grafo(s: Session, dias: int = 7, area: str | None = None, provedor: str | No
         nos[criador]["execucoes"] += volume
         nos[criador]["custo_brl"] = round(nos[criador]["custo_brl"] + precos.usd_para_brl(custo_agente), 4)
         ligar(criador, ano, volume)
+        for area_recebe in (a.compartilhado_com or []):   # v8.3: o processo compartilhado liga as duas áreas
+            for pid_, quem in sorted(PERSONAS.items()):
+                if quem.area != area_recebe or CRIADOR not in quem.papeis or pid_ == a.dono:
+                    continue
+                cno = "criador:" + pid_
+                nos.setdefault(cno, _no(cno, "criador", "criadores", quem.nome, area=quem.area, detalhe=quem.area_nome, execucoes=0, custo_brl=0.0))
+                feitas_dela = sum(1 for e in feitas if e.persona == pid_)
+                nos[cno]["execucoes"] += feitas_dela
+                ligar(cno, ano, feitas_dela)
+                compartilhadas.add((cno, ano))
 
         # ferramentas e plugins que o agente usa -> plataformas
         alvos: list[str] = []
@@ -190,7 +201,8 @@ def grafo(s: Session, dias: int = 7, area: str | None = None, provedor: str | No
     recentes = _recentes(s, execs, visiveis, caminho_do_agente, provedor)
     return {
         "dias": dias, "colunas": COLUNAS, "nos": lista,
-        "ligacoes": [{"de": d, "para": p, "volume": v} for (d, p), v in sorted(ligacoes.items())],
+        "ligacoes": [{"de": d, "para": p, "volume": v, **({"compartilhado": True} if (d, p) in compartilhadas else {})}
+                     for (d, p), v in sorted(ligacoes.items())],
         "totais": {"agentes": sum(1 for n in lista if n["tipo"] == "agente"),
                    "processos": sum(1 for n in lista if n["tipo"] == "processo"),
                    "modelos": sum(1 for n in lista if n["tipo"] == "modelo"),

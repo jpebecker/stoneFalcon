@@ -166,7 +166,7 @@ function Quadro({ mapa, filtroChave }: { mapa: MapaIA; filtroChave: string }) {
         markerEnd: { type: MarkerType.ArrowClosed },
         className: recentes.has(l.de) || recentes.has(l.para) ? "mapa-aresta-nova" : "",
         data: { pulsos: pulsosPorAresta.get(id) ?? [], reduzir },
-        style: { strokeWidth: 1 + (l.volume / maximo) * 3, stroke: removido ? "rgb(var(--erro))" : undefined, strokeDasharray: removido ? "6 4" : undefined },
+        style: { strokeWidth: 1 + (l.volume / maximo) * 3, stroke: removido ? "rgb(var(--erro))" : undefined, strokeDasharray: removido ? "6 4" : l.compartilhado ? "2 6" : undefined },
       };
     });
     return { nos, arestas };
