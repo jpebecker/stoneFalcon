@@ -64,8 +64,9 @@ MARINA = Roteiro(
         Passo("extensao", "Usar pela extensão no helpdesk", "marina", "/demo/helpdesk?chamado=4812&perfil=marina",
               "No helpdesk, selecione o texto do chamado e clique em “Perguntar ao StoneFalcon”.",
               "O mesmo processo, agora dentro da ferramenta onde ela já trabalha.", externa=True),
-        _alerta("marina", "O cadastro de lojistas ficou lento: assuma o alerta e abra o sistema em Saúde.",
-                "Ela não configurou nada: a plataforma avisou o dono do processo. Assumir mostra a todos quem está cuidando."),
+        _alerta("marina", "O processo ficou mais lento que o normal: assuma o alerta e abra o processo pela ação do alerta.",
+                "Ela não configurou nada: a plataforma comparou as últimas execuções com as de sempre e avisou a dona do processo. "
+                "Assumir mostra a todos quem está cuidando."),
         _medir("marina", "O tempo e o custo desta execução são medidos; o AS IS é hipótese, e dizemos qual é qual."),
     ), duracao_min=6)
 
@@ -112,8 +113,8 @@ RAFAEL = Roteiro(
         Passo("auditoria", "Provar na trilha de auditoria", "helena", "/auditoria",
               "Mostre o selo de cadeia íntegra e abra a confirmação da retenção.",
               "Quem confirmou, quando e com que dado: tudo na trilha encadeada por hash."),
-        _alerta("rafael", "O sistema de contestações ficou lento: assuma o alerta e abra o sistema em Saúde.",
-                "A triagem depende desse sistema: o alerta chega ao Rafael e à Engenharia, sem duplicar por trabalhador."),
+        _alerta("rafael", "A triagem está falhando: assuma o alerta e pause o processo pela ação do alerta, com o motivo.",
+                "4 das últimas 10 execuções escalaram: o alerta chega ao dono do processo, e a pausa de emergência fica a um clique."),
         _medir("rafael", "Tempo, custo e a confirmação humana aparecem medidos."),
     ), duracao_min=8)
 

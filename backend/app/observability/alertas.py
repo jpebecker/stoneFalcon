@@ -15,7 +15,9 @@ Regras:
 v8.1: as mesmas regras valem para PROCESSOS publicados ou pausados (agente_falhando/agente_lento viram processo_falhando/
 processo_lento, e `orcamento` e `conector_*` ganham o processo como dono). O alerta de processo vai ao dono do processo (e à
 Engenharia, no caso de sistema) e leva a "Abrir o processo". Alerta de sistema vale UMA vez por processo (não por trabalhador):
-os agentes trabalhadores de um processo não alertam por conta própria. Os agentes que rodam sozinhos continuam como estavam.
+os agentes trabalhadores de um processo não abrem alerta de SISTEMA por conta própria (quem abre é o processo). Falhando, lento e
+orçamento seguem por agente, mas as execuções de um processo são do processo, então o trabalhador só alerta pelo que rodar
+sozinho. Os agentes que rodam sozinhos continuam como estavam.
 """
 from __future__ import annotations
 
@@ -97,6 +99,8 @@ def _processos_ativos(s: Session) -> list[tuple[pm.Processo, Blueprint]]:
         if p.versao_publicada is None:
             continue
         v = s.get(pm.VersaoProcesso, "%s-v%d" % (p.id, p.versao_publicada))
+        if v is None:   # versão publicada sumiu do banco: o alerta não pode quebrar a avaliação dos outros
+            continue
         try:
             saida.append((p, compilar(s, ProcessoBlueprint.model_validate(v.blueprint), None, "publicada")))
         except ErroCiclo:   # bloco com agente que não existe mais: o ciclo de vida já avisa; o alerta não pode quebrar
@@ -147,6 +151,12 @@ def _condicoes_dono(s: Session, d, tipo: str) -> list[dict]:
 
 def _condicoes_agente(s: Session, a: am.Agente) -> list[dict]:
     return _condicoes_dono(s, a, "agente")
+
+
+def regras_que_valem(s: Session, d, tipo: str) -> set[str]:
+    """As regras de falhando, lento e orçamento que valem agora para `d` (sem abrir alerta): o cenário da demo usa para não
+    moldar de novo o que já está moldado."""
+    return {c["regra"] for c in _condicoes_dono(s, d, tipo)}
 
 
 def _condicoes_conectores(s: Session) -> dict[str, dict]:

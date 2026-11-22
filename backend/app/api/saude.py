@@ -3,16 +3,14 @@
 Leituras não reavaliam alertas (o sino é consultado a cada 15 s por pessoa conectada).
 Quem reavalia: cada execução, mudança de estado ou de orçamento, falha simulada e a vigia de 60 s."""
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
 from ..agents import ciclo
 from ..agents import modelos as am
 from ..agents.blueprint import Blueprint
 from ..core.db import sessao
-from ..core.identidade import Persona, usuario_atual
-from pydantic import BaseModel, Field
-
-from ..core.identidade import PERSONAS
+from ..core.identidade import PERSONAS, Persona, usuario_atual
 from ..observability import alertas, metricas, tratamento
 from ..processos import modelos as pm
 from ..processos.tipo import ciclo as ciclo_processos
@@ -23,6 +21,7 @@ rotas = APIRouter(prefix="/api/v1", tags=["saude"])
 
 
 def _dump(al: alertas.Alerta) -> dict:
+    """O alerta com o nome de quem está tratando (o que o cartão de Saúde mostra)."""
     return dict(al.model_dump(), tratando_nome=PERSONAS[al.tratando_por].nome if al.tratando_por in PERSONAS else None)
 
 
@@ -100,9 +99,7 @@ def conectores(_p: Persona = Depends(usuario_atual), s: Session = Depends(sessao
 
 def _publico(s: Session, al: alertas.Alerta, pessoa: Persona) -> dict:
     """O alerta como a tela o mostra: lido por mim, quem está tratando (nome) e a ação que o meu perfil pode executar."""
-    return dict(al.model_dump(), lido=pessoa.id in (al.lido_por or []),
-                tratando_nome=PERSONAS[al.tratando_por].nome if al.tratando_por in PERSONAS else None,
-                acao=tratamento.acao_para(s, al, pessoa))
+    return dict(_dump(al), lido=pessoa.id in (al.lido_por or []), acao=tratamento.acao_para(s, al, pessoa))
 
 
 @rotas.get("/alertas")

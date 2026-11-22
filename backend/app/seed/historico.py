@@ -58,7 +58,9 @@ def _passos(bp: Blueprint, est, custo_usd: float, status: str, motivo: str | Non
     return saida
 
 
-def gerar(s: Session, dias: int = 30, semente: int = 7) -> int:
+def gerar(s: Session, dias: int = 30, semente: int = 7, apenas: set[str] | None = None) -> int:
+    """Histórico sintético dos processos publicados (e dos agentes que rodam sozinhos). Com `apenas`, só o desses ids (o cenário
+    de alerta de um roteiro guiado, para o processo que a pessoa acabou de criar ao vivo)."""
     rnd = random.Random(semente)
     hoje = agora()
     criadas = []
@@ -75,6 +77,8 @@ def gerar(s: Session, dias: int = 30, semente: int = 7) -> int:
             continue
         v = s.get(am.VersaoAgente, "%s-v%d" % (a.id, a.versao_publicada))
         donos.append((a, Blueprint.model_validate(v.blueprint)))
+    if apenas is not None:
+        donos = [(a, bp) for a, bp in donos if a.id in apenas]
     for a, bp in donos:
         processo = isinstance(a, pm.Processo)
         est = estimar_custo(bp)
@@ -120,7 +124,8 @@ def gerar(s: Session, dias: int = 30, semente: int = 7) -> int:
         for e in criadas:
             s.add(e)
         s.commit()
-    trilha.registrar(s, "historico_demo_gerado", "sistema", dados={"execucoes": len(criadas), "dias": dias})
+    trilha.registrar(s, "historico_demo_gerado", "sistema", dados={"execucoes": len(criadas), "dias": dias,
+                                                                   **({"apenas": sorted(apenas)} if apenas is not None else {})})
     return len(criadas)
 
 

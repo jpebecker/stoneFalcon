@@ -3,7 +3,8 @@
 Um alerta pode ser ASSUMIDO por quem o recebe (ou pela Helena, que vê todos): fica "em tratamento · por X", com a nota e a
 hora, para todos os destinatários. Dá para devolver. O fechamento continua automático (a regra fecha quando a condição some) e
 guarda quem estava tratando. Cada regra oferece UMA ação primária, respeitando o perfil, que usa as mesmas funções das telas
-atuais (pausa de emergência, orçamento, provedor) e assume o alerta sozinha. Tudo vai para a trilha.
+atuais (pausa de emergência, orçamento, provedor, Saúde, a página do processo ou do agente) e assume o alerta sozinha. Alerta
+assumido por outra pessoa só tem ação para o CoE de IA, que então o assume no lugar dela. Tudo vai para a trilha.
 """
 from __future__ import annotations
 
@@ -36,22 +37,31 @@ def _nome(pessoa_id: str | None) -> str:
 
 
 def _ciclo(al: Alerta):
-    from ..agents.ciclo import _A as agentes
+    from ..agents.ciclo import ciclo as agentes
     from ..processos.tipo import ciclo as processos
     return processos if al.processo_id else agentes
 
 
+def _com_outra_pessoa(al: Alerta, pessoa: Persona) -> bool:
+    """O alerta está em tratamento por outra pessoa e `pessoa` não é do CoE de IA (que pode assumir no lugar)."""
+    return bool(al.tratando_por) and al.tratando_por != pessoa.id and not pessoa.tem(GESTOR_IA)
+
+
 # ---------- assumir e devolver ----------
-def assumir(s: Session, al: Alerta, pessoa: Persona, nota: str = "") -> Alerta:
+def assumir(s: Session, al: Alerta, pessoa: Persona, nota: str = "", tomar: bool = False) -> Alerta:
+    """Assume o alerta. Com `tomar` (só a ação do CoE de IA usa), assume no lugar de quem estava tratando; a trilha guarda quem era."""
     if al.resolvido_em:
         raise ErroTratamento("Este alerta já foi resolvido.")
-    if al.tratando_por and al.tratando_por != pessoa.id:
+    antes = al.tratando_por if al.tratando_por != pessoa.id else None
+    if antes and not tomar:
         raise ErroTratamento("Este alerta já está em tratamento por %s." % _nome(al.tratando_por))
     al.tratando_por, al.tratando_nota, al.tratando_desde = pessoa.id, (nota or "").strip()[:300] or None, agora().isoformat()
     s.add(al)
     s.commit()
-    trilha.registrar(s, "alerta_assumido", pessoa.id, _ref(al), {"alerta": al.id, "regra": al.regra, "nota": al.tratando_nota},
-                     dono_tipo=_dono_tipo(al))
+    dados = {"alerta": al.id, "regra": al.regra, "nota": al.tratando_nota}
+    if antes:
+        dados["tratando_antes"] = antes
+    trilha.registrar(s, "alerta_assumido", pessoa.id, _ref(al), dados, dono_tipo=_dono_tipo(al))
     s.refresh(al)
     return al
 
@@ -80,18 +90,17 @@ def _pode_pausar(s: Session, al: Alerta, pessoa: Persona) -> str | None:
     ciclo = _ciclo(al)
     try:
         a = ciclo.obter(s, ref)
-        ciclo._pode_operar(pessoa, a)
     except ErroCiclo:
         return None
     from ..agents import modelos as am
-    if a.estado != am.PUBLICADO:
+    if a.estado != am.PUBLICADO or not ciclo.pode_operar(pessoa, a):
         return None
-    return "processo" if al.processo_id else "agente"
+    return _dono_tipo(al)
 
 
 def acao_para(s: Session, al: Alerta, pessoa: Persona) -> dict | None:
     """A ação que `pessoa` pode executar neste alerta, ou None (quem não pode não vê o botão)."""
-    if al.resolvido_em:
+    if al.resolvido_em or _com_outra_pessoa(al, pessoa):
         return None
     r = al.regra
     if r in ("processo_falhando", "agente_falhando") or (r == "conector_fora" and not pessoa.tem(ENGENHARIA_PLATAFORMA)):
@@ -100,6 +109,10 @@ def acao_para(s: Session, al: Alerta, pessoa: Persona) -> dict | None:
             return {"id": "pausar", "rotulo": "Pausar o %s" % tipo, "pede": "motivo",
                     "ajuda": "A pausa de emergência também barra ações já pendentes."}
         return None
+    if r in ("processo_lento", "agente_lento") and _ref(al):
+        tipo = _dono_tipo(al)
+        return {"id": "abrir", "rotulo": "Abrir o %s" % tipo, "pede": None,
+                "rota": "/%s/%s" % ("processos" if tipo == "processo" else "agentes", _ref(al))}
     if r in ("conector_fora", "conector_lento"):
         return {"id": "abrir_sistema", "rotulo": "Abrir o sistema em Saúde", "pede": None, "rota": "/saude"}
     if r == "orcamento":
@@ -117,32 +130,33 @@ def acao_para(s: Session, al: Alerta, pessoa: Persona) -> dict | None:
 
 
 def executar_acao(s: Session, al: Alerta, pessoa: Persona, motivo: str = "", valor_brl: float | None = None) -> dict:
+    """Executa a ação de `acao_para` e assume o alerta. Tudo o que pode recusar é checado ANTES da ação, para nunca agir
+    e depois responder erro."""
+    if _com_outra_pessoa(al, pessoa):
+        raise ErroTratamento("Este alerta já está em tratamento por %s." % _nome(al.tratando_por))
     acao = acao_para(s, al, pessoa)
     if acao is None:
         raise ErroTratamento("Não há ação disponível para o seu perfil neste alerta.", 403)
-    if al.tratando_por and al.tratando_por != pessoa.id and not pessoa.tem(GESTOR_IA):
-        raise ErroTratamento("Este alerta já está em tratamento por %s." % _nome(al.tratando_por))
+    if acao["id"] == "revisar_orcamento" and valor_brl is None:
+        raise ErroTratamento("Informe o novo orçamento mensal.", 422)
     ciclo = _ciclo(al)
     resposta: dict = {"acao": acao["id"]}
     try:
         if acao["id"] == "pausar":
             ciclo.pausar(s, pessoa, _ref(al), (motivo or "").strip() or "Pausa de emergência pelo alerta: %s" % al.titulo)
         elif acao["id"] == "revisar_orcamento":
-            if valor_brl is None:
-                raise ErroTratamento("Informe o novo orçamento mensal.", 422)
             ciclo.definir_orcamento(s, pessoa, _ref(al), float(valor_brl))
         elif acao["id"] == "restaurar_provedor":
             pid = al.chave.split("::", 1)[-1]
             if pid in registro.PROVEDORES:
                 balanceador.marcar_fora(pid, False)
                 trilha.registrar(s, "provedor_normalizado", pessoa.id, None, {"provedor": pid})
-        elif acao["id"] == "abrir_sistema":
+        elif "rota" in acao:   # abrir o sistema em Saúde, abrir o processo ou o agente
             resposta["rota"] = acao["rota"]
     except ErroCiclo as e:
         raise ErroTratamento(str(e), e.status)
-    nota = "Ação: %s." % acao["rotulo"]
     if al.tratando_por != pessoa.id:
-        assumir(s, al, pessoa, nota)
+        assumir(s, al, pessoa, "Ação: %s." % acao["rotulo"], tomar=True)   # o CoE de IA pode ter agido no lugar de alguém
     trilha.registrar(s, "alerta_acao", pessoa.id, _ref(al), {"alerta": al.id, "regra": al.regra, "acao": acao["id"]},
                      dono_tipo=_dono_tipo(al))
     from . import avaliar_seguro

@@ -16,11 +16,11 @@ V1 = "/api/v1"
 
 # o que cada persona deve ver (regra, parte do título): coerente com o próprio perfil
 ESPERADO = {
-    "marina": ("conector_lento", "Cadastro"),
+    "marina": ("processo_lento", "Resposta a dúvidas de lojistas"),
     "rafael": ("processo_falhando", "Triagem de chargebacks"),
     "carla": ("orcamento", "Orientação de férias"),
     "thiago": ("conector_lento", "estoque"),
-    "lucas": ("conector_fora", "estado dos sistemas"),
+    "lucas": ("conector_fora", "transações"),
     "helena": ("orcamento", "Revisão mensal do custo de IA"),
 }
 
@@ -54,7 +54,7 @@ def test_nenhum_alerta_e_inserido_direto_todos_nascem_da_avaliacao(sessao):
     assert {a.id for a in abertos} <= set(eventos) and all(e.ator == "sistema" for e in eventos.values())
     assert alertas.avaliar(sessao)["abertos"] == []                      # a mesma regra, sobre o mesmo estado: nada novo
     # desfeito o estado, as regras fecham o que abriram (nada ficou "chumbado")
-    for cid in ("consultar_lojista", "consultar_estoque", "consultar_estado_sistemas"):
+    for cid in ("consultar_estoque", "listar_transacoes"):
         executor.definir_falha(sessao, cid, None, "lucas")
     fechados = alertas.avaliar(sessao)["resolvidos"]
     assert {a.id for a in abertos if a.regra.startswith("conector_")} <= set(fechados)
@@ -90,3 +90,27 @@ def test_api_do_sino_mostra_os_alertas_de_cada_persona(api, sessao):
     semear(sessao)
     for perfil in ESPERADO:
         assert api.get(f"{V1}/notificacoes/contagem", headers=como(perfil)).json()["nao_lidos"] >= 1, perfil
+
+
+def test_cada_cenario_toca_so_a_propria_persona(sessao):
+    """Ninguém recebe alerta de cenário de outra persona (a Helena vê todos, a Engenharia recebe os de sistema)."""
+    semear(sessao)
+    for perfil, (regra, trecho) in ESPERADO.items():
+        if perfil in ("helena", "lucas"):
+            continue
+        meus = [(a.regra, a.titulo) for a in alertas.visiveis(sessao, PERSONAS[perfil])]
+        assert len(meus) == 1 and meus[0][0] == regra and trecho.lower() in meus[0][1].lower(), (perfil, meus)
+
+
+def test_o_processo_do_lucas_segue_de_pe_para_triar_o_incidente(api, sessao):
+    semear(sessao)
+    pid = next(p["id"] for p in api.get(f"{V1}/processos", headers=como("lucas")).json() if p["nome"] == "Triagem de incidente de sistema")
+    r = api.post(f"{V1}/processos/{pid}/executar", json={"entrada": {"sistema": "Transações e contestações"}}, headers=como("lucas"))
+    assert r.status_code == 200, r.text
+    assert "CRÍTICO" in str(r.json())
+
+
+def test_a_moldagem_do_orcamento_e_do_sistema_nao_de_uma_pessoa(sessao):
+    semear(sessao)
+    moldados = [e for e in trilha.listar(sessao, tipo="orcamento_definido", limite=500) if (e.dados or {}).get("origem")]
+    assert moldados and all(e.ator == "sistema" for e in moldados)

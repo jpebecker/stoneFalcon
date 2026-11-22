@@ -38,14 +38,14 @@ def _eventos(s, tipo):
 
 # ---------------------------------------------------------------- 07: assumir
 def test_assumir_mostra_em_tratamento_para_todos_os_destinatarios_com_nota_e_hora(api, demo):
-    a = _alerta(api, "marina", "conector_lento", "Cadastro")
+    a = _alerta(api, "thiago", "conector_lento", "estoque")
     assert a["tratando_por"] is None
-    r = api.post(f"{V1}/alertas/{a['id']}/assumir", json={"nota": "Falei com a Engenharia, aguardando retorno."}, headers=como("marina"))
+    r = api.post(f"{V1}/alertas/{a['id']}/assumir", json={"nota": "Falei com a Engenharia, aguardando retorno."}, headers=como("thiago"))
     assert r.status_code == 200, r.text
-    assert r.json()["tratando_nome"] == "Marina Duarte" and r.json()["tratando_nota"].startswith("Falei") and r.json()["tratando_desde"]
+    assert r.json()["tratando_nome"] == "Thiago Moreira" and r.json()["tratando_nota"].startswith("Falei") and r.json()["tratando_desde"]
     # a Engenharia também recebe este alerta de sistema e vê quem está tratando
     visto = next(x for x in _meus(api, "lucas") if x["id"] == a["id"])
-    assert visto["tratando_por"] == "marina" and visto["tratando_nome"] == "Marina Duarte"
+    assert visto["tratando_por"] == "thiago" and visto["tratando_nome"] == "Thiago Moreira"
     # outro destinatário não toma o alerta de quem já assumiu
     assert api.post(f"{V1}/alertas/{a['id']}/assumir", json={}, headers=como("lucas")).status_code == 409
 
@@ -94,7 +94,7 @@ def _acao(api, perfil, alerta, **corpo):
 
 
 def test_cada_persona_tem_uma_acao_para_o_alerta_semeado_em_poucos_cliques(api, demo):
-    esperado = {"marina": ("conector_lento", "abrir_sistema"), "rafael": ("processo_falhando", "pausar"),
+    esperado = {"marina": ("processo_lento", "abrir"), "rafael": ("processo_falhando", "pausar"),
                 "carla": ("orcamento", "revisar_orcamento"), "thiago": ("conector_lento", "abrir_sistema"),
                 "lucas": ("conector_fora", "abrir_sistema"), "helena": ("orcamento", "revisar_orcamento")}
     for perfil, (regra, acao) in esperado.items():
@@ -129,9 +129,9 @@ def test_revisar_o_orcamento_pelo_alerta_fecha_o_alerta_quando_a_condicao_some(a
 
 
 def test_abrir_o_sistema_leva_para_a_saude_e_assume(api, sessao, demo):
-    a = _alerta(api, "marina", "conector_lento", "Cadastro")
-    r = _acao(api, "marina", a)
-    assert r.status_code == 200 and r.json()["rota"] == "/saude" and r.json()["alerta"]["tratando_por"] == "marina"
+    a = _alerta(api, "thiago", "conector_lento", "estoque")
+    r = _acao(api, "thiago", a)
+    assert r.status_code == 200 and r.json()["rota"] == "/saude" and r.json()["alerta"]["tratando_por"] == "thiago"
 
 
 def test_quem_nao_pode_nao_ve_o_botao_e_a_api_recusa(api, sessao, demo):
@@ -159,3 +159,33 @@ def test_restaurar_o_provedor_e_so_da_helena(api, sessao, demo):
     r = _acao(api, "helena", a)
     assert r.status_code == 200
     assert next(x for x in _meus(api, "helena", abertos=False) if x["id"] == a["id"])["resolvido_em"]
+
+
+# ---------------------------------------------------------------- revisão: alerta assumido por outra pessoa
+def test_a_helena_age_no_lugar_de_quem_assumiu_sem_responder_erro_depois_de_agir(api, sessao, demo):
+    a = _alerta(api, "rafael", "processo_falhando")
+    assert api.post(f"{V1}/alertas/{a['id']}/assumir", json={"nota": "Olhando."}, headers=como("rafael")).status_code == 200
+    como_helena = next(x for x in _meus(api, "helena") if x["id"] == a["id"])
+    assert como_helena["acao"]["id"] == "pausar"
+    r = _acao(api, "helena", a, motivo="Pausa pelo CoE.")
+    assert r.status_code == 200, r.text
+    assert r.json()["alerta"]["tratando_por"] == "helena"
+    assert sessao.get(pm.Processo, a["processo_id"]).estado == am.PAUSADO
+    tomado = [e for e in _eventos(sessao, "alerta_assumido") if e.dados["alerta"] == a["id"] and e.ator == "helena"]
+    assert tomado and tomado[0].dados["tratando_antes"] == "rafael"
+    assert [e for e in _eventos(sessao, "alerta_acao") if e.dados["alerta"] == a["id"] and e.ator == "helena"]
+
+
+def test_quem_nao_e_do_coe_nao_ve_a_acao_de_alerta_assumido_por_outra_pessoa_e_nada_e_executado(api, sessao, demo):
+    a = _alerta(api, "thiago", "conector_lento", "estoque")
+    assert api.post(f"{V1}/alertas/{a['id']}/assumir", json={}, headers=como("thiago")).status_code == 200
+    assert next(x for x in _meus(api, "lucas") if x["id"] == a["id"])["acao"] is None          # sem botão
+    assert _acao(api, "lucas", a).status_code == 409                                             # e a API recusa
+    assert not [e for e in _eventos(sessao, "alerta_acao") if e.dados["alerta"] == a["id"]]
+
+
+def test_processo_lento_tem_a_acao_de_abrir_o_processo(api, demo):
+    a = _alerta(api, "marina", "processo_lento")
+    assert a["acao"]["id"] == "abrir" and a["acao"]["rota"] == "/processos/" + a["processo_id"]
+    r = _acao(api, "marina", a)
+    assert r.status_code == 200 and r.json()["rota"] == "/processos/" + a["processo_id"] and r.json()["alerta"]["tratando_por"] == "marina"

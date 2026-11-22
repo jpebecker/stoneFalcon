@@ -12,13 +12,17 @@ function Tratamento({ a, pessoa }: { a: Alerta; pessoa: Persona }) {
   const qc = useQueryClient();
   const navegar = useNavigate();
   const [aberto, setAberto] = useState<"assumir" | "acao" | null>(null);
-  const [nota, setNota] = useState("");
+  const [nota, setNota] = useState("");       // a nota de quem assume
+  const [motivo, setMotivo] = useState("");   // o motivo da pausa (ação), separado da nota
   const [valor, setValor] = useState("");
-  const atualizar = () => { qc.invalidateQueries({ queryKey: ["alertas"] }); qc.invalidateQueries({ queryKey: ["notificacoes"] }); qc.invalidateQueries({ queryKey: ["saude-agentes"] }); qc.invalidateQueries({ queryKey: ["processos"] }); setAberto(null); setNota(""); };
+  const atualizar = () => {
+    for (const k of ["alertas", "notificacoes", "saude-agentes", "processos"]) qc.invalidateQueries({ queryKey: [k] });
+    setAberto(null); setNota(""); setMotivo(""); setValor("");
+  };
   const assumir = useMutation({ mutationFn: () => api(`/alertas/${a.id}/assumir`, { nota }), onSuccess: atualizar });
   const devolver = useMutation({ mutationFn: () => api(`/alertas/${a.id}/devolver`, {}), onSuccess: atualizar });
   const executar = useMutation({
-    mutationFn: () => api<{ rota?: string }>(`/alertas/${a.id}/acao`, { motivo: nota, valor_brl: valor ? Number(valor.replace(",", ".")) : null }),
+    mutationFn: () => api<{ rota?: string }>(`/alertas/${a.id}/acao`, { motivo, valor_brl: valor ? Number(valor.replace(",", ".")) : null }),
     onSuccess: (r) => { atualizar(); if (r.rota) navegar(r.rota); },
   });
   if (a.resolvido_em) return null;
@@ -54,7 +58,7 @@ function Tratamento({ a, pessoa }: { a: Alerta; pessoa: Persona }) {
           {acao.pede === "motivo" && (
             <label className="min-w-[260px] flex-1">
               <span className="rotulo">Motivo da pausa (opcional)</span>
-              <input className="campo" maxLength={500} value={nota} onChange={(e) => setNota(e.target.value)} placeholder={acao.ajuda ?? ""} />
+              <input className="campo" maxLength={500} value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder={acao.ajuda ?? ""} />
             </label>
           )}
           {acao.pede === "valor_brl" && (
@@ -75,7 +79,8 @@ function Tratamento({ a, pessoa }: { a: Alerta; pessoa: Persona }) {
 export default function Alertas({ pessoa }: { pessoa: Persona }) {
   const qc = useQueryClient();
   const [filtro, setFiltro] = useState<Filtro>("abertos");
-  const q = useQuery({ queryKey: ["alertas", filtro !== "abertos" && filtro !== "tratamento"], queryFn: () => api<Alerta[]>("/alertas?abertos=" + (filtro !== "todos")), refetchInterval: 15000 });
+  const soAbertos = filtro !== "todos";   // "em tratamento" filtra os abertos aqui na tela
+  const q = useQuery({ queryKey: ["alertas", soAbertos], queryFn: () => api<Alerta[]>("/alertas?abertos=" + soAbertos), refetchInterval: 15000 });
   const ler = useMutation({
     mutationFn: (id: string) => api(`/alertas/${id}/lido`, {}),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["alertas"] }); qc.invalidateQueries({ queryKey: ["notificacoes"] }); },

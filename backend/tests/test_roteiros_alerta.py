@@ -44,7 +44,10 @@ def test_o_passo_prepara_o_cenario_e_a_persona_trata_o_alerta(api, persona):
     assert api.post(f"{V1}/roteiros/{persona}/alerta", headers=como(persona)).json()["abertos"] == []   # repetir não duplica
     meus = [a for a in api.get(f"{V1}/alertas", headers=como(persona)).json() if a["acao"]]
     assert meus and api.get(f"{V1}/notificacoes/contagem", headers=como(persona)).json()["nao_lidos"] >= 1
-    a = meus[0]
+    from tests.test_alertas_demo import ESPERADO          # o roteiro conta a MESMA história do estado inicial
+    regra, trecho = ESPERADO[persona]
+    assert any(x["regra"] == regra and trecho.lower() in x["titulo"].lower() for x in meus), [(x["regra"], x["titulo"]) for x in meus]
+    a = next(x for x in meus if x["regra"] == regra)
     corpo = {"valor_brl": 500.0} if a["acao"]["pede"] == "valor_brl" else {}
     ok = api.post(f"{V1}/alertas/{a['id']}/acao", json=corpo, headers=como(persona))
     assert ok.status_code == 200, ok.text

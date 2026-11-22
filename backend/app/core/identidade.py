@@ -82,7 +82,7 @@ PERSONAS = {p.id: p for p in [
        descricao="Troca de maquininha: cadastro, regra e estoque em paralelo."),
     _p("lucas", "Lucas Prado", "engenharia", "Engenharia de Plataforma", "Engenheiro de segurança",
        Classificacao.CONFIDENCIAL, CRIADOR, REVISOR_SEGURANCA, ENGENHARIA_PLATAFORMA, matricula="C605", cor="#6B5BD0",
-       roteiro="lucas", descricao="Governa o catálogo, revisa só os agentes de risco alto e triagem os incidentes de sistema."),
+       roteiro="lucas", descricao="Governa o catálogo, revisa só os agentes de risco alto e faz a triagem dos incidentes de sistema."),
     _p("helena", "Helena Castro", "gestao", "CoE de IA", "Gestora do CoE de IA",
        Classificacao.INTERNA, CRIADOR, GESTOR_IA, ANALISTA_IA, matricula="C606", cor="#10201A", roteiro="helena",
        descricao="Prova o retorno e controla o custo da IA na empresa, com a revisão mensal do custo."),

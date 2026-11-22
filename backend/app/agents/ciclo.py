@@ -236,8 +236,12 @@ class Ciclo:
         return [(self.obter(s, getattr(v, self.t.fk)), v) for v in vs]
 
     # ---------- operação ----------
+    def pode_operar(self, p: Persona, a) -> bool:
+        """Pode pausar, retomar e operar `a`: o dono, um criador da área, o CoE de IA ou a Segurança."""
+        return p.id == a.dono or (p.tem(CRIADOR) and p.area == a.area) or p.tem(GESTOR_IA) or p.tem(REVISOR_SEGURANCA)
+
     def _pode_operar(self, p: Persona, a) -> None:
-        if not (p.id == a.dono or (p.tem(CRIADOR) and p.area == a.area) or p.tem(GESTOR_IA) or p.tem(REVISOR_SEGURANCA)):
+        if not self.pode_operar(p, a):
             raise ErroCiclo("Seu perfil não pode mudar o estado deste %s." % self.r, 403)
 
     def pausar(self, s: Session, p: Persona, dono_id: str, motivo: str = ""):
@@ -318,6 +322,7 @@ class Ciclo:
 
 # ---------- o ciclo do AGENTE (a API de sempre) ----------
 _A = Ciclo(TIPO_AGENTE)
+ciclo = _A   # o objeto Ciclo do agente, para quem trata agente e processo do mesmo jeito (ex.: observability/tratamento.py)
 obter, versao, versoes, blueprint_publicado = _A.obter, _A.versao, _A.versoes, _A.blueprint_publicado
 pode_ver, pode_executar = _A.pode_ver, _A.pode_executar
 criar, editar, publicar, revisar, pendentes_revisao = _A.criar, _A.editar, _A.publicar, _A.revisar, _A.pendentes_revisao
