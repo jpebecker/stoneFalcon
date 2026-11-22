@@ -5,7 +5,7 @@ histórico sintético de execuções e o orçamento de um processo) e depois rod
 60 segundos usa. Por isso os alertas abrem, atualizam e fecham sozinhos como qualquer outro, e aparecem na trilha.
 
   Marina  — "Cadastro de lojistas" lento: o processo de dúvidas depende dele
-  Rafael  — a triagem de chargebacks falhando (4 das últimas 10 execuções escaladas)
+  Rafael  — a triagem de chargebacks falhando (4 das últimas 10 execuções escaladas: o agente não concluiu)
   Carla   — orçamento do processo de férias a ≈ 88%
   Thiago  — o estoque lento: o processo de trocas consulta o estoque do modelo
   Lucas   — o estado dos sistemas fora do ar: o processo de incidentes depende dele
@@ -46,13 +46,15 @@ def _falhando(s: Session, p: pm.Processo) -> None:
                    .order_by(rm.Execucao.inicio.desc()).limit(alertas.JANELA_EXECUCOES)).all()
     if len(execs) < alertas.MIN_EXECUCOES:
         return
-    motivo = "Levantar contestações da semana: O sistema respondeu com erro 500."
+    motivo = "O agente não concluiu em 6 tentativas."      # o mesmo motivo que o histórico sintético já usa
     from ..agents.blueprint import Blueprint
     for i in range(ESCALADAS_NA_JANELA):
         e = execs[min(i * 2 + 1, len(execs) - 1)]
         bp = Blueprint.model_validate(e.blueprint)
         e.status, e.motivo, e.resultado = rm.ESCALADA, motivo, None
         e.custo_usd = round(e.custo_usd * 0.4, 8)
+        e.custo_tudo_forte_usd = round(e.custo_tudo_forte_usd * 0.4, 8)
+        e.por_modelo = {k: {**v, "custo_usd": round(v["custo_usd"] * 0.4, 8)} for k, v in (e.por_modelo or {}).items()}
         e.passos = _passos(bp, estimar_custo(bp), e.custo_usd, rm.ESCALADA, motivo)
         s.add(e)
     s.commit()
@@ -83,6 +85,23 @@ def _orcamento_a_88(s: Session, p: pm.Processo, quem: str) -> None:
     s.add(p)
     s.commit()
     trilha.registrar(s, "orcamento_definido", quem, p.id, {"de": anterior, "para": p.orcamento_mensal_brl}, dono_tipo="processo")
+
+
+def moldar_persona(s: Session, persona: str) -> dict:
+    """O passo "veja e trate o seu alerta" de um roteiro guiado: molda SÓ o estado que leva a persona a ter um alerta (o roteiro
+    começa limpo) e roda as regras. É idempotente: repetir não abre alerta novo. O Lucas não precisa: o roteiro dele já tem a
+    falha de sistema que gera o alerta."""
+    if persona == "marina":
+        executor.definir_falha(s, "consultar_lojista", "lento", "sistema")
+    elif persona == "rafael":
+        executor.definir_falha(s, "listar_chargebacks", "lento", "sistema")
+    elif persona == "thiago":
+        executor.definir_falha(s, "consultar_estoque", "lento", "sistema")
+    elif persona in ("carla", "helena"):
+        p = _processo(s, "ferias" if persona == "carla" else "custo_ia")
+        if p is not None and p.orcamento_mensal_brl and gasto_no_mes(s, p.id, "processo") / p.orcamento_mensal_brl < alertas.ORCAMENTO_ATENCAO:
+            _orcamento_a_88(s, p, PERSONAS["helena"].id)
+    return alertas.avaliar(s)
 
 
 def moldar(s: Session) -> dict:

@@ -188,7 +188,9 @@ def test_agente_inexistente_de_outra_area_ou_de_varios_passos(api, sessao):
 
 
 # ---------- permissões ----------
-def test_so_criadores_da_area_editam_e_a_api_confere(api, sessao):
+def test_so_criadores_da_area_editam_e_a_api_confere(api, sessao, monkeypatch):
+    from tests.conftest import sem_criador
+    sem_criador(monkeypatch, "helena", "lucas")
     a = agente_publicado(sessao)
     corpo = fluxo(a)
     assert api.post("/api/v1/processos", json={"blueprint": corpo}, headers=como("helena")).status_code == 403

@@ -100,6 +100,8 @@ def test_validar_mostra_ferramenta_sem_permissao(api):
     assert "listar_chargebacks" in v["sem_permissao"] and v["risco"]["exige_revisao_seguranca"]
 
 
-def test_so_criadores_usam_o_estudio(api):
+def test_so_criadores_usam_o_estudio(api, monkeypatch):
+    from tests.conftest import sem_criador
+    sem_criador(monkeypatch, "helena")
     r = api.post("/api/v1/estudio/sugerir", headers=como("helena"), json={"descricao": "x" * 20})
     assert r.status_code == 403

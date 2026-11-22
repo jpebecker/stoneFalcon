@@ -31,8 +31,13 @@ export function ProvedorRoteiro({ trocar, children }: { trocar: (id: string | nu
     definirRoteiro({ id: roteiro.id, passo: n, ctx: est?.id === roteiro.id ? est.ctx : {} });
     if (perfilAtual() !== passo.perfil) trocar(passo.perfil);
     if (passo.externa) return;
+    if (passo.preenche?.cenario_alerta) {   // "veja e trate o seu alerta": deixa o estado que faz a regra real abrir o alerta
+      try { await api(`/roteiros/${roteiro.id}/alerta`, {}); } catch { /* sem cenário: abre a tela mesmo assim */ }
+      qc.invalidateQueries({ queryKey: ["alertas"] });
+      qc.invalidateQueries({ queryKey: ["notificacoes"] });
+    }
     navegar(await resolverRota(passo.rota));
-  }, [navegar, trocar]);
+  }, [navegar, qc, trocar]);
 
   const iniciar = useCallback(async (roteiroId: string, personaId: string) => {
     trocar(personaId);                             // entra como a persona do roteiro (atualiza a tela e os cabeçalhos)

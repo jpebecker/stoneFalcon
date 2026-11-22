@@ -91,7 +91,7 @@ def gerar(s: Session, dias: int = 30, semente: int = 7) -> int:
                 sorteio = rnd.random()
                 if ruim and sorteio < 0.45:
                     status, motivo = rm.ESCALADA, "Levantar contestações da semana: O sistema respondeu com erro 500."
-                elif sorteio < 0.06 and d > 3:   # últimos dias saudáveis: a demo começa sem alerta
+                elif sorteio < 0.06 and d > 7:   # a última semana é saudável (as 10 últimas execuções de um processo de pouco volume cobrem dias): a demo começa sem alerta, e só as regras de alertas_demo.py o estragam
                     status, motivo = rm.ESCALADA, "O agente não concluiu em 6 tentativas."
                 else:
                     status, motivo = rm.CONCLUIDA, None

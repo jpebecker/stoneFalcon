@@ -22,7 +22,7 @@ def _limpo():
 
 @pytest.fixture()
 def demo(sessao):
-    semear(sessao)
+    semear(sessao, alertas=False)      # estado limpo: sem o sistema lento e o monitor fora do cenário de alertas
 
 
 def _processo(api, perfil, nome):

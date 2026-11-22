@@ -36,7 +36,7 @@ def _nome(pessoa_id: str | None) -> str:
 
 
 def _ciclo(al: Alerta):
-    from ..agents import ciclo as agentes
+    from ..agents.ciclo import _A as agentes
     from ..processos.tipo import ciclo as processos
     return processos if al.processo_id else agentes
 

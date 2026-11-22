@@ -16,8 +16,8 @@ Seis pessoas fictícias, entradas pelo login simulado (tela “Quem é você hoj
 | Rafael Lima | Prevenção a Fraudes | Analista de risco | restrita | criador, curador |
 | Carla Nogueira | Pessoas (RH) | Business partner de RH | confidencial | criador, curador, consulta de colaboradores |
 | Thiago Moreira | Logística | Analista de operações | interna | criador, curador |
-| Lucas Prado | Engenharia de Plataforma | Engenheiro de segurança | confidencial | revisor de segurança, engenharia |
-| Helena Castro | CoE de IA | Gestora do CoE de IA | interna | gestor de IA, analista de IA |
+| Lucas Prado | Engenharia de Plataforma | Engenheiro de segurança | confidencial | criador, revisor de segurança, engenharia |
+| Helena Castro | CoE de IA | Gestora do CoE de IA | interna | criador, gestor de IA, analista de IA |
 
 Todos têm também o papel `usuario` (executa o que foi publicado e a que tem acesso).
 
@@ -45,7 +45,7 @@ Decidida no back (`ABAS` em `identidade.py`); o front só lê (`abas` em `/api/v
 | Perguntas da Ferramenta (Alt + B) | | | | | | ✔ |
 | Mapa de IA | | | | | | ✔ |
 | Plugins | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ |
-| Estúdio | ✔ | ✔ | ✔ | ✔ | | |
+| Estúdio | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ |
 | Agentes | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ |
 | Processos | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ |
 | Revisões | | | | | ✔ | |
@@ -57,7 +57,8 @@ Decidida no back (`ABAS` em `identidade.py`); o front só lê (`abas` em `/api/v
 
 Regras além das abas:
 
-- **Processos:** todos veem; só criadores da área criam e editam; executar exige a área e o nível.
+- **Processos:** todos veem; só criadores da área criam e editam; executar exige a área e o nível. Na 8.1 o Lucas e a Helena também são criadores (cada um tem o seu processo na demo); ninguém aprova o próprio risco alto.
+- **Alertas:** vê o alerta quem é destinatário (dono, Engenharia no caso de sistema) e a Helena, que vê todos; **assumir** é só de quem vê (os demais recebem 404); **devolver** é de quem assumiu ou da Helena; a **ação** da regra só aparece para quem pode executá-la (pausar: quem opera o processo; revisar o orçamento: o dono ou a Helena; restaurar o provedor: a Helena; abrir o sistema em Saúde: quem recebe o alerta).
 - **Arquivos e Planilhas:** ler e escrever exige a **área e o nível** do arquivo; escrita em arquivo confidencial ou restrito espera a confirmação de uma pessoa.
 - **Crie o seu plugin:** só criadores e Engenharia (os demais recebem 403).
 - **Decidir pedido de plugin:** Helena; Lucas quando o dado é confidencial ou restrito; ninguém decide o próprio pedido.
@@ -82,6 +83,7 @@ Regras além das abas:
 - **RF-14** Toda versão de risco alto passa pela revisão da Segurança, feita por alguém que não é o autor.
 - **RF-15** Segurança e CoE pausam qualquer agente na hora (botão de emergência), inclusive barrando ações já pendentes.
 - **RF-16** Agentes antigos de vários passos continuam rodando, em leitura, e podem ser convertidos em processo.
+- **RF-17** A galeria do Estúdio oferece padrões “trabalhador + processo” por persona (Marina, Rafael, Carla, Thiago, Lucas e Helena); escolher um abre o trabalhador de um passo e o processo pronto para montar. Os padrões vêm do catálogo único da demo (`seed/catalogo.py`).
 
 ### 3.3 Processos
 
@@ -129,7 +131,10 @@ Regras além das abas:
 ### 3.8 Saúde, alertas e auditoria
 
 - **RF-70** Métricas e nota de saúde por agente, por sistema integrado e por provedor.
-- **RF-71** Alertas automáticos ao responsável, sem configuração: agente falhando, agente lento, sistema fora, sistema lento, orçamento e provedor fora. Cada alerta abre uma vez e fecha sozinho quando a condição some.
+- **RF-71** Alertas automáticos ao responsável, sem configuração, para **agentes que rodam sozinhos e para processos**: falhando, lento, sistema fora, sistema lento, orçamento (80% atenção, 100% corte) e provedor fora. O alerta de processo vai ao dono (e à Engenharia, no caso de sistema), vale uma vez por processo (não por trabalhador) e leva a “Abrir o processo”. Cada alerta abre uma vez e fecha sozinho quando a condição some; abertura e fechamento ficam na trilha.
+- **RF-75** Tratar o alerta: quem o recebe pode **assumi-lo** com uma nota curta (“em tratamento · por X”, com nota e hora, para todos os destinatários) e **devolvê-lo**; o alerta resolvido sozinho guarda quem estava tratando. Assumir, devolver e a ação ficam na trilha.
+- **RF-76** Cada regra de alerta tem uma **ação primária** que respeita o perfil e usa as mesmas funções das telas atuais (pausa de emergência, orçamento, abrir o sistema em Saúde, restaurar o provedor); executá-la assume o alerta.
+- **RF-77** Estado inicial da demo: cada uma das seis personas entra com ao menos um alerta aberto pelas regras reais (estado de sistema, histórico e orçamento moldados; nenhum alerta é inserido direto). Os roteiros guiados começam sem alertas e trazem o passo “veja e trate o seu alerta”.
 - **RF-72** Trilha de auditoria encadeada por hash cobrindo criação, modificação, revisão, execução, escalada, aprovação, plugins, rotinas e depreciação; alterar ou apagar uma linha quebra a cadeia e a verificação aponta onde.
 - **RF-73** Guardrails silenciosos: CPF, CNPJ, cartão, e-mail, telefone e segredos viram marcadores antes de qualquer modelo e antes da auditoria; o dado real volta só na tela de quem perguntou, e só para sistema cuja classificação cobre a do dado.
 - **RF-74** Conteúdo externo com cara de instrução (injeção) é sinalizado e entregue ao modelo como dado, não como ordem.

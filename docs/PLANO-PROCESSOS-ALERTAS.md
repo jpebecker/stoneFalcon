@@ -20,15 +20,15 @@ Base: `main` em `d7b7beb` (v8 + roda do login, versão 8.0.0). Um ticket = um co
 
 | # | Ticket | Bloqueado por | Status |
 |---|---|---|---|
-| 01 | Prefatoração: uma fonte única da demo por persona | — | ready-for-agent |
-| 02 | Galeria v8 do Estúdio no lugar dos padrões legados | 01 | ready-for-agent |
-| 03 | Processo de demonstração do Lucas | 01 | ready-for-agent |
-| 04 | Processo de demonstração da Helena | 01 | ready-for-agent |
-| 05 | Alertas entendem processos | — | ready-for-agent |
-| 06 | Alertas de demonstração por persona no estado inicial | 03, 04, 05 | ready-for-agent |
-| 07 | Assumir o alerta | 05 | ready-for-agent |
-| 08 | Ação de tratamento por regra | 06, 07 | ready-for-agent |
-| 09 | Versão 8.1.0, docs e roteiros | 02, 08 | ready-for-agent |
+| 01 | Prefatoração: uma fonte única da demo por persona | — | done |
+| 02 | Galeria v8 do Estúdio no lugar dos padrões legados | 01 | done |
+| 03 | Processo de demonstração do Lucas | 01 | done |
+| 04 | Processo de demonstração da Helena | 01 | done |
+| 05 | Alertas entendem processos | — | done |
+| 06 | Alertas de demonstração por persona no estado inicial | 03, 04, 05 | done |
+| 07 | Assumir o alerta | 05 | done |
+| 08 | Ação de tratamento por regra | 06, 07 | done |
+| 09 | Versão 8.1.0, docs e roteiros | 02, 08 | done |
 
 Fronteira inicial: **01** e **05**.
 
@@ -43,13 +43,13 @@ continuam cobrindo o caminho legado (recusa 422, só leitura, "Converter em proc
 
 **Bloqueado por:** nenhum (pode começar já).
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Um catálogo por persona com chave estável, usado pelo seed, pelos roteiros e pelo Estúdio.
-- [ ] Nenhum módulo da aplicação importa blueprint de vários passos; eles existem só como fixture de teste.
-- [ ] Os testes de contrato legado (recusa, só leitura, conversão) continuam verdes usando a fixture.
-- [ ] Banco semeado antes e depois é equivalente (mesmos agentes, processos, arquivos e histórico).
-- [ ] `pytest` e `npm run build` verdes.
+- [x] Um catálogo por persona com chave estável, usado pelo seed, pelos roteiros e pelo Estúdio.
+- [x] Nenhum módulo da aplicação importa blueprint de vários passos; eles existem só como fixture de teste.
+- [x] Os testes de contrato legado (recusa, só leitura, conversão) continuam verdes usando a fixture.
+- [x] Banco semeado antes e depois é equivalente (mesmos agentes, processos, arquivos e histórico).
+- [x] `pytest` e `npm run build` verdes.
 
 # 02: Galeria v8 do Estúdio no lugar dos padrões legados
 
@@ -61,13 +61,13 @@ vêm dos processos.
 
 **Bloqueado por:** 01
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Nenhum padrão da galeria tem mais de um passo; nenhum dispara o aviso "legado".
-- [ ] Um padrão para cada persona que cria (Marina, Rafael, Carla, Thiago), mais os de Lucas e Helena quando 03 e 04 entrarem.
-- [ ] Descrições de exemplo de cada padrão ainda caem no padrão certo no modo simulado (teste por padrão).
-- [ ] `agentes-exemplo` removido da API e de quem o chamava; medição dos roteiros com os mesmos números AS IS × TO BE.
-- [ ] Roteiros de Marina, Rafael, Carla, Thiago e o pitch passam de ponta a ponta.
+- [x] Nenhum padrão da galeria tem mais de um passo; nenhum dispara o aviso "legado".
+- [x] Um padrão para cada persona que cria (Marina, Rafael, Carla, Thiago), mais os de Lucas e Helena quando 03 e 04 entrarem.
+- [x] Descrições de exemplo de cada padrão ainda caem no padrão certo no modo simulado (teste por padrão).
+- [x] `agentes-exemplo` removido da API e de quem o chamava; medição dos roteiros com os mesmos números AS IS × TO BE.
+- [x] Roteiros de Marina, Rafael, Carla, Thiago e o pitch passam de ponta a ponta.
 
 # 03: Processo de demonstração do Lucas
 
@@ -78,12 +78,12 @@ e em Finanças, com histórico sintético coerente.
 
 **Bloqueado por:** 01
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Trabalhador (um passo) e processo publicados pelo ciclo de vida real, com dono Lucas e auditoria íntegra.
-- [ ] Executável pelo Lucas em ≤ 3 cliques no modo simulado; quem não tem a área ou o nível é barrado e auditado.
-- [ ] Aparece no Mapa de IA (camada processos) e em Finanças por processo, com histórico de 30 dias.
-- [ ] "Reiniciar a demo" o recria.
+- [x] Trabalhador (um passo) e processo publicados pelo ciclo de vida real, com dono Lucas e auditoria íntegra.
+- [x] Executável pelo Lucas em ≤ 3 cliques no modo simulado; quem não tem a área ou o nível é barrado e auditado.
+- [x] Aparece no Mapa de IA (camada processos) e em Finanças por processo, com histórico de 30 dias.
+- [x] "Reiniciar a demo" o recria.
 
 # 04: Processo de demonstração da Helena
 
@@ -93,12 +93,12 @@ aviso. Mesma visibilidade do 03.
 
 **Bloqueado por:** 01
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Trabalhador e processo publicados pelo ciclo real, dono Helena, auditoria íntegra.
-- [ ] Executável pela Helena em ≤ 3 cliques; resultado cita números das execuções.
-- [ ] Aparece no Mapa de IA e em Finanças, com histórico de 30 dias.
-- [ ] "Reiniciar a demo" o recria.
+- [x] Trabalhador e processo publicados pelo ciclo real, dono Helena, auditoria íntegra.
+- [x] Executável pela Helena em ≤ 3 cliques; resultado cita números das execuções.
+- [x] Aparece no Mapa de IA e em Finanças, com histórico de 30 dias.
+- [x] "Reiniciar a demo" o recria.
 
 # 05: Alertas entendem processos
 
@@ -109,13 +109,13 @@ usado por um bloco do processo. O alerta vai ao dono do processo (e à Engenhari
 
 **Bloqueado por:** nenhum (pode começar já).
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Processo com ≥ 30% das últimas execuções escaladas abre "falhando"; volta ao normal e o alerta fecha sozinho.
-- [ ] Orçamento do processo a 80% abre atenção; a 100% abre crítico e as novas execuções são bloqueadas como hoje.
-- [ ] Sistema fora usado por um bloco do processo alerta o dono do processo e a Engenharia, sem duplicar por trabalhador.
-- [ ] Tela de Alertas e o sino mostram o alerta de processo com link "Abrir o processo"; Saúde conta o alerta na nota.
-- [ ] Abertura e fechamento ficam na trilha.
+- [x] Processo com ≥ 30% das últimas execuções escaladas abre "falhando"; volta ao normal e o alerta fecha sozinho.
+- [x] Orçamento do processo a 80% abre atenção; a 100% abre crítico e as novas execuções são bloqueadas como hoje.
+- [x] Sistema fora usado por um bloco do processo alerta o dono do processo e a Engenharia, sem duplicar por trabalhador.
+- [x] Tela de Alertas e o sino mostram o alerta de processo com link "Abrir o processo"; Saúde conta o alerta na nota.
+- [x] Abertura e fechamento ficam na trilha.
 
 # 06: Alertas de demonstração por persona no estado inicial
 
@@ -127,13 +127,13 @@ os roteiros guiados continuam começando limpos.
 
 **Bloqueado por:** 03, 04, 05
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Logo após semear, cada persona vê ≥ 1 alerta não lido no sino, coerente com o próprio perfil.
-- [ ] Nenhum alerta é inserido direto: todos nascem de `avaliar` sobre o estado semeado.
-- [ ] "Reiniciar a demo" volta ao mesmo conjunto de alertas.
-- [ ] Iniciar um roteiro guiado zera esses alertas e o roteiro do Lucas (sistema fora → alerta → pausa) segue igual.
-- [ ] O histórico continua marcado como demonstração nas telas.
+- [x] Logo após semear, cada persona vê ≥ 1 alerta não lido no sino, coerente com o próprio perfil.
+- [x] Nenhum alerta é inserido direto: todos nascem de `avaliar` sobre o estado semeado.
+- [x] "Reiniciar a demo" volta ao mesmo conjunto de alertas.
+- [x] Iniciar um roteiro guiado zera esses alertas e o roteiro do Lucas (sistema fora → alerta → pausa) segue igual.
+- [x] O histórico continua marcado como demonstração nas telas.
 
 # 07: Assumir o alerta
 
@@ -143,12 +143,12 @@ automático quando a condição some.
 
 **Bloqueado por:** 05
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Só destinatário (ou a Helena, que vê todos) assume; os demais recebem 404/403.
-- [ ] Estado "em tratamento" visível na tela de Alertas, no filtro e no detalhe de Saúde.
-- [ ] Assumir e devolver ficam na auditoria com quem, quando e a nota.
-- [ ] Alerta resolvido sozinho guarda quem estava tratando.
+- [x] Só destinatário (ou a Helena, que vê todos) assume; os demais recebem 404/403.
+- [x] Estado "em tratamento" visível na tela de Alertas, no filtro e no detalhe de Saúde.
+- [x] Assumir e devolver ficam na auditoria com quem, quando e a nota.
+- [x] Alerta resolvido sozinho guarda quem estava tratando.
 
 # 08: Ação de tratamento por regra
 
@@ -158,12 +158,12 @@ restaurar o provedor (queda de provedor, Helena). Executar a ação assume o ale
 
 **Bloqueado por:** 06, 07
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Cada regra tem uma ação primária; quem não pode executá-la não vê o botão.
-- [ ] A ação usa as mesmas funções das telas atuais (pausa de emergência, orçamento, sistema, provedor).
-- [ ] Depois da ação o alerta fica "em tratamento" e fecha sozinho quando a condição some.
-- [ ] Para cada persona, o alerta semeado no 06 tem uma ação que ela consegue concluir em ≤ 3 cliques.
+- [x] Cada regra tem uma ação primária; quem não pode executá-la não vê o botão.
+- [x] A ação usa as mesmas funções das telas atuais (pausa de emergência, orçamento, sistema, provedor).
+- [x] Depois da ação o alerta fica "em tratamento" e fecha sozinho quando a condição some.
+- [x] Para cada persona, o alerta semeado no 06 tem uma ação que ela consegue concluir em ≤ 3 cliques.
 
 # 09: Versão 8.1.0, docs e roteiros
 
@@ -173,9 +173,9 @@ mudança dos documentos para `docs/` são corrigidos; o roteiro de cada persona 
 
 **Bloqueado por:** 02, 08
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `scripts/verifica_versao.py` verde com 8.1.0 (API, front, extensão, pyproject).
-- [ ] Nenhum link para `PLAN-V8.md` ou documentos da raiz que não existem mais.
-- [ ] "Novidades da 8.1" no LEIA-ME; matriz de acesso atualizada com assumir e tratar alerta.
-- [ ] Os seis roteiros têm o passo de alerta e passam de ponta a ponta no modo simulado.
+- [x] `scripts/verifica_versao.py` verde com 8.1.0 (API, front, extensão, pyproject).
+- [x] Nenhum link para `PLAN-V8.md` ou documentos da raiz que não existem mais.
+- [x] "Novidades da 8.1" no LEIA-ME; matriz de acesso atualizada com assumir e tratar alerta.
+- [x] Os seis roteiros têm o passo de alerta e passam de ponta a ponta no modo simulado.

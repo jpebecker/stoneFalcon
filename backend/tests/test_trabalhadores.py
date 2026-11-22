@@ -66,7 +66,9 @@ def test_transformar_em_processo_cria_trabalhadores_rascunho_e_devolve_o_fluxo_d
     assert t["status"] == "concluida"
 
 
-def test_so_criador_transforma_em_processo(api):
+def test_so_criador_transforma_em_processo(api, monkeypatch):
+    from tests.conftest import sem_criador
+    sem_criador(monkeypatch, "helena")
     assert api.post(f"{V1}/estudio/em-processo", json={"blueprint": DUVIDA_LOJISTA.model_dump()}, headers=como("helena")).status_code == 403
 
 

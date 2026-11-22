@@ -3,11 +3,11 @@ import pytest
 
 from app.api import extensao
 from app.core.identidade import PERSONAS
-from tests.conftest import como
+from tests.conftest import como, sem_criador
 
 V1 = "/api/v1/extensao"
-CRIADORES = ["marina", "rafael", "carla", "thiago"]
-SEM_ESTUDIO = ["helena", "lucas"]
+CRIADORES = ["marina", "rafael", "carla", "thiago", "lucas", "helena"]   # v8.1: todos criam
+SEM_ESTUDIO = ["helena", "lucas"]            # os que perdem o papel nos testes de "quem não cria"
 
 
 @pytest.fixture(autouse=True)
@@ -41,7 +41,8 @@ def test_criador_emite_e_troca_o_passe_uma_vez(api, perfil):
 
 
 @pytest.mark.parametrize("perfil", SEM_ESTUDIO)
-def test_quem_nao_cria_agentes_nao_recebe_passe(api, perfil):
+def test_quem_nao_cria_agentes_nao_recebe_passe(api, perfil, monkeypatch):
+    sem_criador(monkeypatch, perfil)
     assert api.post(f"{V1}/passe", json={}, headers=como(perfil)).status_code == 403
 
 

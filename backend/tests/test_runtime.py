@@ -215,7 +215,7 @@ def test_marcadores_sao_consistentes_e_sistemas_recebem_o_real(sessao):
 
 # ---------- API ----------
 def test_api_executa_exemplo_e_decide(api):
-    r = api.post("/api/v1/execucoes", json={"exemplo": "triagem_chargeback", "entrada": {"lojista_id": "L1003"}},
+    r = api.post("/api/v1/execucoes", json={"blueprint": TRIAGEM_CHARGEBACK.model_dump(), "entrada": {"lojista_id": "L1003"}},
                  headers=como("rafael"))
     assert r.status_code == 200
     corpo = r.json()
@@ -228,7 +228,7 @@ def test_api_executa_exemplo_e_decide(api):
 
 
 def test_api_exige_campos_de_entrada(api):
-    r = api.post("/api/v1/execucoes", json={"exemplo": "duvida_lojista", "entrada": {"lojista_id": "L1001"}},
+    r = api.post("/api/v1/execucoes", json={"blueprint": DUVIDA_LOJISTA.model_dump(), "entrada": {"lojista_id": "L1001"}},
                  headers=como("marina"))
     assert r.status_code == 422 and "pergunta" in r.json()["detail"]
 

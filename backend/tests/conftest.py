@@ -76,6 +76,15 @@ def como(pessoa: str) -> dict:
     return {"X-Usuario": pessoa}
 
 
+def sem_criador(monkeypatch, *ids: str) -> None:
+    """v8.1: todos os perfis criam. Os testes de "quem não cria" tiram o papel de criador de `ids` só durante o teste."""
+    from dataclasses import replace
+
+    from app.core.identidade import CRIADOR, PERSONAS
+    for i in ids:
+        monkeypatch.setitem(PERSONAS, i, replace(PERSONAS[i], papeis=PERSONAS[i].papeis - {CRIADOR}))
+
+
 @pytest.fixture()
 def legado():
     """Bancos da v7 têm agentes de vários passos; um agente novo só pode ter um (v8/09). Os testes que exercitam o ciclo de vida,

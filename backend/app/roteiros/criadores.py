@@ -20,6 +20,11 @@ def _montar(persona: str, chave: str, fala: str, acao: str, slack: bool = False)
                  {"processo": processo(chave, NOME_AGENTE[chave], slack=slack, por_nome=True)})
 
 
+def _alerta(persona: str, acao: str, fala: str) -> Passo:
+    """O passo "veja e trate o seu alerta" de cada roteiro: o cenário nasce de uma regra real (a tela chama o endpoint do cenário)."""
+    return Passo("alerta", "Veja e trate o seu alerta", persona, "/alertas", acao, fala, {"cenario_alerta": True})
+
+
 def _processo(chave: str) -> str:
     return "{processo:%s}" % NOME_PROCESSO[chave]
 
@@ -59,6 +64,8 @@ MARINA = Roteiro(
         Passo("extensao", "Usar pela extensão no helpdesk", "marina", "/demo/helpdesk?chamado=4812&perfil=marina",
               "No helpdesk, selecione o texto do chamado e clique em “Perguntar ao StoneFalcon”.",
               "O mesmo processo, agora dentro da ferramenta onde ela já trabalha.", externa=True),
+        _alerta("marina", "O cadastro de lojistas ficou lento: assuma o alerta e abra o sistema em Saúde.",
+                "Ela não configurou nada: a plataforma avisou o dono do processo. Assumir mostra a todos quem está cuidando."),
         _medir("marina", "O tempo e o custo desta execução são medidos; o AS IS é hipótese, e dizemos qual é qual."),
     ), duracao_min=6)
 
@@ -105,6 +112,8 @@ RAFAEL = Roteiro(
         Passo("auditoria", "Provar na trilha de auditoria", "helena", "/auditoria",
               "Mostre o selo de cadeia íntegra e abra a confirmação da retenção.",
               "Quem confirmou, quando e com que dado: tudo na trilha encadeada por hash."),
+        _alerta("rafael", "O sistema de contestações ficou lento: assuma o alerta e abra o sistema em Saúde.",
+                "A triagem depende desse sistema: o alerta chega ao Rafael e à Engenharia, sem duplicar por trabalhador."),
         _medir("rafael", "Tempo, custo e a confirmação humana aparecem medidos."),
     ), duracao_min=8)
 
@@ -141,6 +150,8 @@ CARLA = Roteiro(
         Passo("auditoria", "Provar que nada vazou", "lucas", "/auditoria",
               "Abra o evento da ferramenta de RH: só há marcadores no lugar do CPF e do e-mail.",
               "A auditoria registra o que foi mascarado, nunca o dado em si."),
+        _alerta("carla", "O processo chegou a 88% do orçamento do mês: assuma o alerta e revise o orçamento pela ação do alerta.",
+                "O orçamento tem alerta a 80% e corte a 100%: a Carla age antes de o processo parar."),
         _medir("carla", "O ganho vem sem abrir mão da privacidade."),
     ), duracao_min=5)
 
@@ -184,5 +195,7 @@ THIAGO = Roteiro(
               "Abra a página do Slack: a mensagem do processo aparece no canal #logistica.",
               "A página consolidada do plugin mostra quem usa, quantas chamadas, o custo e a janela do canal, "
               "com a mensagem que o processo acabou de publicar."),
+        _alerta("thiago", "O estoque ficou lento: assuma o alerta e abra o sistema em Saúde.",
+                "O processo de trocas consulta o estoque do modelo; o alerta leva direto ao sistema que atrasa o processo."),
         _medir("thiago", "Três consultas em paralelo, o chamado aberto e o canal da logística avisado sem ninguém digitar."),
     ), duracao_min=6)
