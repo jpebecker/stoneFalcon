@@ -86,7 +86,7 @@ What was checked in the code and in the local database before writing the ticket
 | # | Ticket | Blocked by | Status |
 |---|---|---|---|
 | 01 | Grouped, collapsible side menu | — | feito |
-| 02 | Seed version stamp: stale databases get the demo alerts | — | ready-for-agent |
+| 02 | Seed version stamp: stale databases get the demo alerts | — | feito |
 | 03 | Rich demo alerts: pending, read, in treatment and resolved | 02 | ready-for-agent |
 | 04 | Alerts on the Início of each persona | 03 | ready-for-agent |
 | 05 | Shared process: verified end to end and visible on both sides | — | ready-for-agent |
@@ -139,19 +139,19 @@ progress is never wiped by a restart.
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** feito
 
-- [ ] The seed records a seed version (its own number, bumped whenever the demo catalog or the alert scenarios change; it is
+- [x] The seed records a seed version (its own number, bumped whenever the demo catalog or the alert scenarios change; it is
       not the platform version).
-- [ ] Startup on a database without the stamp, or with an older one, resets to the current initial state and logs it once;
+- [x] Startup on a database without the stamp, or with an older one, resets to the current initial state and logs it once;
       `STONEFALCON_SEMEAR=0` still disables any seeding or reset.
-- [ ] Startup on a current database does not touch it (restart in the middle of a demo keeps everything).
-- [ ] Regression test using the v7 fixture database (or one built by the old seed): after startup, every persona has at
+- [x] Startup on a current database does not touch it (restart in the middle of a demo keeps everything).
+- [x] Regression test using the v7 fixture database (or one built by the old seed): after startup, every persona has at
       least one open alert visible to them.
-- [ ] Test that alerts survive two rounds of the 60 s watcher (`avaliar` twice) without closing by themselves.
-- [ ] The current `backend/dados/stonefalcon.db` on this machine shows alerts for all 6 personas after one restart (checked
+- [x] Test that alerts survive two rounds of the 60 s watcher (`avaliar` twice) without closing by themselves.
+- [x] The current `backend/dados/stonefalcon.db` on this machine shows alerts for all 6 personas after one restart (checked
       in the browser).
-- [ ] `MODO_SIMULADO=1 pytest -q` green.
+- [x] `MODO_SIMULADO=1 pytest -q` green.
 
 ---
 
