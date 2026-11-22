@@ -103,7 +103,8 @@ def test_cada_cenario_toca_so_a_propria_persona(sessao):
         for a in alertas.visiveis(sessao, PERSONAS[perfil], so_abertos=False):
             if perfil == "lucas" and a.regra.startswith(("conector_", "provedor_")):
                 continue                                                  # a Engenharia recebe os alertas de sistema
-            assert a.processo_id and sessao.get(pm.Processo, a.processo_id).dono == perfil, (perfil, a.titulo)
+            proc = sessao.get(pm.Processo, a.processo_id) if a.processo_id else None
+            assert proc is not None and (proc.dono == perfil or PERSONAS[perfil].area in (proc.compartilhado_com or [])), (perfil, a.titulo)
         assert any(a.regra == regra and trecho.lower() in a.titulo.lower() for a in _nao_lidos(sessao, perfil)), perfil
 
 

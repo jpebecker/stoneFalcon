@@ -90,7 +90,7 @@ What was checked in the code and in the local database before writing the ticket
 | 03 | Rich demo alerts: pending, read, in treatment and resolved | 02 | feito |
 | 04 | Alerts on the Início of each persona | 03 | feito |
 | 05 | Shared process: verified end to end and visible on both sides | — | feito |
-| 06 | Shared-process alerts reach the shared area | 02, 05 | ready-for-agent |
+| 06 | Shared-process alerts reach the shared area | 02, 05 | feito |
 | 07 | Share a process from the UI | 05 | ready-for-agent |
 | 08 | Falcon companion: perch, speech bubble and the new motion rule | 01 | ready-for-agent |
 | 09 | Falcon as the guide of guided tours | 08 | ready-for-agent |
@@ -255,16 +255,22 @@ to the other.
 
 **Blocked by:** 02 (the demo alert must reach existing databases), 05 (the shared case must work first).
 
-**Status:** ready-for-agent
+**Status:** feito
 
-- [ ] Recipients of a process alert = owner + creators of each shared area (+ Engenharia for system alerts, as today), no
+- [x] Recipients of a process alert = owner + creators of each shared area (+ Engenharia for system alerts, as today), no
       duplicates.
-- [ ] Changing the shared areas of a process updates the recipients of its open alerts on the next rule round.
-- [ ] Demo scenario: one open alert on the shared process, visible to Thiago and Lucas (and Helena by role), not to others.
-- [ ] Assuming the alert as Lucas shows "em tratamento por Lucas" to Thiago.
-- [ ] Tests for recipients and for the demo scenario; seed version bumped; `pytest -q` green.
+- [x] Changing the shared areas of a process updates the recipients of its open alerts on the next rule round.
+- [x] Demo scenario: one open alert on the shared process, visible to Thiago and Lucas (and Helena by role), not to others.
+- [x] Assuming the alert as Lucas shows "em tratamento por Lucas" to Thiago.
+- [x] Tests for recipients and for the demo scenario; seed version bumped; `pytest -q` green.
 
 ---
+
+**Notes (what was built):** the owner and the creators of each shared area now receive the alert (`destinatarios_do_processo`);
+an open alert follows later changes of the shared areas on the next rule round and the audit trail records each change
+(`alerta_destinatarios_alterados`). The demo opens one "falhando" alert on "Registro de incidente de sistema", unread by both
+Thiago and Lucas so a presenter can assume it live. The unread counts in the bell become Thiago 2, Lucas 3 and Helena 7. Seed
+version 3.
 
 # 07: Share a process from the UI
 

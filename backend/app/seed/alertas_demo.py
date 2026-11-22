@@ -25,6 +25,8 @@ guiados começam limpos):
      não aceita hora inventada.
   2. ABERTOS: o principal (não lido) mais um segundo alerta que a pessoa já leu e um terceiro que ela já assumiu, com nota.
      A Helena, que vê tudo e acompanha os outros, só deixa como não lidos os alertas principais.
+  3. COMPARTILHADO: o "Registro de incidente de sistema" (Thiago, compartilhado com a Engenharia) está falhando. O mesmo alerta
+     chega ao Thiago e ao Lucas, ainda não lido por nenhum dos dois: quem assumir ao vivo aparece "em tratamento" para o outro.
 
 O estado inicial e o passo de cada roteiro contam a MESMA história principal: o roteiro começa limpo (veja
 `roteiros/reinicio.py`) e o passo molda só o cenário da persona do roteiro. A moldagem é do sistema (ator "sistema" na trilha),
@@ -60,6 +62,7 @@ SISTEMA_LENTO_THIAGO = "consultar_estoque"   # só o processo de trocas usa
 SISTEMA_FORA_LUCAS = "listar_transacoes"     # nenhum processo usa: alerta só da Engenharia
 SISTEMA_LENTO_RAFAEL = "listar_chargebacks"  # só a triagem de chargebacks usa
 PROVEDOR_DO_HISTORICO = "google"             # a queda que já passou (provedor de IA simulado)
+NOME_COMPARTILHADO = "Registro de incidente de sistema"   # o processo do Thiago compartilhado com a Engenharia (Lucas)
 MOLDAGEM = "cenário de demonstração"
 CAMPOS_FALHA = ("status", "motivo", "resultado", "custo_usd", "custo_tudo_forte_usd", "por_modelo", "passos")
 
@@ -285,6 +288,7 @@ def _historias_abertas(s: Session) -> list[alertas.Alerta]:
     (a Helena, que acompanha tudo, também já os leu)."""
     faq, decisao = _por_nome(s, "Consulta ao FAQ de atendimento"), _por_nome(s, "Registro da decisão de triagem")
     beneficios, pedidos = _por_nome(s, "Consulta de benefícios do colaborador"), _por_nome(s, "Pedidos de troca pendentes")
+    compartilhado = _por_nome(s, NOME_COMPARTILHADO)
     ferias, troca, incidente, custo = _processo(s, "ferias"), _processo(s, "troca"), _processo(s, "incidente"), _processo(s, "custo_ia")
     # 1) molda tudo (o principal de cada persona já está moldado) e deixa as regras abrirem. Os processos que só leem arquivos
     #    não gastam com modelo, então a regra de orçamento só vale para os que têm um passo de IA.
@@ -294,7 +298,7 @@ def _historias_abertas(s: Session) -> list[alertas.Alerta]:
     for p in (faq, decisao, incidente, custo, ferias):
         if p is not None:
             _ligar_lento(s, p)
-    for p in (beneficios, pedidos):
+    for p in (beneficios, pedidos, compartilhado):
         if p is not None:
             _ligar_falhando(s, p)
     if troca is not None:
