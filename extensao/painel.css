@@ -16,7 +16,7 @@ iframe[hidden], .estado[hidden] { display: none; }
 .estado .nota { font-size: 13px; color: var(--tinta-3); }
 .estado code, .cartao code { background: var(--folha); border: 1px solid var(--linha); padding: 2px 6px; border-radius: 6px; font-size: 13px; color: var(--tinta); word-break: break-all; }
 .marca { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; font-size: 18px; }
-.selo-marca { display: inline-flex; width: 30px; height: 30px; border-radius: 8px; background: var(--folha); border: 1px solid var(--linha); color: var(--pedra-forte); align-items: center; justify-content: center; font-weight: 700; font-size: 13px; }
+.selo-marca { display: inline-flex; width: 32px; height: 32px; }
 .passos { margin: 0 0 16px; padding: 0; list-style: none; counter-reset: p; }
 .passos li { counter-increment: p; display: flex; gap: 10px; padding: 9px 0; color: var(--tinta-2); border-bottom: 1px solid var(--linha); }
 .passos li::before { content: counter(p); flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--pedra); color: #04150d; font-weight: 700; font-size: 12px; display: flex; align-items: center; justify-content: center; }

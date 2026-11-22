@@ -31,7 +31,7 @@ function boasVindas() {
   const opcoes = el('button', { className: 'claro', textContent: 'Trocar o endereço' });
   opcoes.onclick = () => chrome.runtime.openOptionsPage();
   mostrarEstado(
-    el('div', { className: 'marca' }, [el('span', { className: 'selo-marca', textContent: 'SF' }), el('b', { textContent: 'StoneFalcon' })]),
+    el('div', { className: 'marca' }, [el('span', { className: 'selo-marca', innerHTML: rostoSvg(32, true) }), el('b', { textContent: 'StoneFalcon' })]),
     el('h1', { textContent: 'Seu copiloto, em qualquer página' }),
     el('ul', { className: 'passos' }, [
       el('li', { textContent: 'Selecione um texto na página.' }),

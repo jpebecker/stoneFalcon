@@ -6,6 +6,7 @@
 //   frontend/src/components/falcao/quadros.ts   caminhos do corpo por animação e peso de traço, mais o rosto
 //   frontend/public/icone.svg                   o rosto sobre o quadrado escuro (favicon)
 //   extensao/icones/rosto.json                  polígonos do rosto, lidos por extensao/icones/gerar.py
+//   extensao/icones/rosto.js                    rostoSvg(), para o painel e o botão flutuante da extensão
 //   docs/falcao/falcao-{parado,voo,rosto}.svg   tiras de referência para olhar o desenho
 //
 // Os arquivos gerados entram no Git; o build não roda este script. Rodar duas vezes não muda nada.
@@ -272,6 +273,25 @@ function rostoJson() {
   return JSON.stringify(dados) + "\n";
 }
 
+// Script da extensão (painel e botão nas páginas): define rostoSvg(tamanho, claro) com o rosto embutido.
+function rostoJs() {
+  const r = rosto();
+  const c = { rosas: juntaPontos(r.rosas), verdes: juntaPontos(r.verdes), claros: juntaPontos(r.claros) };
+  return `// ${AVISO}.
+// Rosto do falcão como SVG em texto. \`claro\`: fundo translúcido (sobre superfície escura); senão, quadrado escuro.
+(function (g) {
+  var C = ${JSON.stringify(CORES_ROSTO)};
+  var D = ${JSON.stringify(c)};
+  g.rostoSvg = function (tamanho, claro) {
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="' + tamanho + '" height="' + tamanho + '" aria-hidden="true">' +
+      '<rect width="64" height="64" rx="16" fill="' + (claro ? '#ffffff14' : C.fundo) + '"/>' +
+      '<path fill="' + C.rosa + '" d="' + D.rosas + '"/><path fill="' + C.verde + '" d="' + D.verdes + '"/>' +
+      '<path fill="' + C.claro + '" d="' + D.claros + '"/></svg>';
+  };
+})(typeof self !== 'undefined' ? self : this);
+`;
+}
+
 // ---------- Conferência dos limites ----------
 
 // Percorre um "d" com M, L, Q, H e Z e devolve [minX, minY, maxX, maxY] dos pontos.
@@ -329,5 +349,6 @@ const comentario = `<!-- ${AVISO} -->\n`;
 grava("frontend/src/components/falcao/quadros.ts", quadrosTs());
 grava("frontend/public/icone.svg", comentario + svgRosto() + "\n");
 grava("extensao/icones/rosto.json", rostoJson());
+grava("extensao/icones/rosto.js", rostoJs());
 for (const nome of Object.keys(ANIMACOES)) grava(`docs/falcao/falcao-${nome}.svg`, comentario + svgTira(nome) + "\n");
 grava("docs/falcao/falcao-rosto.svg", comentario + svgRosto({ fundo: null, verde: "#128C5E", rosa: "#D63384", claro: "#76847D" }) + "\n");

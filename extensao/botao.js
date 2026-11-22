@@ -19,9 +19,7 @@
     '@media (prefers-reduced-motion:reduce){button{transition:none}}' +
     '</style>' +
     '<button type="button" aria-label="Perguntar ao StoneFalcon sobre o texto selecionado">' +
-    '<svg viewBox="0 0 40 40" width="22" height="22" aria-hidden="true"><rect width="40" height="40" rx="9" fill="#ffffff14"/>' +
-    '<path fill="#1FB37A" d="M7 10h26l-3.4 7.4H10.4z"/><path fill="#E8F3EE" d="M12 20.4h16l-2.9 6.3h-10.2z"/>' +
-    '<path fill="#E0428F" d="M16.4 29.6h7.2L20 35z"/></svg><span>Perguntar ao StoneFalcon</span></button>';
+    rostoSvg(22, true) + '<span>Perguntar ao StoneFalcon</span></button>';
   const botao = raiz.querySelector('button');
   document.documentElement.appendChild(hospedeiro);
 

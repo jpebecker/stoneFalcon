@@ -45,6 +45,7 @@
         "https://*/*"
       ],
       "js": [
+        "icones/rosto.js",
         "botao.js"
       ],
       "run_at": "document_idle"

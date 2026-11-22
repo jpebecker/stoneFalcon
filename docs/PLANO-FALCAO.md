@@ -50,7 +50,7 @@ Demonstração e decisões: artefato "Falcão StoneFalcon" (versão 2), com tudo
 | # | Ticket | Bloqueado por | Status |
 |---|---|---|---|
 | 01 | Gerador do corpo e do rosto | — | feito |
-| 02 | Rosto como ícone do sistema | 01 | todo |
+| 02 | Rosto como ícone do sistema | 01 | parcial |
 | 03 | Ícones da interface | — | feito |
 | 04 | Componente `<Falcao>` | 01 | todo |
 | 05 | Camada de voo | 04 | todo |
@@ -87,9 +87,9 @@ topo do painel e no botão flutuante "Perguntar ao StoneFalcon".
 
 **Bloqueado por:** 01.
 
-**Status:** todo
+**Status:** parcial (falta conferir o favicon na aba e o ícone em `chrome://extensions`, no navegador)
 
-- [ ] Marca no menu lateral, na tela de entrada e no painel da extensão.
+- [x] Marca no menu lateral, na tela de entrada e no painel da extensão.
 - [ ] Favicon conferido na aba do navegador (16 px).
 - [ ] `python scripts/verifica_extensao.py` verde; ícone novo conferido em `chrome://extensions`.
 
