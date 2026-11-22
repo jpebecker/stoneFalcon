@@ -7,6 +7,7 @@ import LinhaDoTempo from "../components/LinhaDoTempo";
 import ListaMudancas from "../components/ListaMudancas";
 import PainelRotina from "../components/PainelRotina";
 import { BLOCOS, COR_ESTADO, COR_RISCO, NOME_ESTADO, NOME_EVENTO, NOME_RISCO, quando, reais } from "../components/formato";
+import Icone from "../components/Icone";
 
 export default function ProcessoDetalhe({ pessoa }: { pessoa: Persona }) {
   const { id } = useParams();
@@ -61,7 +62,7 @@ export default function ProcessoDetalhe({ pessoa }: { pessoa: Persona }) {
         <div className="flex flex-wrap gap-2">
           {p.pode_editar && p.estado !== "depreciado" && <Link to={`/processos/${p.id}/editar`} className="botao-claro">Editar processo</Link>}
           {p.pode_editar && ultima?.estado === "rascunho" && p.estado !== "depreciado" && (
-            <button className="botao-pedra" onClick={() => acao.mutate({ rota: "publicar" })}>Publicar v{ultima.numero}</button>
+            <button className="botao-pedra" onClick={() => acao.mutate({ rota: "publicar" })}><Icone nome="publicar" />Publicar v{ultima.numero}</button>
           )}
           {operador && p.estado === "publicado" && (
             <button className="botao-claro" onClick={() => { const m = prompt("Motivo da pausa (opcional):") ?? ""; acao.mutate({ rota: "pausar", corpo: { motivo: m } }); }}>Pausar</button>
@@ -91,7 +92,7 @@ export default function ProcessoDetalhe({ pessoa }: { pessoa: Persona }) {
                   <CampoEntrada key={c.id} campo={c} pessoa={pessoa} valor={entrada[c.id] ?? ""} aoMudar={(v) => setEntrada((e) => ({ ...e, [c.id]: v }))} />
                 ))}
                 <button className="botao-pedra" disabled={executar.isPending || campos.some((c) => !entrada[c.id])} onClick={() => executar.mutate()}>
-                  {executar.isPending ? "Executando…" : "Executar"}
+                  <Icone nome="executar" />{executar.isPending ? "Executando…" : "Executar"}
                 </button>
               </div>
               {executar.isError && <p className="mt-2 text-sm text-erro">{(executar.error as Error).message}</p>}

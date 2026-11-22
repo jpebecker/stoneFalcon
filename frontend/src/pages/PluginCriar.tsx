@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, type EspecPlugin, type PedidoPluginInterno, type RascunhoPlugin, type RegrasPluginInterno } from "../api/cliente";
 import { reais } from "../components/formato";
+import Icone from "../components/Icone";
 import { usePreenche } from "../roteiro/estado";
 
 const AREAS: [string, string][] = [
@@ -159,7 +160,7 @@ export default function PluginCriar() {
             )}
           </div>
           <div className="flex flex-wrap items-center gap-3 border-t border-linha pt-4">
-            <button className="botao-pedra" disabled={enviar.isPending} onClick={() => enviar.mutate()}>{enviar.isPending ? "Enviando…" : "Enviar para a analista de IA"}</button>
+            <button className="botao-pedra" disabled={enviar.isPending} onClick={() => enviar.mutate()}><Icone nome="publicar" />{enviar.isPending ? "Enviando…" : "Enviar para a analista de IA"}</button>
             <span className="text-xs text-tinta-3">O pedido vai para a fila da Helena (analista de IA) e você acompanha o estado na aba Plugins.</span>
           </div>
           {enviar.isError && <p className="text-sm text-erro" role="alert">{(enviar.error as Error).message}</p>}

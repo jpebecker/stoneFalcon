@@ -9,6 +9,7 @@ import FormularioTrabalhador from "../components/FormularioTrabalhador";
 import { registrarCtx, usePreenche } from "../roteiro/estado";
 import LinhaDoTempo from "../components/LinhaDoTempo";
 import { COR_RISCO, reais } from "../components/formato";
+import Icone from "../components/Icone";
 import { CHAVE_RASCUNHO } from "./ViaExtensao";
 
 type Padrao = { id: string; titulo: string; area: string; exemplo: string };
@@ -173,7 +174,7 @@ export default function Estudio({ pessoa }: { pessoa: Persona }) {
           <button className="botao-claro" disabled={!valido || salvar.isPending || legado} onClick={() => salvar.mutate(false)}>Salvar rascunho</button>
           <button className="botao-pedra" disabled={!valido || salvar.isPending || semPermissao.size > 0 || legado} onClick={() => salvar.mutate(true)}
             title={valido?.risco.exige_revisao_seguranca ? "Vai para a revisão da Segurança antes de ir ao ar" : "Vai ao ar agora"}>
-            {valido?.risco.exige_revisao_seguranca ? "Enviar para revisão" : "Publicar"}
+            <Icone nome="publicar" />{valido?.risco.exige_revisao_seguranca ? "Enviar para revisão" : "Publicar"}
           </button>
         </div>
       </div>
@@ -273,7 +274,7 @@ export default function Estudio({ pessoa }: { pessoa: Persona }) {
           ))}
           <button className="botao-pedra" disabled={!valido || testar.isPending || bp.campos.some((c) => !entrada[c.id])}
             onClick={() => testar.mutate()}>
-            {testar.isPending ? "Executando…" : "Executar teste"}
+            <Icone nome="executar" />{testar.isPending ? "Executando…" : "Executar teste"}
           </button>
         </div>
         {testar.isError && <p className="mt-2 text-sm text-erro">{(testar.error as Error).message}</p>}

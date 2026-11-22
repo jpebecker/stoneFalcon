@@ -1,8 +1,9 @@
+import Icone from "./Icone";
 import SeloSimulado from "./SeloSimulado";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { api, type Execucao, type Persona, type RegistroPasso } from "../api/cliente";
-import { BLOCOS, COR_STATUS, NOME_STATUS, NOME_TIPO, ms, reais } from "./formato";
+import { BLOCOS, COR_STATUS, ICONE_STATUS, NOME_STATUS, NOME_TIPO, ms, reais } from "./formato";
 
 function Saida({ valor }: { valor: unknown }) {
   if (valor == null) return null;
@@ -15,7 +16,7 @@ function CartaoPasso({ r, cotacao }: { r: RegistroPasso; cotacao: number }) {
   return (
     <li className="caixa p-4">
       <button className="flex w-full items-center gap-3 text-left" onClick={() => setAberto(!aberto)} aria-expanded={aberto}>
-        <span className={"selo " + COR_STATUS[r.status]}>{NOME_STATUS[r.status] ?? r.status}</span>
+        <span className={"selo " + COR_STATUS[r.status]}>{ICONE_STATUS[r.status] && <Icone nome={ICONE_STATUS[r.status]} tamanho={14} />}{NOME_STATUS[r.status] ?? r.status}</span>
         <span className="flex-1 font-medium">{r.titulo}</span>
         <span className="flex items-center gap-1.5 text-xs text-tinta-3">
           {r.bloco ? BLOCOS[r.bloco]?.nome : NOME_TIPO[r.tipo]}{r.agente ? " · agente " + r.agente.nome : ""}{r.modelo ? " · " + r.modelo : ""}
@@ -82,9 +83,9 @@ export default function LinhaDoTempo({ exe, pessoa, cotacao, aoMudar }: {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <span className={"selo text-sm " + COR_STATUS[exe.status]}>{NOME_STATUS[exe.status] ?? exe.status}</span>
+        <span className={"selo text-sm " + COR_STATUS[exe.status]}>{ICONE_STATUS[exe.status] && <Icone nome={ICONE_STATUS[exe.status]} />}{NOME_STATUS[exe.status] ?? exe.status}</span>
         <span className="text-sm text-tinta-2">{reais(exe.custo_brl)} · {exe.chamadas_modelo} chamada(s) de modelo · {ms(exe.duracao_estimada_ms)}</span>
-        {exe.simulado && <span className="selo bg-alerta-fundo text-alerta">simulado</span>}
+        {exe.simulado && <span className="selo bg-alerta-fundo text-alerta"><Icone nome="atencao" />simulado</span>}
         {Object.values(passos).some((r) => r.reserva) && (
           <span className="selo bg-alerta-fundo text-alerta" title="O modelo falhou e o passo usou a resposta pré-determinada">com resposta de reserva</span>
         )}

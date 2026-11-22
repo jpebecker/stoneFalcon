@@ -1,7 +1,9 @@
-// Ícones de linha da interface (grade 24×24, traço 1,8, pontas redondas, cor = currentColor).
-// Mesmo desenho do sino que já existe no cabeçalho. Cada ícone é uma lista de "d" de <path>.
-
-export const ICONES = {
+/**
+ * Ícones de linha da interface: grade 24, traço 1,8, pontas redondas, cor = currentColor (mesmo traço do sino).
+ * Sempre ao lado de texto visível, nunca no lugar dele; por isso são `aria-hidden`.
+ * Sem biblioteca: cada ícone é uma lista de "d" de <path>.
+ */
+const ICONES = {
   // abas do menu lateral
   inicio: ["M3.5 10.5 12 3.5l8.5 7", "M5.5 9v11h13V9", "M10 20v-5.5h4V20"],
   roteiros: ["M6 15a2 2 0 1 1 0 4 2 2 0 0 1 0-4Z", "M18 5a2 2 0 1 1 0 4 2 2 0 0 1 0-4Z", "M8 17h8a3 3 0 0 0 0-6H8a3 3 0 0 1 0-6h8"],
@@ -27,9 +29,16 @@ export const ICONES = {
   sino: ["M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9", "M10.3 21a1.94 1.94 0 0 0 3.4 0"],
   trocar: ["M16 3.5 20 7.5l-4 4", "M20 7.5H8", "M8 12.5l-4 4 4 4", "M4 16.5h12"],
   sair: ["M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4", "M10 16.5 14.5 12 10 7.5", "M14.5 12H4"],
-};
+} as const;
 
-export function svgIcone24(nome, classe = "") {
-  const ds = ICONES[nome];
-  return `<svg viewBox="0 0 24 24" class="${classe}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${ds.map((d) => `<path d="${d}"/>`).join("")}</svg>`;
+export type NomeIcone = keyof typeof ICONES;
+
+/** Ícone de linha. 18 px no menu, 16 px (padrão) em botões e selos. */
+export default function Icone({ nome, tamanho = 16, className = "" }: { nome: NomeIcone; tamanho?: number; className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" width={tamanho} height={tamanho} className={"shrink-0 " + className} fill="none" stroke="currentColor"
+      strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+      {ICONES[nome].map((d) => <path key={d} d={d} />)}
+    </svg>
+  );
 }

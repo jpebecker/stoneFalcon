@@ -51,7 +51,7 @@ Demonstração e decisões: artefato "Falcão StoneFalcon" (versão 2), com tudo
 |---|---|---|---|
 | 01 | Gerador do corpo e do rosto | — | feito |
 | 02 | Rosto como ícone do sistema | 01 | todo |
-| 03 | Ícones da interface | — | todo |
+| 03 | Ícones da interface | — | feito |
 | 04 | Componente `<Falcao>` | 01 | todo |
 | 05 | Camada de voo | 04 | todo |
 | 06 | Falcão na carga | 04 | todo |
@@ -101,13 +101,13 @@ topo do painel e no botão flutuante "Perguntar ao StoneFalcon".
 
 **Bloqueado por:** nenhum.
 
-**Status:** todo
+**Status:** feito
 
-- [ ] As 15 abas do menu com ícone à esquerda do rótulo; aba ativa e foco continuam como hoje.
-- [ ] Ícone no `botao-pedra` de Executar, Publicar e Enviar para revisão.
-- [ ] Selos de resultado com ícone (concluído, falhou, simulado/atenção) além da cor.
-- [ ] Menu da pessoa: Trocar de pessoa e Sair.
-- [ ] Nenhum controle vira só ícone: todo ícone tem texto visível ao lado.
+- [x] As 15 abas do menu com ícone à esquerda do rótulo; aba ativa e foco continuam como hoje.
+- [x] Ícone no `botao-pedra` de Executar, Publicar e Enviar para revisão.
+- [x] Selos de resultado com ícone (concluído, falhou, simulado/atenção) além da cor.
+- [x] Menu da pessoa: Trocar de pessoa e Sair.
+- [x] Nenhum controle vira só ícone: todo ícone tem texto visível ao lado.
 
 # 04: Componente `<Falcao>`
 

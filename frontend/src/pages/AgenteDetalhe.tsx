@@ -8,6 +8,7 @@ import { usePreenche } from "../roteiro/estado";
 import ListaMudancas from "../components/ListaMudancas";
 import PainelRotina from "../components/PainelRotina";
 import { COR_ESTADO, COR_RISCO, NOME_ESTADO, NOME_EVENTO, NOME_RISCO, quando, reais } from "../components/formato";
+import Icone from "../components/Icone";
 
 export default function AgenteDetalhe({ pessoa }: { pessoa: Persona }) {
   const { id } = useParams();
@@ -84,7 +85,7 @@ export default function AgenteDetalhe({ pessoa }: { pessoa: Persona }) {
           )}
           {editor && a.estado !== "depreciado" && !a.legado && <Link to={"/estudio?agente=" + a.id} className="botao-claro">Editar no Estúdio</Link>}
           {editor && ultima?.estado === "rascunho" && a.estado !== "depreciado" && (
-            <button className="botao-pedra" onClick={() => acao.mutate({ rota: "publicar" })}>Publicar v{ultima.numero}</button>
+            <button className="botao-pedra" onClick={() => acao.mutate({ rota: "publicar" })}><Icone nome="publicar" />Publicar v{ultima.numero}</button>
           )}
           {operador && a.estado === "publicado" && (
             <button className="botao-claro" onClick={() => { if (!avisoProcessos("pausar")) return; const m = prompt("Motivo da pausa (opcional):") ?? ""; acao.mutate({ rota: "pausar", corpo: { motivo: m } }); }}>Pausar</button>
@@ -119,7 +120,7 @@ export default function AgenteDetalhe({ pessoa }: { pessoa: Persona }) {
                     aoMudar={(v) => setEntrada((e) => ({ ...e, [c.id]: v }))} />
                 ))}
                 <button className="botao-pedra" disabled={executar.isPending || campos.some((c) => !entrada[c.id])} onClick={() => executar.mutate()}>
-                  {executar.isPending ? "Executando…" : "Executar"}
+                  <Icone nome="executar" />{executar.isPending ? "Executando…" : "Executar"}
                 </button>
               </div>
               {executar.isError && <p className="mt-2 text-sm text-erro">{(executar.error as Error).message}</p>}

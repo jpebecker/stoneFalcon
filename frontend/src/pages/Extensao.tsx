@@ -8,6 +8,7 @@ import Avatar from "../components/Avatar";
 import CampoEntrada from "../components/CampoEntrada";
 import Marca from "../components/Marca";
 import { COR_STATUS, NOME_STATUS, ms, reais, versaoCurta } from "../components/formato";
+import Icone from "../components/Icone";
 
 type Item = { id: string; agente: string; quando: string; status: string; resultado: string; execId: string };
 const CHAVE_HIST = "stonefalcon.extensao.historico";
@@ -310,7 +311,7 @@ export default function Extensao({ pessoa, aoEntrar, aoSair, erroPerfil }: {
                 aoMudar={(v) => setEntrada((e) => ({ ...e, [c.id]: v }))} />
             ))}
             <button className="botao-pedra w-full" disabled={executar.isPending || faltando.length > 0} onClick={() => executar.mutate()}>
-              {executar.isPending ? "Executando…" : faltando.length ? "Preencha: " + faltando.map((c) => c.rotulo.toLowerCase()).join(", ") : agente?.tipo === "processo" ? "Executar processo" : "Executar agente"}
+              <Icone nome="executar" />{executar.isPending ? "Executando…" : faltando.length ? "Preencha: " + faltando.map((c) => c.rotulo.toLowerCase()).join(", ") : agente?.tipo === "processo" ? "Executar processo" : "Executar agente"}
             </button>
             {executar.isError && <p className="text-sm text-erro">{(executar.error as Error).message}</p>}
           </section>
