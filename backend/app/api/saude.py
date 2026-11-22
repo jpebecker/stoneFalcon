@@ -11,6 +11,8 @@ from ..agents.blueprint import Blueprint
 from ..core.db import sessao
 from ..core.identidade import Persona, usuario_atual
 from ..observability import alertas, metricas
+from ..processos import modelos as pm
+from ..processos.tipo import ciclo as ciclo_processos
 from ..tools import executor
 from ..tools.catalogo import CATALOGO, disponiveis
 
@@ -26,16 +28,36 @@ def _saude_agente(s: Session, a: am.Agente, abertos: list[alertas.Alerta]) -> di
             "alertas": [al.model_dump() for al in meus]}
 
 
+def _saude_processo(s: Session, p: pm.Processo, abertos: list[alertas.Alerta]) -> dict:
+    """A saúde de um PROCESSO (v8.1): as execuções são do processo, e os alertas abertos dele entram na nota."""
+    r = metricas.resumo_execucoes(metricas.execucoes(s, p.id, tipo="processo"))
+    meus = [al for al in abertos if al.processo_id == p.id]
+    return {"agente": {"id": p.id, "nome": p.nome, "area": p.area, "dono": p.dono, "estado": p.estado, "risco": p.risco, "tipo": "processo"},
+            "metricas": r, "score": alertas.score(r["taxa_sucesso"], meus),
+            "alertas": [al.model_dump() for al in meus]}
+
+
 @rotas.get("/saude/agentes")
 def agentes(pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
     abertos = list(s.exec(select(alertas.Alerta).where(alertas.Alerta.resolvido_em.is_(None))))
     lista = [a for a in s.exec(select(am.Agente).where(am.Agente.estado != am.DEPRECIADO)) if ciclo.pode_ver(pessoa, a)]
     saida = [_saude_agente(s, a, abertos) for a in lista]
+    saida += [_saude_processo(s, p, abertos) for p in s.exec(select(pm.Processo).where(pm.Processo.estado.in_((am.PUBLICADO, am.PAUSADO))))
+              if ciclo_processos.pode_ver(pessoa, p)]
     return sorted(saida, key=lambda x: x["score"]["nota"])
 
 
 @rotas.get("/saude/agentes/{agente_id}")
 def agente(agente_id: str, pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
+    processo = s.get(pm.Processo, agente_id)
+    if processo is not None:   # o mesmo detalhe vale para um processo
+        if not ciclo_processos.pode_ver(pessoa, processo):
+            raise HTTPException(status_code=403, detail="Você não tem acesso a este processo.")
+        abertos = list(s.exec(select(alertas.Alerta).where(alertas.Alerta.resolvido_em.is_(None))))
+        d = _saude_processo(s, processo, abertos)
+        d["por_dia"] = metricas.por_dia(metricas.execucoes(s, processo.id, horas=24 * 30, tipo="processo"))
+        d["ferramentas"] = []
+        return d
     try:
         a = ciclo.obter(s, agente_id)
     except ciclo.ErroCiclo as e:

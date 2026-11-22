@@ -81,7 +81,7 @@ def test_orcamento_alerta_em_80_e_corta_em_100(sessao, monkeypatch):
     _rodar(sessao, a)
     assert resumo.gasto_no_mes(sessao, a.id) > 0
     gasto = {"v": 85.0}
-    monkeypatch.setattr(resumo, "gasto_no_mes", lambda s, agente_id: gasto["v"])
+    monkeypatch.setattr(resumo, "gasto_no_mes", lambda s, agente_id, tipo="agente": gasto["v"])
     ciclo.definir_orcamento(sessao, P["helena"], a.id, 100)
     alertas.avaliar(sessao)
     al = [x for x in sessao.exec(select(alertas.Alerta)) if x.regra == "orcamento"]

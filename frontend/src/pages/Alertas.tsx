@@ -17,7 +17,7 @@ export default function Alertas() {
       <div className="flex items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl">Alertas</h1>
-          <p className="mt-1 text-tinta-2">Avisos automáticos sobre os agentes pelos quais você responde.</p>
+          <p className="mt-1 text-tinta-2">Avisos automáticos sobre os agentes e processos pelos quais você responde.</p>
         </div>
         <div className="flex rounded-lg border border-linha bg-folha p-0.5 text-sm">
           {[true, false].map((v) => (
@@ -44,6 +44,7 @@ export default function Alertas() {
             <p className="mt-1.5 text-sm text-tinta-2">{a.detalhe}</p>
             <div className="mt-2 flex gap-3 text-sm">
               {a.agente_id && <Link to={"/agentes/" + a.agente_id} className="font-semibold text-pedra-forte">Abrir o agente</Link>}
+              {a.processo_id && <Link to={"/processos/" + a.processo_id} className="font-semibold text-pedra-forte">Abrir o processo</Link>}
               {!a.lido && <button className="font-semibold text-tinta-2 hover:text-tinta" onClick={() => ler.mutate(a.id)}>Marcar como lido</button>}
             </div>
           </li>

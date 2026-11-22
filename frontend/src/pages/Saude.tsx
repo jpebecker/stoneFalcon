@@ -33,14 +33,15 @@ export default function Saude() {
       <PainelBalanceador />
 
       <section>
-        <h2 className="mb-3 text-lg">Agentes</h2>
+        <h2 className="mb-3 text-lg">Agentes e processos</h2>
         <div className="grid gap-3 lg:grid-cols-2">
           {ag.data?.map((s) => (
-            <Link key={s.agente.id} to={"/agentes/" + s.agente.id} className="caixa flex gap-4 p-4 transition hover:border-pedra">
+            <Link key={s.agente.id} to={(s.agente.tipo === "processo" ? "/processos/" : "/agentes/") + s.agente.id} className="caixa flex gap-4 p-4 transition hover:border-pedra">
               <Medidor nota={s.score.nota} status={s.score.status} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <h3 className="truncate text-base">{s.agente.nome}</h3>
+                  {s.agente.tipo === "processo" && <span className="selo bg-info-fundo text-info">processo</span>}
                   <span className={"selo " + COR_SAUDE[s.score.status]}>{NOME_SAUDE[s.score.status]}</span>
                   {s.agente.estado === "pausado" && <span className="selo bg-alerta-fundo text-alerta">pausado</span>}
                 </div>

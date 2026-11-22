@@ -224,7 +224,7 @@ export type ValidacaoProcesso =
       estimativa: Estimativa & { duracao_ms: number }; blocos?: Record<string, string[]> };
 
 export type Alerta = {
-  id: string; regra: string; severidade: "atencao" | "critico"; agente_id: string | null; conector: string | null;
+  id: string; regra: string; severidade: "atencao" | "critico"; agente_id: string | null; processo_id?: string | null; conector: string | null;
   titulo: string; detalhe: string; destinatarios: string[]; ocorrencias: number; aberto_em: string; atualizado_em: string;
   resolvido_em: string | null; lido?: boolean;
 };
@@ -235,7 +235,7 @@ export type MetricasAgente = {
 };
 
 export type SaudeAgente = {
-  agente: { id: string; nome: string; area: string; dono: string; estado: string; risco: string };
+  agente: { id: string; nome: string; area: string; dono: string; estado: string; risco: string; tipo?: "agente" | "processo" };
   metricas: MetricasAgente; score: { nota: number; status: "saudavel" | "atencao" | "critico" }; alertas: Alerta[];
 };
 
