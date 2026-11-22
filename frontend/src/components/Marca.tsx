@@ -4,7 +4,7 @@ import { ROSTO } from "./falcao/quadros";
 export default function Marca({ claro = false }: { claro?: boolean }) {
   return (
     <div className="flex items-center gap-2.5 px-1">
-      <svg viewBox="0 0 64 64" className="h-8 w-8" aria-hidden="true">
+      <svg viewBox="0 0 64 64" className="h-8 w-8" aria-hidden="true" data-alvo="marca">
         <rect width="64" height="64" rx="16" fill={claro ? "#ffffff14" : "#10201A"} />
         <path fill="#E0428F" d={ROSTO.rosas} />
         <path fill="#1FB37A" d={ROSTO.verdes} />

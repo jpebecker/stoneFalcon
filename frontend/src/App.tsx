@@ -4,6 +4,7 @@ import { Link, NavLink, Navigate, Route, Routes, useNavigate } from "react-route
 import { api, definirPerfil, perfilAtual, type Persona, type Saude } from "./api/cliente";
 import Avatar from "./components/Avatar";
 import Icone, { type NomeIcone } from "./components/Icone";
+import { ProvedorFalcao } from "./components/falcao/Voo";
 import Marca from "./components/Marca";
 import AgenteDetalhe from "./pages/AgenteDetalhe";
 import Auditoria from "./pages/Auditoria";
@@ -100,7 +101,12 @@ function MenuPessoa({ pessoa, aoTrocar, aoSair }: { pessoa: Persona; aoTrocar: (
   );
 }
 
+/** A camada de voo do falcão envolve tudo: entrada, área logada e painel da extensão. */
 export default function App() {
+  return <ProvedorFalcao><AppInterno /></ProvedorFalcao>;
+}
+
+function AppInterno() {
   // a extensão abre /extensao?perfil=<id>: entra direto como essa pessoa
   if (location.pathname.startsWith("/extensao")) {
     const p = new URLSearchParams(location.search).get("perfil");
@@ -159,7 +165,7 @@ export default function App() {
           <Marca claro />
           <nav className="flex flex-col gap-1" aria-label="Seções">
             {NAV.filter((n) => pessoa?.abas.includes(n.aba)).map((n) => (
-              <NavLink key={n.para} to={n.para} end={n.para === "/"}
+              <NavLink key={n.para} to={n.para} end={n.para === "/"} data-alvo={"aba-" + n.aba}
                 className={({ isActive }) => "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition " +
                   (isActive ? "bg-white text-tinta" : "text-white/75 hover:bg-white/10 hover:text-white")}>
                 <Icone nome={n.icone} tamanho={18} />
@@ -182,7 +188,7 @@ export default function App() {
               </span>
             )}
             {pessoa && (
-              <Link to="/alertas" className="relative rounded-lg p-2 text-tinta-2 hover:bg-papel hover:text-tinta" aria-label={`Alertas: ${notif.data?.nao_lidos ?? 0} não lidos`}>
+              <Link to="/alertas" data-alvo="sino" className="relative rounded-lg p-2 text-tinta-2 hover:bg-papel hover:text-tinta" aria-label={`Alertas: ${notif.data?.nao_lidos ?? 0} não lidos`}>
                 <Icone nome="sino" tamanho={20} />
                 {!!notif.data?.nao_lidos && (
                   <span className={"absolute -right-0.5 -top-0.5 min-w-[18px] rounded-full px-1 text-center text-[11px] font-bold text-white " +

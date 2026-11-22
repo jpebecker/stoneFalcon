@@ -53,7 +53,7 @@ Demonstração e decisões: artefato "Falcão StoneFalcon" (versão 2), com tudo
 | 02 | Rosto como ícone do sistema | 01 | parcial |
 | 03 | Ícones da interface | — | feito |
 | 04 | Componente `<Falcao>` | 01 | feito |
-| 05 | Camada de voo | 04 | todo |
+| 05 | Camada de voo | 04 | feito |
 | 06 | Falcão na carga | 04 | todo |
 | 07 | Voos de retorno e estados vazios | 05 | todo |
 | 08 | Docs, roteiro e versão 8.2.0 | 02, 03, 06, 07 | todo |
@@ -134,11 +134,11 @@ Ao chegar, paira ~0,9 s ao lado do alvo e some em 0,25 s.
 
 **Bloqueado por:** 04.
 
-**Status:** todo
+**Status:** feito
 
-- [ ] Direção automática pela posição do alvo; arco leve; duração pela distância (mínimo 0,6 s).
-- [ ] Movimento reduzido: aparece parado no destino por 1,2 s, sem travessia.
-- [ ] Alvo fora da tela ou ausente (menu recolhido): voa até o botão do menu ou não voa, sem erro.
+- [x] Direção automática pela posição do alvo; arco leve; duração pela distância (mínimo 0,6 s).
+- [x] Movimento reduzido: aparece parado no destino por 1,2 s, sem travessia.
+- [x] Alvo fora da tela ou ausente (menu recolhido): voa até o botão do menu ou não voa, sem erro.
 
 # 06: Falcão na carga
 
