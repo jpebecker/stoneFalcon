@@ -7,6 +7,7 @@ import { reais } from "../components/formato";
 import Icone from "../components/Icone";
 import Carregando from "../components/falcao/Carregando";
 import { usePreenche } from "../roteiro/estado";
+import { alvoDe, useFalcao } from "../components/falcao/Voo";
 
 const AREAS: [string, string][] = [
   ["atendimento", "Atendimento"], ["risco", "Prevenção a Fraudes"], ["pessoas", "Pessoas (RH)"], ["logistica", "Logística"],
@@ -27,13 +28,18 @@ export default function PluginCriar() {
   const [avisos, setAvisos] = useState<string[]>([]);
   const corpo = { ferramenta_mercado: marca, descricao_publica: descricao, finalidade, areas, classificacao, aceita_aviso_publico: aceita };
 
+  const { retornar } = useFalcao();
   const rascunhar = useMutation({
     mutationFn: () => api<RascunhoPlugin>("/plugins-internos/rascunho", corpo),
     onSuccess: (r) => { setSpec(r.spec); setAvisos(r.spec.avisos ?? []); },
   });
   const enviar = useMutation({
     mutationFn: () => api<PedidoPluginInterno>("/plugins-internos", { ...corpo, spec }),
-    onSuccess: () => navegar("/plugins?pedido=enviado"),
+    onSuccess: () => {
+      const de = alvoDe("acao-enviar");   // lido antes de a tela trocar
+      navegar("/plugins?pedido=enviado");
+      retornar({ de, para: "aba-revisoes", alternativo: "sino" });
+    },
   });
 
   if (regras.data && !regras.data.pode_pedir) {
@@ -162,7 +168,7 @@ export default function PluginCriar() {
             )}
           </div>
           <div className="flex flex-wrap items-center gap-3 border-t border-linha pt-4">
-            <button className="botao-pedra" disabled={enviar.isPending} onClick={() => enviar.mutate()}><Icone nome="publicar" />{enviar.isPending ? "Enviando…" : "Enviar para a analista de IA"}</button>
+            <button className="botao-pedra" data-alvo="acao-enviar" disabled={enviar.isPending} onClick={() => enviar.mutate()}><Icone nome="publicar" />{enviar.isPending ? "Enviando…" : "Enviar para a analista de IA"}</button>
             <Carregando ativo={enviar.isPending} texto="Enviando para a analista…" />
             <span className="text-xs text-tinta-3">O pedido vai para a fila da Helena (analista de IA) e você acompanha o estado na aba Plugins.</span>
           </div>

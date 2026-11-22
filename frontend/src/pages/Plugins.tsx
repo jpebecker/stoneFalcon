@@ -8,6 +8,7 @@ import { reais } from "../components/formato";
 import { usePreenche } from "../roteiro/estado";
 import { quando } from "../components/formato";
 import { AcoesPlugin, classeSelo, COR_ESTADO_PLUGIN, IconeCategoria, NOME_ESTADO_PLUGIN, SeloDoPlugin } from "../components/Plugin";
+import Vazio from "../components/falcao/Vazio";
 
 const NOME_ESTADO_INTERNO: Record<PedidoPluginInterno["estado"], string> = {
   aguardando_analista: "aguardando a analista de IA", aguardando_seguranca: "aguardando a Segurança", aprovado: "aprovado",
@@ -111,7 +112,7 @@ export default function Plugins({ pessoa }: { pessoa: Persona }) {
       )}
 
       {q.isError && <p className="text-erro">{(q.error as Error).message}</p>}
-      {q.data && lista.length === 0 && <p className="caixa p-5 text-tinta-3">Nenhum plugin com esses filtros.</p>}
+      {q.data && lista.length === 0 && <Vazio>Nenhum plugin com esses filtros.</Vazio>}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {lista.map((p) => (
           <article key={p.id} className="caixa flex flex-col p-5" aria-label={p.nome}>

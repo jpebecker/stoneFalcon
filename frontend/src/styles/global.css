@@ -128,6 +128,10 @@ h1, h2, h3 { @apply font-titulo font-semibold tracking-tight; }
 
 /* Camada de voo: acima do conteúdo e do menu (z-30), abaixo da barra do roteiro (z-40); nunca captura cliques. */
 .falcao-camada { position: fixed; inset: 0; z-index: 35; pointer-events: none; overflow: hidden; }
+.falcao-camada.falcao-acima { z-index: 45; }
 .falcao-voante { position: absolute; left: 0; top: 0; will-change: transform; transition: opacity .25s ease; }
 .falcao-saindo { opacity: 0; }
 @media (prefers-reduced-motion: reduce) { .falcao-voante { transition: none; } }
+
+/* Destaque curto no alvo de um voo de retorno (pedra-fundo por ~1,6 s); vale também sobre o menu escuro. */
+.falcao-destaque { background-color: rgb(var(--pedra-fundo)) !important; color: rgb(var(--pedra-forte)) !important; box-shadow: 0 0 0 3px rgb(var(--pedra) / .35); transition: background-color .2s ease; }

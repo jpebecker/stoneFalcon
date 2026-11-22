@@ -6,6 +6,7 @@ import { CartaoPedidoPlugin } from "../components/Plugin";
 import ListaMudancas from "../components/ListaMudancas";
 import { usePreenche } from "../roteiro/estado";
 import { COR_RISCO, NOME_RISCO, quando } from "../components/formato";
+import Vazio from "../components/falcao/Vazio";
 
 function Cartao({ item }: { item: ItemRevisao }) {
   const qc = useQueryClient();
@@ -56,7 +57,7 @@ export default function Revisoes() {
         <p className="mt-1 text-tinta-2">Toda versão de agente de risco alto passa por aqui antes de ir ao ar. Quem escreveu a versão não pode revisá-la.</p>
       </div>
       {q.isError && <p className="text-erro">{(q.error as Error).message}</p>}
-      {q.data?.length === 0 && fila.length === 0 && <p className="caixa p-5 text-tinta-3">Nada esperando revisão.</p>}
+      {q.data?.length === 0 && fila.length === 0 && <Vazio>Nada esperando revisão.</Vazio>}
       {q.data?.map((item) => <Cartao key={item.versao.id} item={item} />)}
       {fila.length > 0 && (
         <section className="space-y-4" aria-label="Pedidos de integração de plugin">

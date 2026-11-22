@@ -10,6 +10,7 @@ import PainelRotina from "../components/PainelRotina";
 import { COR_ESTADO, COR_RISCO, NOME_ESTADO, NOME_EVENTO, NOME_RISCO, quando, reais } from "../components/formato";
 import Icone from "../components/Icone";
 import Carregando from "../components/falcao/Carregando";
+import { alvoDe, useFalcao } from "../components/falcao/Voo";
 
 export default function AgenteDetalhe({ pessoa }: { pessoa: Persona }) {
   const { id } = useParams();
@@ -26,9 +27,13 @@ export default function AgenteDetalhe({ pessoa }: { pessoa: Persona }) {
 
   const recarregar = () => { qc.invalidateQueries({ queryKey: ["agente", id] }); qc.invalidateQueries({ queryKey: ["agentes"] }); };
   const [afetados, setAfetados] = useState<{ id: string; nome: string }[]>([]);
+  const { retornar } = useFalcao();
   const acao = useMutation({
     mutationFn: ({ rota, corpo }: { rota: string; corpo?: unknown }) => api<{ processos_afetados?: { id: string; nome: string }[] }>(`/agentes/${id}/${rota}`, corpo ?? {}),
-    onSuccess: (r) => { setAfetados(r.processos_afetados ?? []); recarregar(); qc.invalidateQueries({ queryKey: ["processos"] }); },
+    onSuccess: (r, v) => {
+      setAfetados(r.processos_afetados ?? []); recarregar(); qc.invalidateQueries({ queryKey: ["processos"] });
+      if (v.rota === "publicar") retornar({ de: alvoDe("acao-publicar"), para: "aba-agentes", alternativo: "sino" });
+    },
   });
   const converter = useMutation({
     mutationFn: () => api<{ processo: { id: string } }>(`/agentes/${id}/converter-em-processo`, {}),
@@ -41,7 +46,10 @@ export default function AgenteDetalhe({ pessoa }: { pessoa: Persona }) {
   };
   const executar = useMutation({
     mutationFn: () => api<Execucao>(`/agentes/${id}/executar`, { entrada }),
-    onSuccess: (e) => { setExe(e); recarregar(); },
+    onSuccess: (e) => {
+      setExe(e); recarregar();
+      if (e.status === "concluida") retornar({ de: alvoDe("acao-executar"), para: "aba-execucoes", alternativo: "sino" });
+    },
   });
   const verDiff = async (numero: number) => {
     const mudancas = await api<Mudanca[]>(`/agentes/${id}/diff?de=${numero - 1}&para=${numero}`);
@@ -86,7 +94,7 @@ export default function AgenteDetalhe({ pessoa }: { pessoa: Persona }) {
           )}
           {editor && a.estado !== "depreciado" && !a.legado && <Link to={"/estudio?agente=" + a.id} className="botao-claro">Editar no Estúdio</Link>}
           {editor && ultima?.estado === "rascunho" && a.estado !== "depreciado" && (
-            <button className="botao-pedra" onClick={() => acao.mutate({ rota: "publicar" })}><Icone nome="publicar" />Publicar v{ultima.numero}</button>
+            <button className="botao-pedra" data-alvo="acao-publicar" onClick={() => acao.mutate({ rota: "publicar" })}><Icone nome="publicar" />Publicar v{ultima.numero}</button>
           )}
           {operador && a.estado === "publicado" && (
             <button className="botao-claro" onClick={() => { if (!avisoProcessos("pausar")) return; const m = prompt("Motivo da pausa (opcional):") ?? ""; acao.mutate({ rota: "pausar", corpo: { motivo: m } }); }}>Pausar</button>
@@ -120,7 +128,7 @@ export default function AgenteDetalhe({ pessoa }: { pessoa: Persona }) {
                   <CampoEntrada key={c.id} campo={c} pessoa={pessoa} valor={entrada[c.id] ?? ""}
                     aoMudar={(v) => setEntrada((e) => ({ ...e, [c.id]: v }))} />
                 ))}
-                <button className="botao-pedra" disabled={executar.isPending || campos.some((c) => !entrada[c.id])} onClick={() => executar.mutate()}>
+                <button className="botao-pedra" data-alvo="acao-executar" disabled={executar.isPending || campos.some((c) => !entrada[c.id])} onClick={() => executar.mutate()}>
                   <Icone nome="executar" />{executar.isPending ? "Executando…" : "Executar"}
                 </button>
                 <Carregando ativo={executar.isPending} texto="Executando o agente…" />

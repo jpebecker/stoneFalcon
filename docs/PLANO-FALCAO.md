@@ -55,7 +55,7 @@ Demonstração e decisões: artefato "Falcão StoneFalcon" (versão 2), com tudo
 | 04 | Componente `<Falcao>` | 01 | feito |
 | 05 | Camada de voo | 04 | feito |
 | 06 | Falcão na carga | 04 | feito |
-| 07 | Voos de retorno e estados vazios | 05 | todo |
+| 07 | Voos de retorno e estados vazios | 05 | feito |
 | 08 | Docs, roteiro e versão 8.2.0 | 02, 03, 06, 07 | todo |
 
 Fronteira inicial: **01** e **03** (independentes).
@@ -161,11 +161,11 @@ roteiro concluída. Falcão estático nos estados vazios de Alertas, Revisões, 
 
 **Bloqueado por:** 05.
 
-**Status:** todo
+**Status:** feito
 
-- [ ] Só em sucesso; em erro ou bloqueio, nenhum falcão.
-- [ ] O alvo ganha destaque curto (`pedra-fundo` por ~1,6 s): o retorno não depende só do movimento.
-- [ ] No máximo um voo por ação; nada voa sem uma ação antes.
+- [x] Só em sucesso; em erro ou bloqueio, nenhum falcão.
+- [x] O alvo ganha destaque curto (`pedra-fundo` por ~1,6 s): o retorno não depende só do movimento.
+- [x] No máximo um voo por ação; nada voa sem uma ação antes.
 
 # 08: Docs, roteiro e versão 8.2.0
 

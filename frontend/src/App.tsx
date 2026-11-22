@@ -4,7 +4,7 @@ import { Link, NavLink, Navigate, Route, Routes, useNavigate } from "react-route
 import { api, definirPerfil, perfilAtual, type Persona, type Saude } from "./api/cliente";
 import Avatar from "./components/Avatar";
 import Icone, { type NomeIcone } from "./components/Icone";
-import { ProvedorFalcao } from "./components/falcao/Voo";
+import { alvoDe, ProvedorFalcao, useFalcao } from "./components/falcao/Voo";
 import Marca from "./components/Marca";
 import AgenteDetalhe from "./pages/AgenteDetalhe";
 import Auditoria from "./pages/Auditoria";
@@ -132,6 +132,15 @@ function AppInterno() {
   // entrar (pela tela de entrada ou trocando pelo menu do avatar) sempre abre o Início da persona,
   // qualquer que seja a tela em que a pessoa anterior estava
   const entrarNoInicio = (id: string) => { trocar(id); navegar("/"); };
+  // entrar pela roda: voo de boas-vindas até a marca do menu (só aqui; trocar de pessoa pelo menu não faz festa)
+  const { voar } = useFalcao();
+  const boasVindas = useRef(false);
+  const entrarPelaRoda = (id: string) => { boasVindas.current = true; entrarNoInicio(id); };
+  useEffect(() => {
+    if (!boasVindas.current || !perfil) return;
+    boasVindas.current = false;
+    window.setTimeout(() => voar({ de: { x: window.innerWidth * 0.62, y: window.innerHeight * 0.5 }, para: alvoDe("marca") }), 350);
+  }, [perfil, voar]);
 
   const pessoa = eu.data;
   const podePerguntas = !!pessoa?.abas.includes("perguntas");
@@ -155,7 +164,7 @@ function AppInterno() {
     return <ProvedorRoteiro trocar={trocar}><ViaExtensao aoEntrar={trocar} /></ProvedorRoteiro>;
   }
   if (!perfil || eu.isError) {
-    return <ProvedorRoteiro trocar={trocar}><Entrar aoEntrar={entrarNoInicio} /></ProvedorRoteiro>;
+    return <ProvedorRoteiro trocar={trocar}><Entrar aoEntrar={entrarPelaRoda} /></ProvedorRoteiro>;
   }
 
   return (

@@ -15,6 +15,7 @@ import { BLOCOS, COR_RISCO, NOME_RISCO, ms, reais } from "../components/formato"
 import Icone from "../components/Icone";
 import Carregando from "../components/falcao/Carregando";
 import { registrarCtx, usePreenche } from "../roteiro/estado";
+import { alvoDe, useFalcao } from "../components/falcao/Voo";
 
 const VAZIO: ProcessoBlueprint = {
   nome: "Novo processo", objetivo: "Descreva em uma frase o que este processo resolve.", area: "", campos: [], blocos: [],
@@ -79,6 +80,7 @@ export default function ProcessoEditor({ pessoa }: { pessoa: Persona }) {
     return () => clearTimeout(t);
   }, [bp]);
 
+  const { retornar } = useFalcao();
   const salvar = useMutation({
     mutationFn: async (publicarDepois: boolean) => {
       const pid = id
@@ -87,11 +89,22 @@ export default function ProcessoEditor({ pessoa }: { pessoa: Persona }) {
       if (publicarDepois) await api(`/processos/${pid}/publicar`, {});
       return pid;
     },
-    onSuccess: (pid) => { registrarCtx({ agenteId: pid }); qc.invalidateQueries({ queryKey: ["processos"] }); qc.invalidateQueries({ queryKey: ["processo", pid] }); navegar("/processos/" + pid); },
+    onSuccess: (pid, publicarDepois) => {
+      registrarCtx({ agenteId: pid }); qc.invalidateQueries({ queryKey: ["processos"] }); qc.invalidateQueries({ queryKey: ["processo", pid] });
+      const de = alvoDe("acao-publicar");   // o ponto de partida é lido antes de a tela trocar
+      navegar("/processos/" + pid);
+      if (publicarDepois) {
+        if (valido?.risco.exige_revisao_seguranca) retornar({ de, para: "aba-revisoes", alternativo: "sino" });
+        else retornar({ de, para: "aba-processos", alternativo: "sino" });
+      }
+    },
   });
   const testar = useMutation({
     mutationFn: () => api<Execucao>("/processos/testar", { blueprint: bp, entrada }),
-    onSuccess: setExe,
+    onSuccess: (e) => {
+      setExe(e);
+      if (e.status === "concluida") retornar({ de: alvoDe("acao-executar"), para: "aba-execucoes", alternativo: "sino" });
+    },
   });
 
   const valido = val?.valido ? val : null;
@@ -139,7 +152,7 @@ export default function ProcessoEditor({ pessoa }: { pessoa: Persona }) {
         </div>
         <div className="flex gap-2">
           <button className="botao-claro" disabled={!valido || salvar.isPending} onClick={() => salvar.mutate(false)}>Salvar rascunho</button>
-          <button className="botao-pedra" disabled={semBlocosValidos || salvar.isPending || semPermissao} onClick={() => salvar.mutate(true)}
+          <button className="botao-pedra" data-alvo="acao-publicar" disabled={semBlocosValidos || salvar.isPending || semPermissao} onClick={() => salvar.mutate(true)}
             title={valido?.risco.exige_revisao_seguranca ? "Vai para a revisão da Segurança antes de ir ao ar" : "Vai ao ar agora"}>
             <Icone nome="publicar" />{valido?.risco.exige_revisao_seguranca ? "Enviar para revisão" : "Publicar"}
           </button>
@@ -218,7 +231,7 @@ export default function ProcessoEditor({ pessoa }: { pessoa: Persona }) {
           {bp.campos.map((c) => (
             <CampoEntrada key={c.id} campo={c} pessoa={pessoa} valor={entrada[c.id] ?? ""} aoMudar={(v) => setEntrada((e) => ({ ...e, [c.id]: v }))} />
           ))}
-          <button className="botao-pedra" disabled={!valido || testar.isPending || bp.campos.some((c) => !entrada[c.id])} onClick={() => testar.mutate()}>
+          <button className="botao-pedra" data-alvo="acao-executar" disabled={!valido || testar.isPending || bp.campos.some((c) => !entrada[c.id])} onClick={() => testar.mutate()}>
             <Icone nome="executar" />{testar.isPending ? "Executando…" : "Executar teste"}
           </button>
           <Carregando ativo={testar.isPending} texto="Executando o teste…" />

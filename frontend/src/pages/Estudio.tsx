@@ -12,6 +12,7 @@ import { COR_RISCO, reais } from "../components/formato";
 import Icone from "../components/Icone";
 import Carregando from "../components/falcao/Carregando";
 import { CHAVE_RASCUNHO } from "./ViaExtensao";
+import { alvoDe, useFalcao } from "../components/falcao/Voo";
 
 type Padrao = { id: string; titulo: string; area: string; exemplo: string };
 
@@ -67,6 +68,7 @@ export default function Estudio({ pessoa }: { pessoa: Persona }) {
     if (existente.data && !bp) setBp(existente.data.versoes[0].blueprint);
   }, [existente.data, bp]);
 
+  const { retornar } = useFalcao();
   const salvar = useMutation({
     mutationFn: async (publicarDepois: boolean) => {
       const id = agenteId
@@ -75,7 +77,15 @@ export default function Estudio({ pessoa }: { pessoa: Persona }) {
       if (publicarDepois) await api(`/agentes/${id}/publicar`, {});
       return id;
     },
-    onSuccess: (id) => { registrarCtx({ agenteId: id }); qc.invalidateQueries({ queryKey: ["agentes"] }); qc.invalidateQueries({ queryKey: ["agente", id] }); navegar("/agentes/" + id); },
+    onSuccess: (id, publicarDepois) => {
+      registrarCtx({ agenteId: id }); qc.invalidateQueries({ queryKey: ["agentes"] }); qc.invalidateQueries({ queryKey: ["agente", id] });
+      const de = alvoDe("acao-publicar");   // o ponto de partida é lido antes de a tela trocar
+      navegar("/agentes/" + id);
+      if (publicarDepois) {
+        if (valido?.risco.exige_revisao_seguranca) retornar({ de, para: "aba-revisoes", alternativo: "sino" });
+        else retornar({ de, para: "aba-agentes", alternativo: "sino" });
+      }
+    },
   });
 
   const padroes = useQuery({ queryKey: ["padroes"], queryFn: () => api<Padrao[]>("/estudio/padroes") });
@@ -89,7 +99,10 @@ export default function Estudio({ pessoa }: { pessoa: Persona }) {
   });
   const testar = useMutation({
     mutationFn: () => api<Execucao>("/estudio/testar", { blueprint: bp, entrada }),
-    onSuccess: setExe,
+    onSuccess: (e) => {
+      setExe(e);
+      if (e.status === "concluida") retornar({ de: alvoDe("acao-executar"), para: "aba-execucoes", alternativo: "sino" });
+    },
   });
 
   // validação ao vivo enquanto a pessoa edita
@@ -176,7 +189,7 @@ export default function Estudio({ pessoa }: { pessoa: Persona }) {
         <div className="flex gap-2">
           {!agenteId && <button className="botao-claro" onClick={() => { setBp(null); setSug(null); setVal(null); setExe(null); setFluxo(null); setProcessoPronto(null); }}>Recomeçar</button>}
           <button className="botao-claro" disabled={!valido || salvar.isPending || legado} onClick={() => salvar.mutate(false)}>Salvar rascunho</button>
-          <button className="botao-pedra" disabled={!valido || salvar.isPending || semPermissao.size > 0 || legado} onClick={() => salvar.mutate(true)}
+          <button className="botao-pedra" data-alvo="acao-publicar" disabled={!valido || salvar.isPending || semPermissao.size > 0 || legado} onClick={() => salvar.mutate(true)}
             title={valido?.risco.exige_revisao_seguranca ? "Vai para a revisão da Segurança antes de ir ao ar" : "Vai ao ar agora"}>
             <Icone nome="publicar" />{valido?.risco.exige_revisao_seguranca ? "Enviar para revisão" : "Publicar"}
           </button>
@@ -276,7 +289,7 @@ export default function Estudio({ pessoa }: { pessoa: Persona }) {
             <CampoEntrada key={c.id} campo={c} pessoa={pessoa} valor={entrada[c.id] ?? ""}
               aoMudar={(v) => setEntrada((e) => ({ ...e, [c.id]: v }))} />
           ))}
-          <button className="botao-pedra" disabled={!valido || testar.isPending || bp.campos.some((c) => !entrada[c.id])}
+          <button className="botao-pedra" data-alvo="acao-executar" disabled={!valido || testar.isPending || bp.campos.some((c) => !entrada[c.id])}
             onClick={() => testar.mutate()}>
             <Icone nome="executar" />{testar.isPending ? "Executando…" : "Executar teste"}
           </button>

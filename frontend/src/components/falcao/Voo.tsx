@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 import Falcao from "./Falcao";
 
 /** Um alvo do voo: um elemento da tela ou um ponto (px da janela). Ausente = sem alvo. */
-export type Alvo = HTMLElement | { x: number; y: number } | null | undefined;
+export type Alvo = Element | { x: number; y: number } | null | undefined;
 
 export interface PedidoVoo {
   /** De onde sai (ex.: o botão que a pessoa clicou). Sem `de`, o falcão entra pela lateral. */
@@ -12,8 +12,13 @@ export interface PedidoVoo {
   para: Alvo;
   /** Se `para` estiver ausente ou fora da tela (menu recolhido), voa até este (ex.: o botão do menu). */
   alternativo?: Alvo;
-  /** Chamado quando o falcão chega (aqui o alvo pode ganhar o destaque curto). Não é chamado se o voo for cancelado. */
-  aoChegar?: () => void;
+  /** Voa por cima da barra do roteiro (só o voo da etapa concluída, que acontece dentro dela). */
+  acima?: boolean;
+  /**
+   * Chamado quando o falcão chega, com o elemento em que pousou (o alvo ou o alternativo; ausente se não havia
+   * onde pousar). Não é chamado se o voo for cancelado.
+   */
+  aoChegar?: (chegada?: Element) => void;
 }
 
 interface Voo {
@@ -24,7 +29,9 @@ interface Voo {
   direcao: "direita" | "esquerda";
   duracaoMs: number;
   arco: number;
-  aoChegar?: () => void;
+  chegada?: Element;
+  acima: boolean;
+  aoChegar?: (chegada?: Element) => void;
 }
 
 const TAMANHO = 56; // largura do falcão em voo, em px
@@ -34,15 +41,29 @@ const SUMIR_MS = 250;
 const REDUZIDO_MS = 1200;
 const MIN_MS = 600;
 
-const nada = { voar: (p: PedidoVoo) => p.aoChegar?.(), cancelar: () => {} };
-const Contexto = createContext<{ voar: (p: PedidoVoo) => void; cancelar: () => void }>(nada);
+/** Voo de retorno: os alvos são nomes de `data-alvo`; o que recebe o falcão ganha o destaque curto ao chegar. */
+export interface Retorno { de?: Alvo; para: string; alternativo?: string }
 
-/** `useFalcao().voar({ de, para, aoChegar })` e `cancelar()`. Fora do provedor, não faz nada (só chama `aoChegar`). */
+interface ApiFalcao { voar: (p: PedidoVoo) => void; retornar: (r: Retorno) => void; cancelar: () => void }
+const nada: ApiFalcao = { voar: (p) => p.aoChegar?.(), retornar: () => {}, cancelar: () => {} };
+const Contexto = createContext<ApiFalcao>(nada);
+
+/**
+ * `voar({ de, para, aoChegar })` leva o falcão de um ponto a outro; `retornar({ de, para: "aba-execucoes", alternativo: "sino" })`
+ * é o voo de retorno de uma ação, com destaque no alvo; `cancelar()` desfaz. Fora do provedor, não faz nada.
+ */
 export const useFalcao = () => useContext(Contexto);
 
 /** Elemento marcado com `data-alvo="nome"` (abas do menu, sino, marca), para usar em `de`/`para`. */
-export function alvoDe(nome: string): HTMLElement | null {
-  return document.querySelector<HTMLElement>(`[data-alvo="${nome}"]`);
+export function alvoDe(nome: string): Element | null {
+  return document.querySelector<Element>(`[data-alvo="${nome}"]`);
+}
+
+/** Destaque curto (pedra-fundo por ~1,6 s) no alvo do voo: o retorno não depende só do movimento. */
+export function destacar(el: Element | null | undefined, ms = 1600) {
+  if (!el) return;
+  el.classList.add("falcao-destaque");
+  window.setTimeout(() => el.classList.remove("falcao-destaque"), ms);
 }
 
 const visivel = (r: DOMRect) => r.width + r.height > 0 && r.bottom > 0 && r.top < window.innerHeight && r.right > 0 && r.left < window.innerWidth;
@@ -50,7 +71,7 @@ const preso = (n: number, a: number, b: number) => Math.min(Math.max(n, a), b);
 
 function centroDe(a: Alvo): { x: number; y: number } | null {
   if (!a) return null;
-  if (!(a instanceof HTMLElement)) return a;
+  if (!(a instanceof Element)) return a;
   if (!a.isConnected) return null;
   const r = a.getBoundingClientRect();
   return visivel(r) ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : null;
@@ -59,7 +80,7 @@ function centroDe(a: Alvo): { x: number; y: number } | null {
 /** Ponto de pouso ao lado do alvo, do lado de onde o falcão vem; um ponto solto é usado como está. */
 function destinoDe(a: Alvo, deX: number): { x: number; y: number } | null {
   if (!a) return null;
-  if (!(a instanceof HTMLElement)) return a;
+  if (!(a instanceof Element)) return a;
   if (!a.isConnected) return null;
   const r = a.getBoundingClientRect();
   if (!visivel(r)) return null;
@@ -71,12 +92,14 @@ function destinoDe(a: Alvo, deX: number): { x: number; y: number } | null {
 function resolver(p: PedidoVoo, caminho: string, id: number): Voo | null {
   const dePonto = centroDe(p.de);
   const refX = dePonto?.x ?? 0;
-  const para = destinoDe(p.para, refX) ?? destinoDe(p.alternativo, refX);
-  if (!para) return null; // sem alvo na tela: não voa
+  let para = destinoDe(p.para, refX);
+  let chegada = p.para instanceof Element ? p.para : undefined;
+  if (!para) { para = destinoDe(p.alternativo, refX); chegada = p.alternativo instanceof Element ? p.alternativo : undefined; }
+  if (!para || !Number.isFinite(para.x) || !Number.isFinite(para.y)) return null; // sem alvo na tela: não voa
   const de = dePonto ?? { x: para.x - 240, y: para.y - 40 };
   const direcao = para.x >= de.x ? "direita" : "esquerda";
   const dist = Math.hypot(para.x - de.x, para.y - de.y);
-  return { id, caminho, de, para, direcao, duracaoMs: Math.round(Math.min(1600, Math.max(MIN_MS, dist / 0.8))), arco: Math.min(70, dist * 0.12), aoChegar: p.aoChegar };
+  return { id, caminho, de, para, direcao, duracaoMs: Math.round(Math.min(1600, Math.max(MIN_MS, dist / 0.8))), arco: Math.min(70, dist * 0.12), chegada, acima: !!p.acima, aoChegar: p.aoChegar };
 }
 
 function Camada({ voo, aoFim }: { voo: Voo; aoFim: (id: number) => void }) {
@@ -97,7 +120,7 @@ function Camada({ voo, aoFim }: { voo: Voo; aoFim: (id: number) => void }) {
       if (!vivo) return;
       posicionar(voo.para.x, voo.para.y);
       setFase("parado");
-      try { voo.aoChegar?.(); } catch { /* o destaque é opcional: não derruba a tela */ }
+      try { voo.aoChegar?.(voo.chegada); } catch { /* o destaque é opcional: não derruba a tela */ }
       const pairar = reduzido ? REDUZIDO_MS - SUMIR_MS : PAIRAR_MS;
       tempos.push(window.setTimeout(() => vivo && setFase("saindo"), pairar));
       tempos.push(window.setTimeout(() => vivo && aoFim(voo.id), pairar + SUMIR_MS));
@@ -138,22 +161,25 @@ export function ProvedorFalcao({ children }: { children: ReactNode }) {
 
   const voar = useCallback((p: PedidoVoo) => {
     const novo = resolver(p, window.location.pathname, ++contador.current);
-    if (!novo) { setVoo(null); p.aoChegar?.(); return; }
+    if (!novo) { setVoo(null); p.aoChegar?.(undefined); return; }
     setVoo(novo); // substitui o voo em curso, se houver
   }, []);
+  const retornar = useCallback((r: Retorno) => {
+    voar({ de: r.de, para: alvoDe(r.para), alternativo: r.alternativo ? alvoDe(r.alternativo) : null, aoChegar: destacar });
+  }, [voar]);
   const cancelar = useCallback(() => setVoo(null), []);
   const aoFim = useCallback((id: number) => setVoo((v) => (v?.id === id ? null : v)), []);
 
   // trocar de página cancela o voo que veio da página anterior (um voo iniciado já na nova página segue)
   useEffect(() => { setVoo((v) => (v && v.caminho !== pathname ? null : v)); }, [pathname]);
 
-  const valor = useMemo(() => ({ voar, cancelar }), [voar, cancelar]);
+  const valor = useMemo(() => ({ voar, retornar, cancelar }), [voar, retornar, cancelar]);
   // o painel da extensão é escuro: a camada herda os tokens do `.ext-tema`
   const extensao = pathname.startsWith("/extensao");
   return (
     <Contexto.Provider value={valor}>
       {children}
-      <div className={"falcao-camada" + (extensao ? " ext-tema" : "")} aria-hidden="true">
+      <div className={"falcao-camada" + (extensao ? " ext-tema" : "") + (voo?.acima ? " falcao-acima" : "")} aria-hidden="true">
         {voo && <Camada key={voo.id} voo={voo} aoFim={aoFim} />}
       </div>
     </Contexto.Provider>

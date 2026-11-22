@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { api, type Execucao } from "../api/cliente";
 import { COR_STATUS, NOME_STATUS, ms, quando, reais } from "../components/formato";
+import Vazio from "../components/falcao/Vazio";
 
 export default function Execucoes() {
   const q = useQuery({ queryKey: ["execucoes", "todas"], queryFn: () => api<Execucao[]>("/execucoes?limite=100") });
@@ -32,7 +33,7 @@ export default function Execucoes() {
             ))}
           </tbody>
         </table>
-        {q.data?.length === 0 && <p className="p-5 text-sm text-tinta-3">Nenhuma execução ainda.</p>}
+        {q.data?.length === 0 && <Vazio caixa={false} className="text-sm">Nenhuma execução ainda.</Vazio>}
       </div>
     </div>
   );

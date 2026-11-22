@@ -5,6 +5,7 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 import { useNavigate } from "react-router-dom";
 import { api, perfilAtual, type Persona, type Roteiro } from "../api/cliente";
 import Avatar from "../components/Avatar";
+import { useFalcao } from "../components/falcao/Voo";
 import { definirRoteiro, estadoAtual, resolverRota, useRoteiro } from "./estado";
 
 type Controle = {
@@ -89,6 +90,7 @@ export function BarraRoteiro() {
   const c = useControle();
   const [fala, setFala] = useState(false);
   const [ocupado, setOcupado] = useState(false);
+  const { voar } = useFalcao();
   const perfis = useQuery({ queryKey: ["perfis"], queryFn: () => api<Persona[]>("/perfis"), staleTime: Infinity });
   if (!estado || !roteiro || !passo) return null;
   const total = roteiro.passos.length;
@@ -111,13 +113,17 @@ export function BarraRoteiro() {
         <p className="min-w-[220px] flex-1 text-sm text-white/80">{passo.acao}{passo.externa && " (abre em outra aba)"}</p>
         <div className="flex items-center gap-2">
           <span className="mr-1 hidden gap-1 sm:flex" aria-hidden="true">
-            {roteiro.passos.map((p, k) => <span key={p.id} className={"h-1.5 w-5 rounded-full " + (k < i ? "bg-pedra" : k === i ? "bg-white" : "bg-white/20")} />)}
+            {roteiro.passos.map((p, k) => <span key={p.id} data-seg={k} className={"h-1.5 w-5 rounded-full " + (k < i ? "bg-pedra" : k === i ? "bg-white" : "bg-white/20")} />)}
           </span>
           <button className="rounded-lg border border-white/20 px-3 py-1.5 text-sm hover:bg-white/10" onClick={() => setFala(!fala)} aria-pressed={fala}>Fala</button>
           <button className="rounded-lg border border-white/20 px-3 py-1.5 text-sm hover:bg-white/10 disabled:opacity-40" disabled={i === 0 || ocupado}
             onClick={() => comOcupado(() => c.ir(roteiro, i - 1))}>Voltar</button>
           <button className="rounded-lg bg-pedra px-4 py-1.5 text-sm font-semibold hover:bg-pedra-forte disabled:opacity-40" disabled={i >= total - 1 || ocupado}
-            onClick={() => comOcupado(() => c.ir(roteiro, i + 1))}>Avançar</button>
+            onClick={() => comOcupado(async () => {
+              const feita = document.querySelector<HTMLElement>(`[data-seg="${i}"]`);   // a etapa que acabou de ser feita
+              await c.ir(roteiro, i + 1);
+              voar({ de: feita, para: document.querySelector<HTMLElement>(`[data-seg="${i + 1}"]`), acima: true });   // voo curto até a próxima
+            })}>Avançar</button>
           <button className="rounded-lg border border-white/20 px-3 py-1.5 text-sm hover:bg-white/10 disabled:opacity-40" disabled={ocupado}
             title="Volta a plataforma ao estado exato do início deste roteiro"
             onClick={() => confirm("Reiniciar este roteiro? Isso apaga o que foi criado nele e volta ao início.") && comOcupado(c.reiniciar)}>Reiniciar</button>
