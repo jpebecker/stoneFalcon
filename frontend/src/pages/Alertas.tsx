@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, type Alerta, type Persona } from "../api/cliente";
 import { quando } from "../components/formato";
+import Carregando from "../components/falcao/Carregando";
 
 type Filtro = "abertos" | "tratamento" | "todos";
 const FILTROS: [Filtro, string][] = [["abertos", "Abertos"], ["tratamento", "Em tratamento"], ["todos", "Todos"]];
@@ -38,6 +39,9 @@ function Tratamento({ a, pessoa }: { a: Alerta; pessoa: Persona }) {
             onClick={() => (pedeCampo && aberto !== "acao" ? setAberto("acao") : executar.mutate())}>
             {executar.isPending ? "Executando…" : acao.rotulo}
           </button>
+        )}
+        {acao && (
+          <Carregando ativo={executar.isPending} texto="Executando o tratamento…" />
         )}
         {!a.tratando_por && <button className="botao-claro" onClick={() => setAberto(aberto === "assumir" ? null : "assumir")}>Assumir</button>}
         {a.tratando_por && (meu || pessoa.papeis.includes("gestor_ia")) && (

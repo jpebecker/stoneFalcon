@@ -13,6 +13,7 @@ import PainelBloco from "../components/PainelBloco";
 import PaletaBlocos from "../components/PaletaBlocos";
 import { BLOCOS, COR_RISCO, NOME_RISCO, ms, reais } from "../components/formato";
 import Icone from "../components/Icone";
+import Carregando from "../components/falcao/Carregando";
 import { registrarCtx, usePreenche } from "../roteiro/estado";
 
 const VAZIO: ProcessoBlueprint = {
@@ -220,6 +221,7 @@ export default function ProcessoEditor({ pessoa }: { pessoa: Persona }) {
           <button className="botao-pedra" disabled={!valido || testar.isPending || bp.campos.some((c) => !entrada[c.id])} onClick={() => testar.mutate()}>
             <Icone nome="executar" />{testar.isPending ? "Executando…" : "Executar teste"}
           </button>
+          <Carregando ativo={testar.isPending} texto="Executando o teste…" />
         </div>
         {testar.isError && <p className="mt-2 text-sm text-erro">{(testar.error as Error).message}</p>}
         {exe && <div className="mt-5 border-t border-linha pt-5"><LinhaDoTempo exe={exe} pessoa={pessoa} cotacao={saude.data?.cotacao_dolar ?? 5.52} aoMudar={setExe} /></div>}

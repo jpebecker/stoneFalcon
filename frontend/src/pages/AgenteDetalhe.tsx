@@ -9,6 +9,7 @@ import ListaMudancas from "../components/ListaMudancas";
 import PainelRotina from "../components/PainelRotina";
 import { COR_ESTADO, COR_RISCO, NOME_ESTADO, NOME_EVENTO, NOME_RISCO, quando, reais } from "../components/formato";
 import Icone from "../components/Icone";
+import Carregando from "../components/falcao/Carregando";
 
 export default function AgenteDetalhe({ pessoa }: { pessoa: Persona }) {
   const { id } = useParams();
@@ -122,6 +123,7 @@ export default function AgenteDetalhe({ pessoa }: { pessoa: Persona }) {
                 <button className="botao-pedra" disabled={executar.isPending || campos.some((c) => !entrada[c.id])} onClick={() => executar.mutate()}>
                   <Icone nome="executar" />{executar.isPending ? "Executando…" : "Executar"}
                 </button>
+                <Carregando ativo={executar.isPending} texto="Executando o agente…" />
               </div>
               {executar.isError && <p className="mt-2 text-sm text-erro">{(executar.error as Error).message}</p>}
               {exe && <div className="mt-5 border-t border-linha pt-5"><LinhaDoTempo exe={exe} pessoa={pessoa} cotacao={saude.data?.cotacao_dolar ?? 5.52} aoMudar={setExe} /></div>}

@@ -54,7 +54,7 @@ Demonstração e decisões: artefato "Falcão StoneFalcon" (versão 2), com tudo
 | 03 | Ícones da interface | — | feito |
 | 04 | Componente `<Falcao>` | 01 | feito |
 | 05 | Camada de voo | 04 | feito |
-| 06 | Falcão na carga | 04 | todo |
+| 06 | Falcão na carga | 04 | feito |
 | 07 | Voos de retorno e estados vazios | 05 | todo |
 | 08 | Docs, roteiro e versão 8.2.0 | 02, 03, 06, 07 | todo |
 
@@ -148,10 +148,10 @@ Ao chegar, paira ~0,9 s ao lado do alvo e some em 0,25 s.
 
 **Bloqueado por:** 04.
 
-**Status:** todo
+**Status:** feito
 
-- [ ] Região de status com `aria-busy="true"` durante a carga e `aria-live="polite"`.
-- [ ] Painel da extensão em tema escuro conferido no navegador.
+- [x] Região de status com `aria-busy="true"` durante a carga e `aria-live="polite"`.
+- [x] Painel da extensão em tema escuro conferido no navegador.
 
 # 07: Voos de retorno e estados vazios
 

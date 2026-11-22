@@ -10,6 +10,7 @@ import { registrarCtx, usePreenche } from "../roteiro/estado";
 import LinhaDoTempo from "../components/LinhaDoTempo";
 import { COR_RISCO, reais } from "../components/formato";
 import Icone from "../components/Icone";
+import Carregando from "../components/falcao/Carregando";
 import { CHAVE_RASCUNHO } from "./ViaExtensao";
 
 type Padrao = { id: string; titulo: string; area: string; exemplo: string };
@@ -137,10 +138,13 @@ export default function Estudio({ pessoa }: { pessoa: Persona }) {
             placeholder="Ex.: Quando o lojista diz que a maquininha quebrou, eu confiro o cadastro dele e abro um chamado de troca na logística. Levo uns 15 minutos." />
           <div className="mt-3 flex items-center justify-between gap-3">
             <p className="text-xs text-tinta-3">Dados pessoais escritos aqui são removidos antes de qualquer envio.</p>
-            <button className="botao-pedra" disabled={descricao.trim().length < 15 || sugerir.isPending}
-              onClick={() => sugerir.mutate({ d: descricao, fonte: pre?.fonte ?? null })}>
-              {sugerir.isPending ? "Montando o agente…" : "Montar meu agente"}
-            </button>
+            <div className="flex items-center gap-3">
+              <Carregando ativo={sugerir.isPending} texto="Montando o seu agente…" />
+              <button className="botao-pedra" disabled={descricao.trim().length < 15 || sugerir.isPending}
+                onClick={() => sugerir.mutate({ d: descricao, fonte: pre?.fonte ?? null })}>
+                {sugerir.isPending ? "Montando o agente…" : "Montar meu agente"}
+              </button>
+            </div>
           </div>
           {sugerir.isError && <p className="mt-2 text-sm text-erro">{(sugerir.error as Error).message}</p>}
         </div>
@@ -276,6 +280,7 @@ export default function Estudio({ pessoa }: { pessoa: Persona }) {
             onClick={() => testar.mutate()}>
             <Icone nome="executar" />{testar.isPending ? "Executando…" : "Executar teste"}
           </button>
+          <Carregando ativo={testar.isPending} texto="Executando o teste…" />
         </div>
         {testar.isError && <p className="mt-2 text-sm text-erro">{(testar.error as Error).message}</p>}
         {exe && (
