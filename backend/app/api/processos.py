@@ -283,8 +283,15 @@ class PedidoCompartilhar(BaseModel):
 @rotas.post("/processos/{processo_id}/compartilhar")
 def compartilhar(processo_id: str, pedido: PedidoCompartilhar, pessoa: Persona = Depends(usuario_atual),
                  s: Session = Depends(sessao)):
+    conhecidas = {x.area for x in PERSONAS.values()}
+    desconhecidas = sorted({a for a in pedido.areas if a and a not in conhecidas})
+    if desconhecidas:
+        raise HTTPException(status_code=422, detail="Área desconhecida: %s." % ", ".join(desconhecidas))
     try:
-        return _dump(s, ciclo.compartilhar(s, pessoa, processo_id, pedido.areas))
+        p = ciclo.compartilhar(s, pessoa, processo_id, pedido.areas)
+        avaliar_seguro(s)   # os alertas abertos do processo passam a chegar (ou deixam de chegar) às áreas na hora
+        s.refresh(p)
+        return _resumo(p, s)
     except ErroCiclo as e:
         _erro(e)
 

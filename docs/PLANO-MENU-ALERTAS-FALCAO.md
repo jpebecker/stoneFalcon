@@ -91,7 +91,7 @@ What was checked in the code and in the local database before writing the ticket
 | 04 | Alerts on the Início of each persona | 03 | feito |
 | 05 | Shared process: verified end to end and visible on both sides | — | feito |
 | 06 | Shared-process alerts reach the shared area | 02, 05 | feito |
-| 07 | Share a process from the UI | 05 | ready-for-agent |
+| 07 | Share a process from the UI | 05 | feito |
 | 08 | Falcon companion: perch, speech bubble and the new motion rule | 01 | ready-for-agent |
 | 09 | Falcon as the guide of guided tours | 08 | ready-for-agent |
 | 10 | Falcon ambient routines | 08, 03 | ready-for-agent |
@@ -280,16 +280,22 @@ goes to the audit trail, and the other area's persona sees the process right aft
 
 **Blocked by:** 05.
 
-**Status:** ready-for-agent
+**Status:** feito
 
-- [ ] "Compartilhar" control on the process detail, shown only to people who can edit; picks one or more areas other than
+- [x] "Compartilhar" control on the process detail, shown only to people who can edit; picks one or more areas other than
       the owner's.
-- [ ] Removing an area stops access for that area (list, detail, execute) immediately.
-- [ ] Audit entry "Compartilhado" with the areas, as today's API already records.
-- [ ] Switching to a persona of the newly shared area shows the process with the badge from ticket 05.
-- [ ] `npm run build` passes; checked in the browser (share as Marina with Risco, see it as Rafael, unshare).
+- [x] Removing an area stops access for that area (list, detail, execute) immediately.
+- [x] Audit entry "Compartilhado" with the areas, as today's API already records.
+- [x] Switching to a persona of the newly shared area shows the process with the badge from ticket 05.
+- [x] `npm run build` passes; checked in the browser (share as Marina with Risco, see it as Rafael, unshare).
 
 ---
+
+**Notes (what was built):** `GET /areas` feeds the picker; the share call re-runs the alert rules right away, so open alerts reach
+(or stop reaching) the other area at once, and rejects unknown areas (422). The process history shows which areas each
+"Compartilhado" entry named. Sharing a process does not share the files it reads: Rafael running Marina's FAQ process gets an
+escalation because `faq-atendimento.csv` belongs to Atendimento and Logística (the audit trail says so). For a live demo, pick a
+process whose files the receiving area can read, or share the file too.
 
 # 08: Falcon companion: perch, speech bubble and the new motion rule
 
