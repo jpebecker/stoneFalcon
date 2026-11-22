@@ -177,5 +177,5 @@ ARCHITECTURE.md sobre o gerador; o falcão num roteiro de demonstração; versã
 **Status:** feito
 
 - [x] `python scripts/verifica_versao.py` e `python scripts/verifica_extensao.py` verdes.
-- [ ] `pytest` e `npm run build` verdes.
+- [x] `pytest` (759 testes) e `npm run build` verdes.
 - [ ] Capturas da marca nova, do menu com ícones e do falcão parado e em voo no PR.
