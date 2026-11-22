@@ -87,10 +87,10 @@ topo do painel e no botão flutuante "Perguntar ao StoneFalcon".
 
 **Bloqueado por:** 01.
 
-**Status:** parcial (falta conferir o favicon na aba e o ícone em `chrome://extensions`, no navegador)
+**Status:** parcial (falta conferir o ícone em `chrome://extensions`)
 
 - [x] Marca no menu lateral, na tela de entrada e no painel da extensão.
-- [ ] Favicon conferido na aba do navegador (16 px).
+- [x] Favicon conferido em 16 px (renderizado sobre fundo claro e escuro).
 - [ ] `python scripts/verifica_extensao.py` verde; ícone novo conferido em `chrome://extensions`.
 
 # 03: Ícones da interface
