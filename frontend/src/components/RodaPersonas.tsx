@@ -78,7 +78,6 @@ export default function RodaPersonas({ pessoas, iniciando, aoEntrar, aoIniciarRo
           const a0 = c - passo / 2 + FOLGA, a1 = c + passo / 2 - FOLGA;
           const meio = (R_EXT + R_INT) / 2;
           const [mx, my] = [C + meio * Math.cos(rad(c)), C + meio * Math.sin(rad(c))];
-          const [lx, ly] = [C + (R_EXT - 30) * Math.cos(rad(c)), C + (R_EXT - 30) * Math.sin(rad(c))];
           const estado = ativo === i ? "ativa" : ativo !== null ? "vizinha" : "";
           const falhou = !x.foto || semFoto[x.id];
           return (
@@ -98,7 +97,6 @@ export default function RodaPersonas({ pessoas, iniciando, aoEntrar, aoIniciarRo
                 <text x={mx} y={my} textAnchor="middle" dominantBaseline="central" className="roda-iniciais">{x.iniciais}</text>
               )}
               <path className="roda-sombra" d={caminhoFatia(a0, a1)} />
-              <text x={lx} y={ly} textAnchor="middle" dominantBaseline="central" className="roda-nome">{x.nome.split(" ")[0]}</text>
             </g>
           );
         })}
@@ -111,9 +109,8 @@ export default function RodaPersonas({ pessoas, iniciando, aoEntrar, aoIniciarRo
           <>
             <div className="font-titulo text-xl font-semibold leading-tight">{p.nome}</div>
             <div className="mt-0.5 text-xs text-tinta-2">{p.cargo} · {p.area_nome}</div>
-            <p className="mt-2 line-clamp-3 text-xs text-tinta-2">{p.descricao}</p>
-            <div className="mt-2 flex flex-wrap justify-center gap-1">
-              {p.papeis.filter((x) => PAPEL[x]).map((x) => <span key={x} className="selo bg-papel text-tinta-2">{PAPEL[x]}</span>)}
+            <p className="mt-2 line-clamp-2 text-xs text-tinta-2">{p.descricao}</p>
+            <div className="mt-2 flex justify-center">
               <span className="selo bg-info-fundo text-info">acesso {p.nivel}</span>
             </div>
             {p.roteiro_id && (
@@ -125,7 +122,7 @@ export default function RodaPersonas({ pessoas, iniciando, aoEntrar, aoIniciarRo
         ) : (
           <>
             <div className="font-titulo text-2xl font-semibold leading-tight">Quem é você hoje?</div>
-            <p className="mt-2 text-xs text-tinta-3">Passe o mouse ou use as setas do teclado para ver quem é cada pessoa. Clique para entrar.</p>
+            <p className="mt-2 text-xs text-tinta-3">Passe o mouse sobre uma foto para ver quem é. Clique para entrar.</p>
           </>
         )}
       </div>
