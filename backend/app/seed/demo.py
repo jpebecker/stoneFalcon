@@ -13,7 +13,7 @@ from ..agents import modelos as m
 from ..core.identidade import PERSONAS
 from ..processos.blueprint import ProcessoBlueprint
 from ..processos.tipo import ciclo as ciclo_processos
-from . import arquivos_demo, historico
+from . import alertas_demo, arquivos_demo, historico
 from .catalogo import CHAVES, DEMOS, ROTEIRO, TRABALHADORES, processo
 
 
@@ -31,9 +31,10 @@ def criar_processo_demo(s: Session, chave: str):
     return p
 
 
-def semear(s: Session, sem: frozenset[str] | set[str] = frozenset()) -> bool:
+def semear(s: Session, sem: frozenset[str] | set[str] = frozenset(), alertas: bool = True) -> bool:
     """Estado inicial da demo. `sem` tira os processos (e o trabalhador de cada um) que um roteiro faz a persona criar ao vivo
-    ("duvida", "triagem", "ferias", "troca"), para o roteiro começar do zero daquele fluxo."""
+    ("duvida", "triagem", "ferias", "troca"), para o roteiro começar do zero daquele fluxo. Com `alertas`, cada persona entra com
+    pelo menos um alerta aberto pelas regras reais (veja alertas_demo.py); os roteiros guiados começam sem eles."""
     if s.exec(select(m.Agente).limit(1)).first():
         return False
     arquivos_demo.preparar(s)      # o plugin e os arquivos primeiro: os processos de Lucas e Helena já leem arquivos
@@ -42,6 +43,8 @@ def semear(s: Session, sem: frozenset[str] | set[str] = frozenset()) -> bool:
             criar_processo_demo(s, chave)
     arquivos_demo.semear(s)
     historico.gerar(s)
+    if alertas:
+        alertas_demo.moldar(s)
     return True
 
 
