@@ -56,7 +56,7 @@ Demonstração e decisões: artefato "Falcão StoneFalcon" (versão 2), com tudo
 | 05 | Camada de voo | 04 | feito |
 | 06 | Falcão na carga | 04 | feito |
 | 07 | Voos de retorno e estados vazios | 05 | feito |
-| 08 | Docs, roteiro e versão 8.2.0 | 02, 03, 06, 07 | todo |
+| 08 | Docs, roteiro e versão 8.2.0 | 02, 03, 06, 07 | feito |
 
 Fronteira inicial: **01** e **03** (independentes).
 
@@ -174,8 +174,8 @@ ARCHITECTURE.md sobre o gerador; o falcão num roteiro de demonstração; versã
 
 **Bloqueado por:** 02, 03, 06, 07.
 
-**Status:** todo
+**Status:** feito
 
-- [ ] `python scripts/verifica_versao.py` e `python scripts/verifica_extensao.py` verdes.
+- [x] `python scripts/verifica_versao.py` e `python scripts/verifica_extensao.py` verdes.
 - [ ] `pytest` e `npm run build` verdes.
 - [ ] Capturas da marca nova, do menu com ícones e do falcão parado e em voo no PR.

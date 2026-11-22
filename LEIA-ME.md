@@ -69,6 +69,12 @@ cd backend && uv run pytest -q                   # sem chave nem internet
 | Agente: decisão, ferramentas, sequência/paralelo, raciocínio | Grafo de passos (paralelos rodam juntos), loop pensar → agir → observar com tool use, limites de passos e de custo, escalada segura para humano | `app/runtime` |
 | Critérios de avaliação (tempo, custo, produtividade, erros, ROI) | Painel executivo com os 5, medidos nas execuções | Painel executivo |
 
+## Novidades da 8.2
+
+- **O falcão da plataforma.** O **rosto** do falcão (arco verde, bico em gancho, penas rosa) vira a marca: menu, entrada, favicon e extensão. O **corpo**, animado, só aparece quando a plataforma responde a uma ação: paira ao lado do status enquanto executa ou monta, voa até o sino ou até a aba certa (Execuções, Agentes, Processos, Revisões) ao concluir, faz um voo de boas-vindas até a marca ao entrar pela roda e fica parado nos estados vazios. Nunca aparece em erro ou bloqueio. Com “reduzir movimento” ligado, só surge parado no destino. Regras em [`docs/DESIGN.md`](docs/DESIGN.md) §8.
+- **Ícones de linha** nas 15 abas do menu, nos botões de ação principal, nos selos de resultado e no menu da pessoa, sempre ao lado do texto.
+- **Desenho por código.** `node scripts/gera_falcao.mjs` gera os desenhos (quadros do corpo, favicon, ícones da extensão); os arquivos gerados ficam no Git. Vindo da 8.1: recarregue a extensão em `chrome://extensions` para ver o ícone novo.
+
 ## Novidades da 8.1
 
 - **Lucas e Helena também têm o seu processo.** Lucas (Engenharia): **Triagem de incidente de sistema** (registro de incidentes + estado atual dos sistemas → *Analista de incidentes* → condição “é crítico?” → chamado na fila da Engenharia). Helena (CoE de IA): **Revisão mensal do custo de IA** (resumo de Finanças → *Analista de custo de IA* → condição “passou do orçamento?” → aviso no Slack). Os dois ganharam o papel de **criador** (eles publicam pelo ciclo real e são donos). A ferramenta nova *Consultar o estado dos sistemas* mostra ok, lento ou fora de cada sistema da Stone.

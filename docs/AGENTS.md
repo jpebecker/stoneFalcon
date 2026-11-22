@@ -8,7 +8,7 @@ Como trabalhar neste repositório sem ler a história das versões. Comece pelos
 | [REQUIREMENTS.md](REQUIREMENTS.md) | O que a plataforma precisa fazer e respeitar: personas, matriz de acesso, requisitos, critérios de todo ticket. |
 | [DESIGN.md](DESIGN.md) | Linguagem visual: cores, tipografia, componentes, a roda de personas, acessibilidade e movimento. |
 
-Outros: [LEIA-ME.md](../LEIA-ME.md) (visão do produto e uso) e, nesta pasta, os planos de trabalho (um `.md` por plano, com os tickets dentro; o da 8.1 é [PLANO-PROCESSOS-ALERTAS.md](PLANO-PROCESSOS-ALERTAS.md)).
+Outros: [LEIA-ME.md](../LEIA-ME.md) (visão do produto e uso) e, nesta pasta, os planos de trabalho (um `.md` por plano, com os tickets dentro; o da 8.1 é [PLANO-PROCESSOS-ALERTAS.md](PLANO-PROCESSOS-ALERTAS.md) e o da 8.2, [PLANO-FALCAO.md](PLANO-FALCAO.md)).
 
 > Protótipo acadêmico (UFSC) para o desafio StoneLab. Não é um produto da Stone. Pessoas, áreas e dados são fictícios.
 
@@ -18,7 +18,7 @@ Outros: [LEIA-ME.md](../LEIA-ME.md) (visão do produto e uso) e, nesta pasta, os
 backend/    API FastAPI, runtime de agentes e processos, plugins, auditoria  (Python 3.11+)
 frontend/   telas em React + Vite + Tailwind + TypeScript
 extensao/   copiloto para Chrome/Edge (Manifest V3, sem lógica de IA)
-scripts/    verificações da CI e ajudantes de iniciar.bat / iniciar.sh
+scripts/    verificações da CI, ajudantes de iniciar.bat / iniciar.sh e gera_falcao.mjs (gera os desenhos do falcão)
 docs/       planos de trabalho (um .md por plano; tickets dentro dele)
 .github/    esteira de CI
 ```

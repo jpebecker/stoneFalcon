@@ -147,7 +147,8 @@ Há dois eixos separados em `core/identidade.py`:
 - **Rotas** (em `App.tsx`): sem perfil, mostra `pages/Entrar.tsx` (a roda de personas); com perfil, o menu lateral e as páginas em `pages/` (uma por arquivo). Entrar sempre abre o Início (`/`) da persona.
 - **Telas especiais:** `/extensao` é a moldura do painel da extensão (tema escuro, entra com `?perfil=`, só dentro de moldura); `/via-extensao` recebe o passe de uso único para abrir o Estúdio vindo da extensão.
 - **Roteiros guiados** (`roteiro/`): `estado.ts` guarda o roteiro em andamento no `localStorage`; `Controle.tsx` (`ProvedorRoteiro`, `BarraRoteiro`) troca de perfil e navega para a tela de cada passo. O conteúdo dos roteiros vem do back (`roteiros/catalogo.py`).
-- **Componentes** em `components/`: `RodaPersonas`, `Avatar`, `CanvasProcesso`, `PaletaBlocos`, `Graficos`, `Plugin`, `ArquivosPlugin` e afins.
+- **Componentes** em `components/`: `RodaPersonas`, `Avatar`, `CanvasProcesso`, `PaletaBlocos`, `Graficos`, `Plugin`, `ArquivosPlugin` e afins; `Icone` (ícones de linha) e `Marca` (rosto do falcão).
+- **Falcão** (`components/falcao/`): `Falcao` (corpo animado), `Carregando` e `Vazio` (estados), `Voo.tsx` (`ProvedorFalcao` e `useFalcao`, a camada de voo que envolve toda a `App`). Os desenhos vêm de `quadros.ts`, **gerado** por `scripts/gera_falcao.mjs` (Node puro; também grava `public/icone.svg`, `extensao/icones/rosto.*` e as tiras em `docs/falcao/`); o build não roda o gerador. Regras de uso em [DESIGN.md](DESIGN.md) §8.
 
 ## 6. Extensão copiloto (`extensao/`)
 
@@ -181,6 +182,7 @@ Se o modelo falha no modo real (rede, limite, chave), `STONEFALCON_RESERVA` (pad
 ## 9. Scripts, testes e CI
 
 - **Início:** `iniciar.bat` (Windows) e `iniciar.sh` (Mac/Linux) checam Python e porta, compilam o front quando a versão ou o código mudou, criam o `.venv` do back, reinstalam dependências quando o `requirements.txt` mudou e sobem o `uvicorn` (porta padrão 8765). Ajudantes em `scripts/iniciar_ajuda.py`.
+- **Falcão:** `node scripts/gera_falcao.mjs` regrava os arquivos do falcão e falha se algum ponto sair do quadro; `python extensao/icones/gerar.py` rasteriza o rosto nos PNGs da extensão.
 - **Testes do back:** `pytest` em `backend/tests`, em modo simulado, com banco temporário (`conftest.py`); sem chave nem internet.
 - **CI** (`.github/workflows/ci.yml`): `back` (pytest, Python 3.11 e 3.14), `front` (`npm run build`), `extensao` (`scripts/verifica_extensao.py`), `versao` (`scripts/verifica_versao.py`; fonte em `backend/app/core/versao.py`) e `iniciar` (`scripts/fumaca_iniciar.py` no Ubuntu e no Windows).
 
