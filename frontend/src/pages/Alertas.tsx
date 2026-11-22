@@ -124,7 +124,7 @@ export default function Alertas({ pessoa }: { pessoa: Persona }) {
           ))}
         </div>
       </div>
-      {lista.length === 0 && <Vazio>{filtro === "tratamento" ? "Nenhum alerta em tratamento." : "Tudo certo por aqui."}</Vazio>}
+      {lista.length === 0 && <Vazio dica={filtro === "tratamento" ? "Assuma um alerta aberto para ele aparecer aqui com o seu nome." : "Quando algo sair do normal, o alerta aparece aqui e no sino."}>{filtro === "tratamento" ? "Nenhum alerta em tratamento." : "Tudo certo por aqui."}</Vazio>}
       <ul className="space-y-3">
         {lista.map((a) => (
           <li key={a.id} data-alerta-id={a.id} tabIndex={-1} className={"caixa border-l-4 p-4 outline-none " + (a.resolvido_em ? "border-l-linha opacity-70" : a.severidade === "critico" ? "border-l-erro" : "border-l-alerta")}>

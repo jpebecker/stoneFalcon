@@ -33,7 +33,7 @@ export default function Execucoes() {
             ))}
           </tbody>
         </table>
-        {q.data?.length === 0 && <Vazio caixa={false} className="text-sm">Nenhuma execução ainda.</Vazio>}
+        {q.data?.length === 0 && <Vazio caixa={false} className="text-sm" dica="Abra um processo publicado e clique em Executar: a execução aparece aqui.">Nenhuma execução ainda.</Vazio>}
       </div>
     </div>
   );

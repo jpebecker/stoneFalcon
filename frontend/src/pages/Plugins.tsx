@@ -112,7 +112,7 @@ export default function Plugins({ pessoa }: { pessoa: Persona }) {
       )}
 
       {q.isError && <p className="text-erro">{(q.error as Error).message}</p>}
-      {q.data && lista.length === 0 && <Vazio>Nenhum plugin com esses filtros.</Vazio>}
+      {q.data && lista.length === 0 && <Vazio dica="Tire um filtro para ver mais plugins homologados.">Nenhum plugin com esses filtros.</Vazio>}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {lista.map((p) => (
           <article key={p.id} className="caixa flex flex-col p-5" aria-label={p.nome}>

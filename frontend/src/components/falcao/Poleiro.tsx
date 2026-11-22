@@ -6,11 +6,12 @@ import { useFalcao } from "./Voo";
  * aponta. Enquanto ele voa a camada de voo, o poleiro fica vazio; quando o voo acaba, ele volta. Sempre `aria-hidden`.
  */
 export default function Poleiro({ className = "" }: { className?: string }) {
-  const { emVoo } = useFalcao();
+  const { emVoo, esticando } = useFalcao();
   return (
     <div data-alvo="poleiro" aria-hidden="true" data-testid="poleiro" data-em-voo={emVoo}
       className={"transition-opacity duration-200 motion-reduce:transition-none " + (emVoo ? "opacity-0 " : "opacity-100 ") + className}>
-      <Falcao estado="estatico" direcao="esquerda" claro tamanho={38} />
+      {/* esticando: paira no lugar e olha para o outro lado (rotina ambiente, sem voo); o resto do tempo, parado */}
+      <Falcao estado={esticando ? "parado" : "estatico"} direcao={esticando ? "direita" : "esquerda"} claro tamanho={38} />
     </div>
   );
 }

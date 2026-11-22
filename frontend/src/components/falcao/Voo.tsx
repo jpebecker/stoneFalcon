@@ -1,5 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
+import { estadoAtual } from "../../roteiro/estado";
+import { CONFIG_AMBIENTE, digitando, dialogoAberto, movimentoReduzido, type Rotina } from "./agendador";
 import Balao, { tempoDaFala, type Fala } from "./Balao";
 import Falcao from "./Falcao";
 
@@ -60,8 +62,17 @@ interface ApiFalcao {
   /** "Silenciar o falcão": sem balão e sem comportamento ambiente; os voos de retorno de uma ação continuam. */
   silenciado: boolean;
   alternarSilencio: () => void;
+  /**
+   * Pede ao agendador uma rotina ambiente (veja agendador.ts). Roda quando as regras deixarem (teto de frequência, sem digitar, sem
+   * diálogo, sem voo, sem roteiro, sem silêncio, sem movimento reduzido). Com `forcar`, roda já (só a página de teste usa).
+   */
+  pedirAmbiente: (r: Rotina, o?: { forcar?: boolean }) => void;
+  /** O poleiro faz a animação de se espreguiçar e olhar em volta (sem voo), por alguns segundos. */
+  esticando: boolean;
+  esticar: () => void;
 }
-const nada: ApiFalcao = { voar: (p) => p.aoChegar?.(), retornar: () => {}, cancelar: () => {}, emVoo: false, falar: () => false, calar: () => {}, silenciado: false, alternarSilencio: () => {} };
+const nada: ApiFalcao = { voar: (p) => p.aoChegar?.(), retornar: () => {}, cancelar: () => {}, emVoo: false, falar: () => false, calar: () => {}, silenciado: false, alternarSilencio: () => {},
+  pedirAmbiente: (r, o) => { if (o?.forcar) r.executar(); }, esticando: false, esticar: () => {} };
 
 // O silêncio é conveniência de quem usa (por navegador): se o armazenamento falhar, o falcão segue falando e nada quebra.
 const CHAVE_SILENCIO = "stonefalcon.falcao.silenciado";
@@ -226,8 +237,39 @@ export function ProvedorFalcao({ children }: { children: ReactNode }) {
   useEffect(() => { setFala(null); }, [pathname]);
 
   const emVoo = voo !== null;
-  const valor = useMemo(() => ({ voar, retornar, cancelar, emVoo, falar, calar, silenciado, alternarSilencio }),
-    [voar, retornar, cancelar, emVoo, falar, calar, silenciado, alternarSilencio]);
+
+  // ---- agendador do comportamento ambiente (uma fila só para todas as rotinas) ----
+  const [esticando, setEsticando] = useState(false);
+  const esticar = useCallback(() => { setEsticando(true); window.setTimeout(() => setEsticando(false), 2600); }, []);
+  const emVooRef = useRef(emVoo); emVooRef.current = emVoo;
+  const falaRef = useRef(fala); falaRef.current = fala;
+  const pendentes = useRef(new Map<string, Rotina & { vence: number }>());
+  const ultimoAmbiente = useRef(0);
+  const rodar = useCallback(() => {
+    const agora = Date.now();
+    for (const [id, r] of pendentes.current) if (r.vence < agora) pendentes.current.delete(id);
+    if (pendentes.current.size === 0) return;
+    const livre = !silencioRef.current && !movimentoReduzido() && !emVooRef.current && !falaRef.current && !estadoAtual()
+      && !digitando() && !dialogoAberto() && agora - ultimoAmbiente.current >= CONFIG_AMBIENTE.capMs && document.visibilityState === "visible";
+    if (!livre) return;
+    const primeira = [...pendentes.current.values()].sort((a, b) => b.prio - a.prio)[0];
+    pendentes.current.delete(primeira.id);
+    ultimoAmbiente.current = agora;   // o teto conta a partir de agora: nenhuma outra rotina entra na janela
+    primeira.executar();
+  }, []);
+  const pedirAmbiente = useCallback((r: Rotina, o: { forcar?: boolean } = {}) => {
+    if (o.forcar) { r.executar(); return; }
+    pendentes.current.set(r.id, { ...r, vence: Date.now() + (r.validadeMs ?? 120_000) });
+    rodar();
+  }, [rodar]);
+  useEffect(() => {
+    if (pathname.startsWith("/extensao")) return;
+    const t = window.setInterval(rodar, CONFIG_AMBIENTE.tiqueMs);
+    return () => clearInterval(t);
+  }, [rodar, pathname]);
+
+  const valor = useMemo(() => ({ voar, retornar, cancelar, emVoo, falar, calar, silenciado, alternarSilencio, pedirAmbiente, esticando, esticar }),
+    [voar, retornar, cancelar, emVoo, falar, calar, silenciado, alternarSilencio, pedirAmbiente, esticando, esticar]);
   // o painel da extensão é escuro: a camada herda os tokens do `.ext-tema`
   const extensao = pathname.startsWith("/extensao");
   return (

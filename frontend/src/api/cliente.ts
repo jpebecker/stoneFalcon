@@ -113,7 +113,7 @@ export type Execucao = {
   motivo: string | null; entrada: Record<string, unknown>; blueprint: Blueprint; passos: Record<string, RegistroPasso>;
   pendencia: Pendencia | null; resultado: string | null; chamadas_modelo: number; tokens_entrada: number;
   tokens_saida: number; custo_usd: number; custo_brl: number; duracao_ms: number; duracao_estimada_ms: number;
-  simulado: boolean; inicio: string; fim: string | null;
+  simulado: boolean; demo?: boolean; inicio: string; fim: string | null;
   resultado_tela?: string; passos_tela?: Record<string, RegistroPasso>;
   rotina?: { rotina: string; origem: string } | null;
 };

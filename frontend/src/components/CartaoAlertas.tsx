@@ -29,7 +29,7 @@ export default function CartaoAlertas() {
       </div>
 
       {q.isPending && <p className="mt-3 text-sm text-tinta-3" aria-busy="true">Carregando…</p>}
-      {q.isSuccess && abertos.length === 0 && <Vazio caixa={false} className="mt-2 px-0 py-2">Nenhum alerta aberto. Tudo certo por aqui.</Vazio>}
+      {q.isSuccess && abertos.length === 0 && <Vazio caixa={false} className="mt-2 px-0 py-2" dica="Sem alertas por enquanto. Se algo sair do normal, ele aparece aqui.">Nenhum alerta aberto. Tudo certo por aqui.</Vazio>}
 
       {mostrados.length > 0 && (
         <ul className="mt-3 divide-y divide-linha">

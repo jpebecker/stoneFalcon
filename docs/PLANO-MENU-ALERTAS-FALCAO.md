@@ -94,7 +94,7 @@ What was checked in the code and in the local database before writing the ticket
 | 07 | Share a process from the UI | 05 | feito |
 | 08 | Falcon companion: perch, speech bubble and the new motion rule | 01 | feito |
 | 09 | Falcon as the guide of guided tours | 08 | feito |
-| 10 | Falcon ambient routines | 08, 03 | ready-for-agent |
+| 10 | Falcon ambient routines | 08, 03 | feito |
 | 11 | Docs, tours and version 8.3.0 | 01, 04, 06, 07, 09, 10 | ready-for-agent |
 
 Initial frontier: **01**, **02** and **05** (independent). Three tracks: menu → falcon (01, 08, 09, 10), alerts (02, 03,
@@ -380,17 +380,26 @@ and are off with reduced motion or with the falcon silenced.
 
 **Blocked by:** 08 (perch, bubble, switch), 03 (the "new alert" routine needs alerts that actually appear).
 
-**Status:** ready-for-agent
+**Status:** feito
 
-- [ ] One scheduler for all ambient routines with a configurable cap; no two ambient behaviours within the cap window.
-- [ ] Each routine above triggers only on its real condition and can be turned on in a test page for review (extend the
+- [x] One scheduler for all ambient routines with a configurable cap; no two ambient behaviours within the cap window.
+- [x] Each routine above triggers only on its real condition and can be turned on in a test page for review (extend the
       existing falcon test page).
-- [ ] Paused during typing, open dialogs, action flights and active tours; off with reduced motion and when silenced.
-- [ ] Tips and bubble lines are short, in Portuguese, and follow the UX writing in DESIGN.md.
-- [ ] No ambient routine moves focus, blocks a click or covers the main action button.
-- [ ] `npm run build` passes; checked in the browser for 10 minutes of normal use as Helena without excessive appearances.
+- [x] Paused during typing, open dialogs, action flights and active tours; off with reduced motion and when silenced.
+- [x] Tips and bubble lines are short, in Portuguese, and follow the UX writing in DESIGN.md.
+- [x] No ambient routine moves focus, blocks a click or covers the main action button.
+- [x] `npm run build` passes; checked in the browser for 10 minutes of normal use as Helena without excessive appearances.
 
 ---
+
+**Notes (what was built):** one scheduler in `ProvedorFalcao` (cap 3 min, tick 4 s, priority order alert > first run > empty
+state > tip > stretch) fed by `components/falcao/Ambiente.tsx`. Checked in the browser as Helena for 10 minutes of idle plus two
+page changes: 3 appearances (a tip at 54 s, a stretch at 242 s, a tip for Alertas at 423 s, the second one waiting out the cap).
+The first run showed that a new-alert notice arriving inside a cap window was dropped, so alerts now wait up to the cap plus 30 s;
+with the cap lowered from the console, a real new alert (a system set to "down" by Lucas) made the falcon fly to the bell and
+say "Chegaram 3 alertas novos." The local test page (`frontend/falcao-teste.html`, kept out of Git by `.git/info/exclude`) was extended with the perch, the bubble and a button per routine, but that change is not part of the commit; in the app `window.__ambiente.capMs` lowers the cap from the console.
+Not exercised for real: the "first run of the day" routine (only in the test page) and reduced motion for the ambient part (the
+scheduler returns early; checked by reading the code).
 
 # 11: Docs, tours and version 8.3.0
 

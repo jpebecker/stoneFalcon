@@ -4,6 +4,7 @@ import { Link, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { api, definirPerfil, perfilAtual, type Alerta, type Persona, type Saude } from "./api/cliente";
 import Avatar from "./components/Avatar";
 import Icone from "./components/Icone";
+import Ambiente from "./components/falcao/Ambiente";
 import Poleiro from "./components/falcao/Poleiro";
 import { alvoDe, ProvedorFalcao, useFalcao } from "./components/falcao/Voo";
 import Marca from "./components/Marca";
@@ -244,6 +245,7 @@ function AppInterno() {
           </main>
         </div>
       </div>
+      <Ambiente pessoa={pessoa} naoLidos={notif.data?.nao_lidos} />
       <BarraRoteiro />
     </ProvedorRoteiro>
   );

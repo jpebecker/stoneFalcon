@@ -127,6 +127,18 @@ O animal do nome Stone**Falcon** (grupo PinkFalcon) tem duas formas. O **rosto**
    - **Nunca** move o foco, bloqueia um clique nem cobre o botão da ação da tela.
    - Desligado com movimento reduzido e com o falcão silenciado.
 
+**Rotinas ambiente** (`Ambiente`, `agendador.ts`). Um **agendador único** decide por todas, com o teto de 3 minutos (`CONFIG_AMBIENTE.capMs`, ajustável) e as regras acima; uma rotina que não pode rodar agora espera a sua vez (a de maior prioridade vai primeiro) e desiste se envelhecer. São cinco, cada uma ligada a algo real:
+
+| Rotina | Gatilho real | O que faz |
+|---|---|---|
+| Alerta novo | O número de **não lidos do sino sobe** (a primeira leitura não conta) | Sai do poleiro, voa até o sino e diz uma linha ("Chegou um alerta novo."). |
+| Dica | Um minuto sem mexer na tela | Uma dica curta da página atual, uma vez por página (lista em `DICAS`, em português simples). |
+| Espreguiçar | 40 s sem mexer, e só às vezes | O poleiro paira no lugar e olha para o outro lado por ~2,5 s. Sem voo e sem fala. |
+| Primeira do dia | A primeira execução bem-sucedida **da pessoa, nesta sessão** (não é histórico, teste nem rotina agendada) | Uma comemoração curta no balão; uma vez por pessoa por dia. |
+| Estado vazio | Uma lista vazia com `dica` (`Vazio`) | O balão sugere o próximo passo. |
+
+Para rever cada rotina sem esperar o relógio, `window.__ambiente.capMs` ajusta o teto pelo console (em desenvolvimento). Quem mantém a página local de teste do falcão (`frontend/falcao-teste.html`, fora do Git) tem nela o poleiro, o balão e um botão por rotina: os de "forçar" ignoram o agendador e "Pedir as três" mostra o teto e a prioridade.
+
 **Balão de fala** (`Balao`, `falar(texto)` em `useFalcao()`): uma frase curta, em português simples, junto de onde o falcão está (o poleiro, ou o elemento para onde ele voou). Fica numa região `role="status"` `aria-live="polite"` (anunciada sem tirar o foco), some sozinho (5 a 10 s, conforme o tamanho; parado enquanto o ponteiro ou o foco estiverem nele), pode ser dispensado (botão × ou Esc) e **nunca cobre o botão da ação da tela** (`data-alvo="acao-…"`): se o lugar de costume cobriria, usa outro lado. Trocar de página o recolhe. Só uma fala por vez.
 
 **Saudação.** Ao entrar pela roda, o falcão voa até o poleiro e cumprimenta pelo primeiro nome com uma frase sobre o dia: quantos alertas a pessoa tem abertos e quantos ainda não leu. Trocar de perfil pelo menu não faz festa.
