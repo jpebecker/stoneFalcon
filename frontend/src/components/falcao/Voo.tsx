@@ -165,7 +165,10 @@ export function ProvedorFalcao({ children }: { children: ReactNode }) {
     setVoo(novo); // substitui o voo em curso, se houver
   }, []);
   const retornar = useCallback((r: Retorno) => {
-    voar({ de: r.de, para: alvoDe(r.para), alternativo: r.alternativo ? alvoDe(r.alternativo) : null, aoChegar: destacar });
+    let para = alvoDe(r.para);
+    // aba dentro de grupo recolhido do menu: não está na tela, então o falcão pousa no cabeçalho do grupo (`data-alvo-recuo`)
+    if (para && !centroDe(para)) { const recuo = para.getAttribute("data-alvo-recuo"); if (recuo) para = alvoDe(recuo) ?? para; }
+    voar({ de: r.de, para, alternativo: r.alternativo ? alvoDe(r.alternativo) : null, aoChegar: destacar });
   }, [voar]);
   const cancelar = useCallback(() => setVoo(null), []);
   const aoFim = useCallback((id: number) => setVoo((v) => (v?.id === id ? null : v)), []);

@@ -1,11 +1,12 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Link, NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import { Link, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { api, definirPerfil, perfilAtual, type Persona, type Saude } from "./api/cliente";
 import Avatar from "./components/Avatar";
-import Icone, { type NomeIcone } from "./components/Icone";
+import Icone from "./components/Icone";
 import { alvoDe, ProvedorFalcao, useFalcao } from "./components/falcao/Voo";
 import Marca from "./components/Marca";
+import MenuLateral from "./components/MenuLateral";
 import AgenteDetalhe from "./pages/AgenteDetalhe";
 import Auditoria from "./pages/Auditoria";
 import Alertas from "./pages/Alertas";
@@ -37,24 +38,7 @@ import { BarraRoteiro, ProvedorRoteiro } from "./roteiro/Controle";
 import { useEstadoRoteiro } from "./roteiro/estado";
 import { versaoCurta } from "./components/formato";
 
-// O menu e as rotas só leem `pessoa.abas`, que vem do back (a fonte da verdade do acesso por perfil).
-const NAV: { aba: string; para: string; rotulo: string; icone: NomeIcone }[] = [
-  { aba: "inicio", para: "/", rotulo: "Início", icone: "inicio" },
-  { aba: "roteiros", para: "/roteiros", rotulo: "Roteiros", icone: "roteiros" },
-  { aba: "painel", para: "/painel", rotulo: "Painel executivo", icone: "painel" },
-  { aba: "mapa", para: "/mapa", rotulo: "Mapa de IA", icone: "mapa" },
-  { aba: "estudio", para: "/estudio", rotulo: "Estúdio", icone: "estudio" },
-  { aba: "agentes", para: "/agentes", rotulo: "Agentes", icone: "agentes" },
-  { aba: "processos", para: "/processos", rotulo: "Processos", icone: "processos" },
-  { aba: "plugins", para: "/plugins", rotulo: "Plugins", icone: "plugins" },
-  { aba: "revisoes", para: "/revisoes", rotulo: "Revisões", icone: "revisoes" },
-  { aba: "execucoes", para: "/execucoes", rotulo: "Execuções", icone: "execucoes" },
-  { aba: "saude", para: "/saude", rotulo: "Saúde", icone: "saude" },
-  { aba: "financas", para: "/financas", rotulo: "Finanças", icone: "financas" },
-  { aba: "ferramentas", para: "/ferramentas", rotulo: "Ferramentas", icone: "ferramentas" },
-  { aba: "auditoria", para: "/auditoria", rotulo: "Auditoria", icone: "auditoria" },
-  { aba: "perguntas", para: "/perguntas", rotulo: "Perguntas da Ferramenta", icone: "perguntas" },
-];
+// O menu (components/MenuLateral) e as rotas só leem `pessoa.abas`, que vem do back (a fonte da verdade do acesso por perfil).
 
 /** Rota restrita: quem não tem a aba (ex.: endereço digitado) volta ao Início, sem tela quebrada. */
 function Guarda({ pessoa, aba, children }: { pessoa: Persona; aba: string; children: ReactNode }) {
@@ -170,19 +154,10 @@ function AppInterno() {
   return (
     <ProvedorRoteiro trocar={trocar}>
       <div className="flex min-h-full">
-        <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col gap-8 bg-tinta px-4 py-6 text-white">
+        <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col gap-6 bg-tinta px-4 py-6 text-white">
           <Marca claro />
-          <nav className="flex flex-col gap-1" aria-label="Seções">
-            {NAV.filter((n) => pessoa?.abas.includes(n.aba)).map((n) => (
-              <NavLink key={n.para} to={n.para} end={n.para === "/"} data-alvo={"aba-" + n.aba}
-                className={({ isActive }) => "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition " +
-                  (isActive ? "bg-white text-tinta" : "text-white/75 hover:bg-white/10 hover:text-white")}>
-                <Icone nome={n.icone} tamanho={18} />
-                {n.rotulo}
-              </NavLink>
-            ))}
-          </nav>
-          <p className="mt-auto text-xs leading-relaxed text-white/45">
+          <MenuLateral abas={pessoa?.abas ?? []} />
+          <p className="shrink-0 text-xs leading-relaxed text-white/45">
             <span className="mb-1 block font-semibold text-white/70" data-testid="versao">StoneFalcon {saude.data ? versaoCurta(saude.data.versao) : ""}</span>
             Protótipo acadêmico (UFSC) para o desafio StoneLab. Não é um produto oficial da Stone. Pessoas e dados são fictícios.
           </p>
