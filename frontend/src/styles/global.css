@@ -105,3 +105,23 @@ h1, h2, h3 { @apply font-titulo font-semibold tracking-tight; }
 @media (prefers-reduced-motion: reduce) {
   .roda-fatia, .roda-forma, .roda-sombra { transition: none; }
 }
+
+
+/* Falcão (corpo animado): as cores vêm dos tokens, então o tema claro, o .ext-tema e o menu escuro (.falcao-claro)
+   acompanham. A tira de quadros desliza numa janela de um quadro com steps(); unidades em px do SVG = unidades do desenho. */
+.falcao {
+  --falcao-traco: rgb(var(--pedra));
+  --falcao-pena: rgb(var(--falcao));
+  --falcao-rastro: rgb(var(--tinta-3));
+  display: inline-block; flex: none; overflow: hidden; vertical-align: middle;
+}
+.falcao-claro { --falcao-traco: rgb(74 214 160); --falcao-pena: rgb(240 110 170); --falcao-rastro: rgb(255 255 255 / .55); }
+.falcao-esquerda { transform: scaleX(-1); }
+.falcao-traco { fill: var(--falcao-traco); }
+.falcao-pena { fill: var(--falcao-pena); }
+.falcao-rastro { fill: none; stroke: var(--falcao-rastro); stroke-width: 1.6; stroke-linecap: round; opacity: .55; }
+@keyframes falcao-parado { to { transform: translateX(-768px); } }  /* 6 quadros de 128 */
+@keyframes falcao-voo { to { transform: translateX(-1024px); } }   /* 8 quadros de 128 */
+.falcao-tira-parado { animation: falcao-parado 1.1s steps(6) infinite; }
+.falcao-tira-voo { animation: falcao-voo .56s steps(8) infinite; }
+@media (prefers-reduced-motion: reduce) { .falcao-tira { animation: none; } }

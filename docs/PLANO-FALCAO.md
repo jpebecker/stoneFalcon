@@ -52,7 +52,7 @@ Demonstração e decisões: artefato "Falcão StoneFalcon" (versão 2), com tudo
 | 01 | Gerador do corpo e do rosto | — | feito |
 | 02 | Rosto como ícone do sistema | 01 | parcial |
 | 03 | Ícones da interface | — | feito |
-| 04 | Componente `<Falcao>` | 01 | todo |
+| 04 | Componente `<Falcao>` | 01 | feito |
 | 05 | Camada de voo | 04 | todo |
 | 06 | Falcão na carga | 04 | todo |
 | 07 | Voos de retorno e estados vazios | 05 | todo |
@@ -118,12 +118,12 @@ tema claro, no `.ext-tema` e sobre o menu com a prop `claro`). Estilos em `globa
 
 **Bloqueado por:** 01.
 
-**Status:** todo
+**Status:** feito
 
-- [ ] `aria-hidden="true"`: o falcão nunca é a única informação.
-- [ ] Peso do traço pelo tamanho (≤ 48 px: 1,7; ≤ 72 px: 1,3; acima: 1).
-- [ ] `prefers-reduced-motion`: primeiro quadro, sem animação.
-- [ ] Conferido sobre `papel`, `folha`, menu escuro e `.ext-tema`, com captura no PR.
+- [x] `aria-hidden="true"`: o falcão nunca é a única informação.
+- [x] Peso do traço pelo tamanho (≤ 48 px: 1,7; ≤ 72 px: 1,3; acima: 1).
+- [x] `prefers-reduced-motion`: primeiro quadro, sem animação.
+- [x] Conferido sobre `papel`, `folha`, menu escuro e `.ext-tema`, com captura no PR.
 
 # 05: Camada de voo
 
