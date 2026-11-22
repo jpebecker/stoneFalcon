@@ -294,6 +294,8 @@ export type PassoRoteiro = {
   preenche: { descricao?: string; nome_agente?: string; cenario_alerta?: boolean; processo?: ProcessoPronto;
     plugin?: { ferramenta_mercado: string; descricao_publica: string; finalidade: string; areas: string[]; classificacao: string }; entrada?: Record<string, string>; parecer?: string; fonte?: { tipo: string; url: string };
     frequencia?: "semanal" | "diaria"; dia_semana?: number; hora?: string }; externa: boolean;
+  /** o `data-alvo` do controle para onde o falcão voa e aponta neste passo (sem ele, o falcão só fala do poleiro) */
+  alvo?: string | null;
 };
 
 export type AsIs = { minutos: number; hipotese: boolean; dor: string; passos: string[]; erros: string[] };

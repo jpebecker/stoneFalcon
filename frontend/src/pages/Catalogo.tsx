@@ -51,7 +51,7 @@ export default function Catalogo({ pessoa }: { pessoa: Persona }) {
                 {engenharia && (
                   <label className="mt-3 flex items-center gap-2 text-xs text-tinta-3">
                     Simular falha
-                    <select className="campo w-auto py-1 text-xs" value={f.falha ?? ""}
+                    <select className="campo w-auto py-1 text-xs" data-alvo={f.id === "consultar_lojista" ? "acao-simular-falha" : undefined} value={f.falha ?? ""}
                       onChange={(e) => falha.mutate({ id: f.id, valor: e.target.value || null })}>
                       <option value="">nenhuma</option>
                       <option value="erro">erro</option>

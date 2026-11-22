@@ -93,7 +93,7 @@ What was checked in the code and in the local database before writing the ticket
 | 06 | Shared-process alerts reach the shared area | 02, 05 | feito |
 | 07 | Share a process from the UI | 05 | feito |
 | 08 | Falcon companion: perch, speech bubble and the new motion rule | 01 | feito |
-| 09 | Falcon as the guide of guided tours | 08 | ready-for-agent |
+| 09 | Falcon as the guide of guided tours | 08 | feito |
 | 10 | Falcon ambient routines | 08, 03 | ready-for-agent |
 | 11 | Docs, tours and version 8.3.0 | 01, 04, 06, 07, 09, 10 | ready-for-agent |
 
@@ -339,19 +339,28 @@ element to point at); without one, the falcon stays on the perch and only speaks
 
 **Blocked by:** 08.
 
-**Status:** ready-for-agent
+**Status:** feito
 
-- [ ] Tour step definitions accept an optional target; all six persona tours have targets on the steps that have a clear
+- [x] Tour step definitions accept an optional target; all six persona tours have targets on the steps that have a clear
       control (execute, publish, open alert, treat alert, etc.).
-- [ ] Back-end test: every declared target is a known `data-alvo` name (a list kept next to the tour catalog), so tours do
+- [x] Back-end test: every declared target is a known `data-alvo` name (a list kept next to the tour catalog), so tours do
       not point at nothing after a UI change.
-- [ ] On each step the falcon flies to the target (or the group header from ticket 01 when the tab is collapsed) and shows
+- [x] On each step the falcon flies to the target (or the group header from ticket 01 when the tab is collapsed) and shows
       the action text; if the target is not on screen, it speaks from the perch.
-- [ ] "Voltar", "Avançar" and "Reiniciar" never leave the falcon stuck mid-flight or pointing at the previous step.
-- [ ] Reduced motion: appears still beside the target with the bubble.
-- [ ] `pytest -q` and `npm run build` green; one full tour (Helena) and one short one (Marina) checked in the browser.
+- [x] "Voltar", "Avançar" and "Reiniciar" never leave the falcon stuck mid-flight or pointing at the previous step.
+- [x] Reduced motion: appears still beside the target with the bubble.
+- [x] `pytest -q` and `npm run build` green; one full tour (Helena) and one short one (Marina) checked in the browser.
 
 ---
+
+**Notes (what was built):** `Passo.alvo` and `ALVOS_CONHECIDOS` live in `roteiros/catalogo.py`; a test checks every declared
+target is in the list and that each name still appears next to a `data-alvo` in the screens. New targets: `acao-montar`,
+`acao-aprovar`, `acao-pausar`, `acao-simular-falha`, `acao-integrar` (plus the existing `acao-executar`, `acao-publicar`,
+`acao-alerta`). The guide is `roteiro/Guia.tsx`: it waits (up to 5 s) for the control and for the bar's short hop to end, scrolls
+the control into view if it is below the fold or behind the bar, flies from the perch, highlights the control and speaks the
+step's action; without a target, or with the control missing, it speaks from the perch; an external step says "(abre em outra
+aba)". Changing step cancels the guide's own flight and closes the previous bubble. Silenced, the falcon still points, it only
+does not speak (the action stays in the bar). The pitch roteiro has no targets yet. The bubble now avoids other controls too.
 
 # 10: Falcon ambient routines
 

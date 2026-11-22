@@ -84,7 +84,7 @@ export default function ProcessoDetalhe({ pessoa }: { pessoa: Persona }) {
             <button className="botao-pedra" data-alvo="acao-publicar" onClick={() => acao.mutate({ rota: "publicar" })}><Icone nome="publicar" />Publicar v{ultima.numero}</button>
           )}
           {operador && p.estado === "publicado" && (
-            <button className="botao-claro" onClick={() => { const m = prompt("Motivo da pausa (opcional):") ?? ""; acao.mutate({ rota: "pausar", corpo: { motivo: m } }); }}>Pausar</button>
+            <button className="botao-claro" data-alvo="acao-pausar" onClick={() => { const m = prompt("Motivo da pausa (opcional):") ?? ""; acao.mutate({ rota: "pausar", corpo: { motivo: m } }); }}>Pausar</button>
           )}
           {operador && p.estado === "pausado" && <button className="botao-claro" onClick={() => acao.mutate({ rota: "retomar" })}>Retomar</button>}
           {podeDepreciar && p.estado !== "depreciado" && (

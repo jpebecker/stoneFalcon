@@ -80,6 +80,19 @@ export function alvoDe(nome: string): Element | null {
   return document.querySelector<Element>(`[data-alvo="${nome}"]`);
 }
 
+/**
+ * O elemento `data-alvo="nome"` se ele estiver na tela. Uma aba dentro de um grupo recolhido do menu não está (fica oculta): vale o
+ * cabeçalho do grupo (`data-alvo-recuo`). Sem nenhum dos dois na tela, `null`.
+ */
+export function alvoNaTela(nome: string): Element | null {
+  const el = alvoDe(nome);
+  if (!el) return null;
+  if (centroDe(el)) return el;
+  const recuo = el.getAttribute("data-alvo-recuo");
+  const grupo = recuo ? alvoDe(recuo) : null;
+  return grupo && centroDe(grupo) ? grupo : null;
+}
+
 /** Destaque curto (pedra-fundo por ~1,6 s) no alvo do voo: o retorno não depende só do movimento. */
 export function destacar(el: Element | null | undefined, ms = 1600) {
   if (!el) return;
@@ -188,9 +201,7 @@ export function ProvedorFalcao({ children }: { children: ReactNode }) {
     setVoo(novo); // substitui o voo em curso, se houver
   }, []);
   const retornar = useCallback((r: Retorno) => {
-    let para = alvoDe(r.para);
-    // aba dentro de grupo recolhido do menu: não está na tela, então o falcão pousa no cabeçalho do grupo (`data-alvo-recuo`)
-    if (para && !centroDe(para)) { const recuo = para.getAttribute("data-alvo-recuo"); if (recuo) para = alvoDe(recuo) ?? para; }
+    const para = alvoNaTela(r.para) ?? alvoDe(r.para);   // aba em grupo recolhido: pousa no cabeçalho do grupo (`data-alvo-recuo`)
     voar({ de: r.de, para, alternativo: r.alternativo ? alvoDe(r.alternativo) : null, aoChegar: destacar });
   }, [voar]);
   const cancelar = useCallback(() => setVoo(null), []);

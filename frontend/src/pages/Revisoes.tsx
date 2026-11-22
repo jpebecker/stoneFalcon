@@ -38,7 +38,7 @@ function Cartao({ item }: { item: ItemRevisao }) {
         <textarea className="campo min-h-[70px]" value={parecer} onChange={(e) => setParecer(e.target.value)} />
       </label>
       <div className="flex gap-2">
-        <button className="botao-pedra" disabled={!parecer.trim() || decidir.isPending} onClick={() => decidir.mutate(true)}>Aprovar e publicar</button>
+        <button className="botao-pedra" data-alvo="acao-aprovar" disabled={!parecer.trim() || decidir.isPending} onClick={() => decidir.mutate(true)}>Aprovar e publicar</button>
         <button className="botao-claro" disabled={!parecer.trim() || decidir.isPending} onClick={() => decidir.mutate(false)}>Rejeitar</button>
       </div>
       {decidir.isError && <p className="text-sm text-erro">{(decidir.error as Error).message}</p>}

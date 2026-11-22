@@ -22,13 +22,21 @@ function ancora(alvo: Alvo): DOMRect {
   return new DOMRect(MARGEM, MARGEM, 0, 0);
 }
 
-/** O primeiro lado onde a fala cabe na janela e não cobre o botão da ação da tela (`data-alvo="acao-..."`) nem o próprio alvo. */
+/**
+ * O primeiro lado onde a fala cabe na janela e não cobre o botão da ação da tela (`data-alvo="acao-..."`) nem o próprio alvo;
+ * entre esses, prefere o que também não cobre outro controle (botão, link, campo). Se nenhum for livre, o que cabe.
+ */
 function posicionar(a: DOMRect, larg: number, alt: number): { x: number; y: number; lado: Lado } {
-  const acoes = [...document.querySelectorAll('[data-alvo^="acao-"]')].map((e) => e.getBoundingClientRect()).filter((r) => r.width + r.height > 0);
+  const visiveis = (q: string) => [...document.querySelectorAll(q)].map((e) => e.getBoundingClientRect()).filter((r) => r.width + r.height > 0);
+  const acoes = visiveis('[data-alvo^="acao-"]');
+  const controles = visiveis("button, a[href], input, select, textarea, [role=button]").filter((r) => !(a.width + a.height > 0 && cruza(r, a, -2)));
   const candidatos: { x: number; y: number; lado: Lado }[] = [
     { lado: "direita", x: a.right + FOLGA, y: a.top + a.height / 2 - alt / 2 },
     { lado: "abaixo", x: a.left + a.width / 2 - larg / 2, y: a.bottom + FOLGA },
+    { lado: "abaixo", x: a.left, y: a.bottom + FOLGA },                       // alinhado à esquerda do alvo (longe do menu)
+    { lado: "abaixo", x: a.right - larg, y: a.bottom + FOLGA },                // alinhado à direita do alvo
     { lado: "acima", x: a.left + a.width / 2 - larg / 2, y: a.top - alt - FOLGA },
+    { lado: "acima", x: a.left, y: a.top - alt - FOLGA },
     { lado: "esquerda", x: a.left - larg - FOLGA, y: a.top + a.height / 2 - alt / 2 },
   ];
   const cabe = (c: { x: number; y: number }) => c.x >= MARGEM && c.y >= MARGEM && c.x + larg <= innerWidth - MARGEM && c.y + alt <= innerHeight - MARGEM;
@@ -36,7 +44,9 @@ function posicionar(a: DOMRect, larg: number, alt: number): { x: number; y: numb
     const r = new DOMRect(c.x, c.y, larg, alt);
     return !acoes.some((x) => cruza(r, x)) && !(a.width + a.height > 0 && cruza(r, a, 2));
   };
-  const escolhido = candidatos.find((c) => cabe(c) && livre(c)) ?? candidatos.find(cabe) ?? candidatos[0];
+  const semControles = (c: { x: number; y: number }) => { const r = new DOMRect(c.x, c.y, larg, alt); return !controles.some((x) => cruza(r, x, 2)); };
+  const escolhido = candidatos.find((c) => cabe(c) && livre(c) && semControles(c)) ?? candidatos.find((c) => cabe(c) && livre(c))
+    ?? candidatos.find(cabe) ?? candidatos[0];
   return { ...escolhido, x: Math.min(Math.max(escolhido.x, MARGEM), Math.max(MARGEM, innerWidth - larg - MARGEM)), y: Math.min(Math.max(escolhido.y, MARGEM), Math.max(MARGEM, innerHeight - alt - MARGEM)) };
 }
 

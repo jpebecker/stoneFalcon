@@ -27,10 +27,26 @@ class Passo:
     fala: str
     preenche: dict = field(default_factory=dict)
     externa: bool = False      # abre fora do app (ex.: o helpdesk fictício)
+    alvo: str | None = None    # v8.3: o `data-alvo` do controle para onde o falcão voa e aponta (um de ALVOS_CONHECIDOS)
 
     def publico(self) -> dict:
         return {"id": self.id, "titulo": self.titulo, "perfil": self.perfil, "rota": self.rota, "acao": self.acao,
-                "fala": self.fala, "preenche": self.preenche, "externa": self.externa}
+                "fala": self.fala, "preenche": self.preenche, "externa": self.externa, "alvo": self.alvo}
+
+
+# Os controles que um passo pode apontar: o nome é o `data-alvo` do elemento no front. A lista mora aqui, junto do catálogo, e um
+# teste confere que cada alvo declarado está nela E que o nome ainda existe no código das telas (tests/test_roteiros_alvos.py):
+# se uma tela mudar e o controle sumir, o roteiro não passa a apontar para o nada.
+ALVOS_CONHECIDOS = frozenset({
+    "acao-montar",           # Estúdio: "Montar meu agente"
+    "acao-publicar",         # Estúdio e editor de processo: publicar
+    "acao-executar",         # executar ou testar (agente, processo, Estúdio, editor)
+    "acao-aprovar",          # Revisões: "Aprovar e publicar"
+    "acao-alerta",           # Alertas: a ação do alerta (tratar)
+    "acao-pausar",           # detalhe do processo: "Pausar"
+    "acao-simular-falha",    # Ferramentas: o seletor de falha simulada do "Consultar cadastro do lojista"
+    "acao-integrar",         # página de um plugin: "Integrar"
+})
 
 
 @dataclass(frozen=True)
@@ -95,23 +111,23 @@ LUCAS = Roteiro(
         Passo("revisao", "Revisar o agente de risco alto", "lucas", "/revisoes",
               "Leia o que mudou na versão e aprove com o parecer preenchido.",
               "Ele revisa só o que importa: o que mudou, quais ferramentas e quais riscos.",
-              {"parecer": "Mudança restrita ao aviso por Slack, sem novas ferramentas sensíveis. Retenção continua com confirmação humana. Aprovado."}),
+              {"parecer": "Mudança restrita ao aviso por Slack, sem novas ferramentas sensíveis. Retenção continua com confirmação humana. Aprovado."}, alvo="acao-aprovar"),
         Passo("falha", "Simular um sistema fora do ar", "lucas", "/ferramentas",
               "Em “Consultar cadastro do lojista”, simule fora do ar.",
-              "Um sistema integrado cai. Nenhum agente precisa ser editado."),
+              "Um sistema integrado cai. Nenhum agente precisa ser editado.", alvo="acao-simular-falha"),
         Passo("usar", "Um processo sofre com a falha", "marina", "/processos/{processo:Resposta a dúvidas de lojistas}",
               "Execute com a dúvida preenchida: a execução escala para humano, com o motivo.",
               "O processo não inventa: escala no bloco que depende do sistema, com o motivo registrado.",
-              {"entrada": {"lojista_id": "L1001", "pergunta": "Em quanto tempo o estorno cai para o cliente?"}}),
+              {"entrada": {"lojista_id": "L1001", "pergunta": "Em quanto tempo o estorno cai para o cliente?"}}, alvo="acao-executar"),
         Passo("alerta", "O alerta chega: veja e trate", "lucas", "/alertas",
               "Mostre o alerta crítico no sino e na tela de alertas: assuma com uma nota e use a ação do alerta.",
-              "O dono do processo e a Engenharia recebem o alerta sozinhos; quem assume aparece como “em tratamento” para todos."),
+              "O dono do processo e a Engenharia recebem o alerta sozinhos; quem assume aparece como “em tratamento” para todos.", alvo="acao-alerta"),
         Passo("pausar", "Pausa de emergência", "lucas", "/processos/{processo:Resposta a dúvidas de lojistas}",
               "Clique em “Pausar” e informe o motivo: um clique.",
-              "A pausa também barra ações já pendentes."),
+              "A pausa também barra ações já pendentes.", alvo="acao-pausar"),
         Passo("normalizar", "Normalizar o sistema", "lucas", "/ferramentas",
               "Volte o sistema ao normal: o alerta fecha sozinho.",
-              "Quando o sistema volta, o alerta fecha sozinho e o processo pode ser retomado."),
+              "Quando o sistema volta, o alerta fecha sozinho e o processo pode ser retomado.", alvo="acao-simular-falha"),
         _medir("lucas", "Agentes e processos publicados sem código novo e incidentes detectados pelo alerta."),
     ), duracao_min=5)
 
@@ -142,7 +158,7 @@ HELENA = Roteiro(
         Passo("alerta", "Veja e trate o seu alerta", "helena", "/alertas",
               "O processo de revisão de custo chegou perto do orçamento: assuma o alerta e revise o orçamento pela ação do alerta.",
               "Ela vê os alertas de toda a empresa; a ação do alerta usa a mesma tela de orçamento, e o alerta fecha sozinho quando o custo volta ao normal.",
-              {"cenario_alerta": True}),
+              {"cenario_alerta": True}, alvo="acao-alerta"),
         _medir("helena", "Consolidado dos quatro processos, com a origem de cada número."),
         _perguntas("helena"),
     ), duracao_min=4)
