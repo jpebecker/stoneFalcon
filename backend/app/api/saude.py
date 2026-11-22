@@ -10,7 +10,10 @@ from ..agents import modelos as am
 from ..agents.blueprint import Blueprint
 from ..core.db import sessao
 from ..core.identidade import Persona, usuario_atual
-from ..observability import alertas, metricas
+from pydantic import BaseModel, Field
+
+from ..core.identidade import PERSONAS
+from ..observability import alertas, metricas, tratamento
 from ..processos import modelos as pm
 from ..processos.tipo import ciclo as ciclo_processos
 from ..tools import executor
@@ -19,13 +22,17 @@ from ..tools.catalogo import CATALOGO, disponiveis
 rotas = APIRouter(prefix="/api/v1", tags=["saude"])
 
 
+def _dump(al: alertas.Alerta) -> dict:
+    return dict(al.model_dump(), tratando_nome=PERSONAS[al.tratando_por].nome if al.tratando_por in PERSONAS else None)
+
+
 def _saude_agente(s: Session, a: am.Agente, abertos: list[alertas.Alerta]) -> dict:
     execs = metricas.execucoes(s, a.id)
     r = metricas.resumo_execucoes(execs)
     meus = [al for al in abertos if al.agente_id == a.id]
     return {"agente": {"id": a.id, "nome": a.nome, "area": a.area, "dono": a.dono, "estado": a.estado, "risco": a.risco},
             "metricas": r, "score": alertas.score(r["taxa_sucesso"], meus),
-            "alertas": [al.model_dump() for al in meus]}
+            "alertas": [_dump(al) for al in meus]}
 
 
 def _saude_processo(s: Session, p: pm.Processo, abertos: list[alertas.Alerta]) -> dict:
@@ -34,7 +41,7 @@ def _saude_processo(s: Session, p: pm.Processo, abertos: list[alertas.Alerta]) -
     meus = [al for al in abertos if al.processo_id == p.id]
     return {"agente": {"id": p.id, "nome": p.nome, "area": p.area, "dono": p.dono, "estado": p.estado, "risco": p.risco, "tipo": "processo"},
             "metricas": r, "score": alertas.score(r["taxa_sucesso"], meus),
-            "alertas": [al.model_dump() for al in meus]}
+            "alertas": [_dump(al) for al in meus]}
 
 
 @rotas.get("/saude/agentes")
@@ -91,10 +98,16 @@ def conectores(_p: Persona = Depends(usuario_atual), s: Session = Depends(sessao
     return saida
 
 
+def _publico(s: Session, al: alertas.Alerta, pessoa: Persona) -> dict:
+    """O alerta como a tela o mostra: lido por mim, quem está tratando (nome) e a ação que o meu perfil pode executar."""
+    return dict(al.model_dump(), lido=pessoa.id in (al.lido_por or []),
+                tratando_nome=PERSONAS[al.tratando_por].nome if al.tratando_por in PERSONAS else None,
+                acao=tratamento.acao_para(s, al, pessoa))
+
+
 @rotas.get("/alertas")
 def listar_alertas(abertos: bool = True, pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
-    return [dict(al.model_dump(), lido=pessoa.id in (al.lido_por or []))
-            for al in alertas.visiveis(s, pessoa, so_abertos=abertos)]
+    return [_publico(s, al, pessoa) for al in alertas.visiveis(s, pessoa, so_abertos=abertos)]
 
 
 @rotas.get("/notificacoes/contagem")
@@ -113,3 +126,47 @@ def marcar_lido(alerta_id: str, pessoa: Persona = Depends(usuario_atual), s: Ses
         s.add(al)
         s.commit()
     return {"ok": True}
+
+
+def _meu_alerta(s: Session, alerta_id: str, pessoa: Persona) -> alertas.Alerta:
+    al = s.get(alertas.Alerta, alerta_id)
+    if al is None or al not in alertas.visiveis(s, pessoa, so_abertos=False):
+        raise HTTPException(status_code=404, detail="Alerta não encontrado.")
+    return al
+
+
+def _tratar(fn, *args, **kw):
+    try:
+        return fn(*args, **kw)
+    except tratamento.ErroTratamento as e:
+        raise HTTPException(status_code=e.status, detail=str(e))
+
+
+class PedidoAssumir(BaseModel):
+    nota: str = Field(default="", max_length=300)
+
+
+@rotas.post("/alertas/{alerta_id}/assumir")
+def assumir(alerta_id: str, pedido: PedidoAssumir, pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
+    """Assume o alerta com uma nota curta: ele passa a "em tratamento · por você" para todos os destinatários."""
+    al = _tratar(tratamento.assumir, s, _meu_alerta(s, alerta_id, pessoa), pessoa, pedido.nota)
+    return _publico(s, al, pessoa)
+
+
+@rotas.post("/alertas/{alerta_id}/devolver")
+def devolver(alerta_id: str, pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
+    al = _tratar(tratamento.devolver, s, _meu_alerta(s, alerta_id, pessoa), pessoa)
+    return _publico(s, al, pessoa)
+
+
+class PedidoAcao(BaseModel):
+    motivo: str = Field(default="", max_length=500)
+    valor_brl: float | None = Field(default=None, ge=0)
+
+
+@rotas.post("/alertas/{alerta_id}/acao")
+def acao(alerta_id: str, pedido: PedidoAcao, pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
+    """Executa a ação primária da regra do alerta (pausar, revisar o orçamento, abrir o sistema, restaurar o provedor) e o assume."""
+    al = _meu_alerta(s, alerta_id, pessoa)
+    resposta = _tratar(tratamento.executar_acao, s, al, pessoa, pedido.motivo, pedido.valor_brl)
+    return {**resposta, "alerta": _publico(s, al, pessoa)}

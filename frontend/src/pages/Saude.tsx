@@ -52,7 +52,9 @@ export default function Saude() {
                   <div><dt className="text-tinta-3">Custo 7d</dt><dd className="font-semibold">{reais(s.metricas.custo_brl)}</dd></div>
                 </dl>
                 {s.alertas.map((a) => (
-                  <p key={a.id} className={"mt-2 text-xs " + (a.severidade === "critico" ? "text-erro" : "text-alerta")}>⚠ {a.titulo}</p>
+                  <p key={a.id} className={"mt-2 text-xs " + (a.severidade === "critico" ? "text-erro" : "text-alerta")}>
+                    ⚠ {a.titulo}{a.tratando_nome && <span className="ml-1 text-tinta-2">· em tratamento por {a.tratando_nome}{a.tratando_nota ? ` (“${a.tratando_nota}”)` : ""}</span>}
+                  </p>
                 ))}
               </div>
             </Link>

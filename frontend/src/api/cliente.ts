@@ -227,6 +227,9 @@ export type Alerta = {
   id: string; regra: string; severidade: "atencao" | "critico"; agente_id: string | null; processo_id?: string | null; conector: string | null;
   titulo: string; detalhe: string; destinatarios: string[]; ocorrencias: number; aberto_em: string; atualizado_em: string;
   resolvido_em: string | null; lido?: boolean;
+  tratando_por?: string | null; tratando_nome?: string | null; tratando_nota?: string | null; tratando_desde?: string | null;
+  /** a ação primária da regra que o SEU perfil pode executar (a API decide; sem ela, sem botão) */
+  acao?: { id: string; rotulo: string; pede: "motivo" | "valor_brl" | null; ajuda?: string; atual?: number; rota?: string } | null;
 };
 
 export type MetricasAgente = {

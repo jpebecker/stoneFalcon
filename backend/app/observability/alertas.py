@@ -72,6 +72,9 @@ class Alerta(SQLModel, table=True):
     aberto_em: str
     atualizado_em: str
     resolvido_em: str | None = Field(default=None, index=True)
+    tratando_por: str | None = Field(default=None, index=True)   # v8.1: quem assumiu o alerta (fica depois de resolvido)
+    tratando_nota: str | None = None
+    tratando_desde: str | None = None
 
 
 # =============================================================
@@ -239,7 +242,7 @@ def avaliar(s: Session) -> dict:
             a.resolvido_em = a.atualizado_em = agora().isoformat()
             s.add(a)
             resolvidos.append(a.id)
-            trilha.registrar(s, "alerta_resolvido", "sistema", a.agente_id or a.processo_id, {"alerta": a.id, "regra": a.regra},
+            trilha.registrar(s, "alerta_resolvido", "sistema", a.agente_id or a.processo_id, {"alerta": a.id, "regra": a.regra, "tratando_por": a.tratando_por},
                              dono_tipo="processo" if a.processo_id else "agente")
         s.commit()
         return {"abertos": sorted(vistos - antes), "resolvidos": resolvidos}
