@@ -7,7 +7,7 @@ from tests.conftest import como
 
 V1 = "/api/v1"
 PERFIS = list(PERSONAS)
-CRIADORES = {"marina", "rafael", "carla", "thiago"}
+CRIADORES = {"marina", "rafael", "carla", "thiago", "lucas", "helena"}   # v8.1: Lucas e Helena também criam o seu processo
 
 
 @pytest.mark.parametrize("perfil", PERFIS)

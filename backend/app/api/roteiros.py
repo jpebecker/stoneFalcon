@@ -14,6 +14,7 @@ from ..core.identidade import GESTOR_IA, PERSONAS, Persona, exigir_aba, usuario_
 from ..roteiros import medicao, perguntas
 from ..roteiros.catalogo import ROTEIROS
 from ..roteiros.reinicio import reiniciar
+from ..seed import alertas_demo
 
 rotas = APIRouter(prefix="/api/v1", tags=["roteiros"])
 
@@ -66,6 +67,13 @@ def reiniciar_roteiro(roteiro_id: str, pessoa: Persona = Depends(usuario_atual),
     if not (config.MODO_DEMO or pessoa.tem(GESTOR_IA)):
         raise HTTPException(status_code=403, detail="Reiniciar apaga os dados, inclusive a auditoria: só o CoE de IA pode fora do modo demonstração.")
     return reiniciar(s, roteiro_id)
+
+
+@rotas.post("/roteiros/{roteiro_id}/alerta")
+def alerta_do_roteiro(roteiro_id: str, pessoa: Persona = Depends(usuario_atual), s: Session = Depends(sessao)):
+    """Passo "veja e trate o seu alerta": deixa o estado que faz a regra real abrir um alerta para a persona do roteiro."""
+    r = _acessivel(pessoa, roteiro_id)
+    return alertas_demo.moldar_persona(s, r.persona)
 
 
 @rotas.get("/roteiros/{roteiro_id}/resultado")

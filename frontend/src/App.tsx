@@ -212,7 +212,7 @@ export default function App() {
                 <Route path="/processos/:id/editar" element={<Guarda pessoa={pessoa} aba="estudio"><ProcessoEditor pessoa={pessoa} /></Guarda>} />
                 <Route path="/revisoes" element={<Guarda pessoa={pessoa} aba="revisoes"><Revisoes /></Guarda>} />
                 <Route path="/saude" element={<PaginaSaude />} />
-                <Route path="/alertas" element={<Alertas />} />
+                <Route path="/alertas" element={<Alertas pessoa={pessoa} />} />
                 <Route path="/painel" element={<Guarda pessoa={pessoa} aba="painel"><Painel /></Guarda>} />
                 <Route path="/auditoria" element={<Guarda pessoa={pessoa} aba="auditoria"><Auditoria /></Guarda>} />
                 <Route path="/financas" element={<Financas pessoa={pessoa} />} />

@@ -4,7 +4,7 @@ import pytest
 from app.agents.blueprint import Blueprint
 from app.agents.governanca import ALTO, BAIXO, MEDIO, avaliar_risco, estimar_custo
 from app.core.identidade import PERSONAS
-from app.seed.agentes_exemplo import DUVIDA_LOJISTA, TRIAGEM_CHARGEBACK
+from tests.legado import DUVIDA_LOJISTA, TRIAGEM_CHARGEBACK
 from app.studio.sugestao import extrair_minutos, sugerir
 from app.tools import dados_ficticios, executor
 from tests.conftest import como
@@ -17,7 +17,7 @@ def _limpo():
 
 
 @pytest.mark.parametrize("pessoa,descricao,padrao", [
-    ("marina", "Quando o lojista liga dizendo que a maquininha quebrou, eu confiro o cadastro e abro chamado de troca", "troca_maquininha"),
+    ("marina", "Quando o lojista liga dizendo que a maquininha quebrou, eu confiro o cadastro e abro chamado de troca", "troca_maquininha_estoque"),
     ("marina", "Lojistas perguntam sobre o prazo do estorno e eu procuro a regra para responder", "duvida_lojista"),
     ("carla", "Os colaboradores me perguntam quantos dias de férias ainda têm e como pedir", "ferias_colaborador"),
     ("rafael", "Toda manhã confiro os lojistas com chargeback e decido se abro chamado ou bloqueio o repasse", "triagem_chargeback"),
@@ -73,16 +73,18 @@ def test_marina_cria_e_testa_um_agente_sem_codigo(api):
     sug = api.post("/api/v1/estudio/sugerir", headers=h, json={
         "descricao": "Quando o lojista diz que a maquininha quebrou eu confiro o cadastro e abro chamado de troca na logística"}).json()
     bp = sug["blueprint"]
-    assert sug["risco"]["nivel"] == MEDIO and not sug["risco"]["exige_revisao_seguranca"]
+    # v8: o Estúdio monta o trabalhador (um passo, só lê); abrir o chamado é um bloco do processo que vem pronto ao lado
+    assert [p["tipo"] for p in bp["passos"]] == ["agente"] and not sug["risco"]["exige_revisao_seguranca"]
+    assert sug["processo"] and "abrir_chamado" in {b.get("ferramenta") for b in sug["processo"]["blocos"]}
     # ajusta no canvas: renomeia e valida ao vivo
     bp["nome"] = "Troca de maquininha (Marina)"
     v = api.post("/api/v1/estudio/validar", headers=h, json={"blueprint": bp}).json()
-    assert v["valido"] and v["niveis"] == [["cadastro", "politica"], ["chamado"]]
-    # testa no sandbox
+    assert v["valido"] and v["niveis"] == [["trabalho"]]
+    # testa o trabalhador no sandbox
     exe = api.post("/api/v1/estudio/testar", headers=h,
-                   json={"blueprint": bp, "entrada": {"lojista_id": "L1001", "relato": "não liga"}}).json()
+                   json={"blueprint": bp, "entrada": {"lojista_id": "L1001", "modelo": "Maquininha Pro", "relato": "não liga"}}).json()
     assert exe["status"] == "concluida" and exe["agente_id"] == "sandbox"
-    assert dados_ficticios.CHAMADOS[0]["fila"] == "logistica"
+    assert not dados_ficticios.CHAMADOS      # o trabalhador não age em outro sistema: quem abre o chamado é o processo
 
 
 def test_validar_aponta_erros_em_linguagem_simples(api):
@@ -98,6 +100,8 @@ def test_validar_mostra_ferramenta_sem_permissao(api):
     assert "listar_chargebacks" in v["sem_permissao"] and v["risco"]["exige_revisao_seguranca"]
 
 
-def test_so_criadores_usam_o_estudio(api):
+def test_so_criadores_usam_o_estudio(api, monkeypatch):
+    from tests.conftest import sem_criador
+    sem_criador(monkeypatch, "helena")
     r = api.post("/api/v1/estudio/sugerir", headers=como("helena"), json={"descricao": "x" * 20})
     assert r.status_code == 403

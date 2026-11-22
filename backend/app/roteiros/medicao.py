@@ -21,8 +21,7 @@ from ..processos import modelos as pm
 from ..processos.blueprint import ProcessoBlueprint
 from ..processos.compilar import compilar
 from ..runtime import modelos as rm
-from ..seed.agentes_exemplo import DUVIDA_LOJISTA, TRIAGEM_CHARGEBACK
-from ..studio.modelos_prontos import por_id
+from ..seed import catalogo
 from ..studio.sugestao import blueprint_planilha
 from .catalogo import ROTEIROS, Roteiro
 
@@ -31,10 +30,11 @@ COM_TAREFA = PROCESSOS + ("pitch",)               # roteiros com cartão AS IS �
 
 
 def _padrao(roteiro_id: str) -> Blueprint:
-    return {"marina": DUVIDA_LOJISTA, "rafael": TRIAGEM_CHARGEBACK,
-            "carla": Blueprint.model_validate(por_id("ferias_colaborador")["blueprint"]),
-            "thiago": Blueprint.model_validate(por_id("troca_maquininha_estoque")["blueprint"]),
-            "pitch": Blueprint.model_validate(blueprint_planilha("local:pedidos-troca"))}[roteiro_id]
+    """A linha de base da estimativa enquanto não há processo: o do catálogo da demo (ou, no pitch, o da planilha)."""
+    chave = next((c for c, rid in catalogo.ROTEIRO.items() if rid == roteiro_id), None)
+    if chave:
+        return catalogo.fluxo(chave)
+    return Blueprint.model_validate(blueprint_planilha("local:pedidos-troca"))
 
 
 def _agente(s: Session, r: Roteiro, dono_id: str | None) -> am.Agente | pm.Processo | None:

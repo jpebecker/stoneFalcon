@@ -8,7 +8,7 @@ Como trabalhar neste repositório sem ler a história das versões. Comece pelos
 | [REQUIREMENTS.md](REQUIREMENTS.md) | O que a plataforma precisa fazer e respeitar: personas, matriz de acesso, requisitos, critérios de todo ticket. |
 | [DESIGN.md](DESIGN.md) | Linguagem visual: cores, tipografia, componentes, a roda de personas, acessibilidade e movimento. |
 
-Outros: [LEIA-ME.md](LEIA-ME.md) (visão do produto e uso), [PLAN-V8.md](PLAN-V8.md) (plano entregue da v8), `docs/` (planos de trabalho).
+Outros: [LEIA-ME.md](../LEIA-ME.md) (visão do produto e uso) e, nesta pasta, os planos de trabalho (um `.md` por plano, com os tickets dentro; o da 8.1 é [PLANO-PROCESSOS-ALERTAS.md](PLANO-PROCESSOS-ALERTAS.md)).
 
 > Protótipo acadêmico (UFSC) para o desafio StoneLab. Não é um produto da Stone. Pessoas, áreas e dados são fictícios.
 

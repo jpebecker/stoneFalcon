@@ -1,11 +1,11 @@
 """Roteiros v8 das quatro pessoas que criam: criar o agente trabalhador -> montar o processo -> testar -> publicar -> usar.
 
-O fluxo de blocos de cada processo vem de seed/processos_demo.py (o mesmo do estado inicial da demo); aqui ele vai no `preenche`
+O fluxo de blocos de cada processo vem de seed/catalogo.py (o mesmo do estado inicial da demo); aqui ele vai no `preenche`
 do passo "montar" com o NOME do agente, que a tela troca pelo id do agente que a pessoa acabou de criar.
 """
 from __future__ import annotations
 
-from ..seed.processos_demo import NOME_AGENTE, NOME_PROCESSO, processo
+from ..seed.catalogo import NOME_AGENTE, NOME_PROCESSO, processo
 from .catalogo import Passo, Roteiro, _ctx, _medir, _min
 
 
@@ -18,6 +18,11 @@ def _criar(persona: str, chave: str, descricao: str, fala: str) -> Passo:
 def _montar(persona: str, chave: str, fala: str, acao: str, slack: bool = False) -> Passo:
     return Passo("montar", "Montar o processo", persona, "/processos/novo", acao, fala,
                  {"processo": processo(chave, NOME_AGENTE[chave], slack=slack, por_nome=True)})
+
+
+def _alerta(persona: str, acao: str, fala: str) -> Passo:
+    """O passo "veja e trate o seu alerta" de cada roteiro: o cenário nasce de uma regra real (a tela chama o endpoint do cenário)."""
+    return Passo("alerta", "Veja e trate o seu alerta", persona, "/alertas", acao, fala, {"cenario_alerta": True})
 
 
 def _processo(chave: str) -> str:
@@ -59,6 +64,9 @@ MARINA = Roteiro(
         Passo("extensao", "Usar pela extensão no helpdesk", "marina", "/demo/helpdesk?chamado=4812&perfil=marina",
               "No helpdesk, selecione o texto do chamado e clique em “Perguntar ao StoneFalcon”.",
               "O mesmo processo, agora dentro da ferramenta onde ela já trabalha.", externa=True),
+        _alerta("marina", "O processo ficou mais lento que o normal: assuma o alerta e abra o processo pela ação do alerta.",
+                "Ela não configurou nada: a plataforma comparou as últimas execuções com as de sempre e avisou a dona do processo. "
+                "Assumir mostra a todos quem está cuidando."),
         _medir("marina", "O tempo e o custo desta execução são medidos; o AS IS é hipótese, e dizemos qual é qual."),
     ), duracao_min=6)
 
@@ -105,6 +113,8 @@ RAFAEL = Roteiro(
         Passo("auditoria", "Provar na trilha de auditoria", "helena", "/auditoria",
               "Mostre o selo de cadeia íntegra e abra a confirmação da retenção.",
               "Quem confirmou, quando e com que dado: tudo na trilha encadeada por hash."),
+        _alerta("rafael", "A triagem está falhando: assuma o alerta e pause o processo pela ação do alerta, com o motivo.",
+                "4 das últimas 10 execuções escalaram: o alerta chega ao dono do processo, e a pausa de emergência fica a um clique."),
         _medir("rafael", "Tempo, custo e a confirmação humana aparecem medidos."),
     ), duracao_min=8)
 
@@ -141,6 +151,8 @@ CARLA = Roteiro(
         Passo("auditoria", "Provar que nada vazou", "lucas", "/auditoria",
               "Abra o evento da ferramenta de RH: só há marcadores no lugar do CPF e do e-mail.",
               "A auditoria registra o que foi mascarado, nunca o dado em si."),
+        _alerta("carla", "O processo chegou a 88% do orçamento do mês: assuma o alerta e revise o orçamento pela ação do alerta.",
+                "O orçamento tem alerta a 80% e corte a 100%: a Carla age antes de o processo parar."),
         _medir("carla", "O ganho vem sem abrir mão da privacidade."),
     ), duracao_min=5)
 
@@ -184,5 +196,7 @@ THIAGO = Roteiro(
               "Abra a página do Slack: a mensagem do processo aparece no canal #logistica.",
               "A página consolidada do plugin mostra quem usa, quantas chamadas, o custo e a janela do canal, "
               "com a mensagem que o processo acabou de publicar."),
+        _alerta("thiago", "O estoque ficou lento: assuma o alerta e abra o sistema em Saúde.",
+                "O processo de trocas consulta o estoque do modelo; o alerta leva direto ao sistema que atrasa o processo."),
         _medir("thiago", "Três consultas em paralelo, o chamado aberto e o canal da logística avisado sem ninguém digitar."),
     ), duracao_min=6)

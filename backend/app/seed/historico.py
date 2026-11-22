@@ -39,7 +39,7 @@ def _tokens_do_custo(chave: str, custo_usd: float) -> tuple[int, int]:
     return int(custo_usd * 0.5 / m.preco_entrada * 1_000_000), int(custo_usd * 0.5 / m.preco_saida * 1_000_000)
 
 
-VOLUME_DIA = {"atendimento": 22, "risco": 9, "pessoas": 12, "logistica": 10}   # execuções por dia útil
+VOLUME_DIA = {"atendimento": 22, "risco": 9, "pessoas": 12, "logistica": 10, "engenharia": 5, "gestao": 2}   # execuções por dia útil
 
 
 def _passos(bp: Blueprint, est, custo_usd: float, status: str, motivo: str | None) -> dict:
@@ -58,7 +58,9 @@ def _passos(bp: Blueprint, est, custo_usd: float, status: str, motivo: str | Non
     return saida
 
 
-def gerar(s: Session, dias: int = 30, semente: int = 7) -> int:
+def gerar(s: Session, dias: int = 30, semente: int = 7, apenas: set[str] | None = None) -> int:
+    """Histórico sintético dos processos publicados (e dos agentes que rodam sozinhos). Com `apenas`, só o desses ids (o cenário
+    de alerta de um roteiro guiado, para o processo que a pessoa acabou de criar ao vivo)."""
     rnd = random.Random(semente)
     hoje = agora()
     criadas = []
@@ -75,6 +77,8 @@ def gerar(s: Session, dias: int = 30, semente: int = 7) -> int:
             continue
         v = s.get(am.VersaoAgente, "%s-v%d" % (a.id, a.versao_publicada))
         donos.append((a, Blueprint.model_validate(v.blueprint)))
+    if apenas is not None:
+        donos = [(a, bp) for a, bp in donos if a.id in apenas]
     for a, bp in donos:
         processo = isinstance(a, pm.Processo)
         est = estimar_custo(bp)
@@ -91,7 +95,7 @@ def gerar(s: Session, dias: int = 30, semente: int = 7) -> int:
                 sorteio = rnd.random()
                 if ruim and sorteio < 0.45:
                     status, motivo = rm.ESCALADA, "Levantar contestações da semana: O sistema respondeu com erro 500."
-                elif sorteio < 0.06 and d > 3:   # últimos dias saudáveis: a demo começa sem alerta
+                elif sorteio < 0.06 and d > 7:   # a última semana é saudável (as 10 últimas execuções de um processo de pouco volume cobrem dias): a demo começa sem alerta, e só as regras de alertas_demo.py o estragam
                     status, motivo = rm.ESCALADA, "O agente não concluiu em 6 tentativas."
                 else:
                     status, motivo = rm.CONCLUIDA, None
@@ -120,7 +124,8 @@ def gerar(s: Session, dias: int = 30, semente: int = 7) -> int:
         for e in criadas:
             s.add(e)
         s.commit()
-    trilha.registrar(s, "historico_demo_gerado", "sistema", dados={"execucoes": len(criadas), "dias": dias})
+    trilha.registrar(s, "historico_demo_gerado", "sistema", dados={"execucoes": len(criadas), "dias": dias,
+                                                                   **({"apenas": sorted(apenas)} if apenas is not None else {})})
     return len(criadas)
 
 

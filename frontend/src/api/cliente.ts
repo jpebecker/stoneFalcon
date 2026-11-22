@@ -80,6 +80,8 @@ export type Sugestao = {
   entrada_sugerida?: Record<string, string>;
   trabalhador: Blueprint;       // v8: o agente único (um trabalhador) que o Estúdio cria a partir do fluxo sugerido
   multipasso: boolean;          // o fluxo é claramente de vários passos: oferece "Transformar em processo"
+  processo?: ProcessoPronto | null;   // padrão da galeria: o processo pronto para montar (o agente vem pelo nome)
+  acoes_no_processo?: string[];       // ações em outros sistemas que ficam por conta do processo
 };
 
 export type Validacao =
@@ -222,9 +224,12 @@ export type ValidacaoProcesso =
       estimativa: Estimativa & { duracao_ms: number }; blocos?: Record<string, string[]> };
 
 export type Alerta = {
-  id: string; regra: string; severidade: "atencao" | "critico"; agente_id: string | null; conector: string | null;
+  id: string; regra: string; severidade: "atencao" | "critico"; agente_id: string | null; processo_id?: string | null; conector: string | null;
   titulo: string; detalhe: string; destinatarios: string[]; ocorrencias: number; aberto_em: string; atualizado_em: string;
   resolvido_em: string | null; lido?: boolean;
+  tratando_por?: string | null; tratando_nome?: string | null; tratando_nota?: string | null; tratando_desde?: string | null;
+  /** a ação primária da regra que o SEU perfil pode executar (a API decide; sem ela, sem botão) */
+  acao?: { id: string; rotulo: string; pede: "motivo" | "valor_brl" | null; ajuda?: string; atual?: number; rota?: string } | null;
 };
 
 export type MetricasAgente = {
@@ -233,7 +238,7 @@ export type MetricasAgente = {
 };
 
 export type SaudeAgente = {
-  agente: { id: string; nome: string; area: string; dono: string; estado: string; risco: string };
+  agente: { id: string; nome: string; area: string; dono: string; estado: string; risco: string; tipo?: "agente" | "processo" };
   metricas: MetricasAgente; score: { nota: number; status: "saudavel" | "atencao" | "critico" }; alertas: Alerta[];
 };
 
@@ -284,7 +289,7 @@ export type ProcessoPronto = Omit<ProcessoBlueprint, "blocos"> & { blocos: (Omit
 
 export type PassoRoteiro = {
   id: string; titulo: string; perfil: string; rota: string; acao: string; fala: string;
-  preenche: { descricao?: string; nome_agente?: string; processo?: ProcessoPronto;
+  preenche: { descricao?: string; nome_agente?: string; cenario_alerta?: boolean; processo?: ProcessoPronto;
     plugin?: { ferramenta_mercado: string; descricao_publica: string; finalidade: string; areas: string[]; classificacao: string }; entrada?: Record<string, string>; parecer?: string; fonte?: { tipo: string; url: string };
     frequencia?: "semanal" | "diaria"; dia_semana?: number; hora?: string }; externa: boolean;
 };

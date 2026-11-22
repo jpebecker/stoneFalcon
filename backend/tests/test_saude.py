@@ -7,7 +7,7 @@ from app.audit import trilha
 from app.core.identidade import PERSONAS
 from app.observability import alertas, metricas
 from app.runtime import motor
-from app.seed.agentes_exemplo import DUVIDA_LOJISTA, TRIAGEM_CHARGEBACK
+from tests.legado import DUVIDA_LOJISTA, TRIAGEM_CHARGEBACK
 from app.tools import dados_ficticios, executor
 from tests.conftest import como
 

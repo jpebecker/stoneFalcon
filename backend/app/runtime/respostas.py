@@ -44,6 +44,8 @@ class Contexto:
     slack: dict | None = None
     zendesk: dict | None = None
     planilha: dict | None = None     # o que o plugin Google Sheets leu (colunas, linhas e a primeira linha pendente)
+    arquivos: list[dict] = field(default_factory=list)   # o que o plugin Arquivos e Planilhas leu (colunas e linhas)
+    sistemas: dict | None = None     # o estado atual dos sistemas da Stone (ok, lento ou fora)
     instrucao: str = ""          # a tarefa do passo (o que o criador escreveu), para campos como o canal do Slack
     analise: str = ""            # conclusão de um passo anterior (texto)
     erros: list[str] = field(default_factory=list)
@@ -53,6 +55,10 @@ class Contexto:
         if isinstance(obj, dict):
             if "colunas" in obj and "primeira" in obj:
                 self.planilha = obj
+            elif "colunas" in obj and "linhas" in obj and "arquivo" in obj:
+                self.arquivos.append(obj)
+            elif "sistemas" in obj and "com_problema" in obj:
+                self.sistemas = obj
             elif "cnpj" in obj and "plano" in obj:
                 self.lojista = obj
             elif "contestacoes" in obj:
@@ -191,6 +197,52 @@ def _resposta_ferias(ctx: Contexto) -> str:
     return texto
 
 
+def _numero(texto) -> float:
+    """"R$ 1.234,50", "100" ou 60 -> número (o orçamento digitado na tela)."""
+    achado = re.search(r"\d[\d.]*(?:,\d+)?", str(texto or ""))
+    if not achado:
+        return 0.0
+    bruto = achado.group(0)
+    return float(bruto.replace(".", "").replace(",", ".")) if "," in bruto else float(bruto)
+
+
+def _analise_incidente(ctx: Contexto) -> str:
+    """O trabalhador do processo de incidentes: cruza o registro com o estado atual do sistema; o PROCESSO decide e abre o chamado."""
+    alvo = str(ctx.entrada.get("sistema") or "").strip()
+    sistemas = (ctx.sistemas or {}).get("sistemas", [])
+    atual = next((x for x in sistemas if x["sistema"].lower() == alvo.lower()), None)
+    historico = [l for a in ctx.arquivos if "sistema" in a.get("colunas", []) for l in a.get("linhas", [])]
+    altas = sum(1 for l in historico if str(l.get("severidade", "")).lower() == "alta")
+    passado = ("Registro: %d incidente(s) anterior(es) neste sistema, %d de severidade alta." % (len(historico), altas)
+               if historico else "Registro: nenhum incidente anterior neste sistema.")
+    total, com_problema = (ctx.sistemas or {}).get("total_sistemas", len(sistemas)), (ctx.sistemas or {}).get("com_problema", 0)
+    resumo = "Estado atual: %d de %d sistemas com problema." % (com_problema, total)
+    if atual is None:
+        return "Não encontrei o sistema “%s” entre os sistemas monitorados. %s %s" % (alvo or "(vazio)", passado, resumo)
+    if atual["estado"] == "fora":
+        return ("Incidente CRÍTICO: %s está fora do ar agora. %s %s Recomendo abrir chamado na fila da Engenharia." % (alvo, passado, resumo))
+    if atual["estado"] == "lento":
+        return ("Incidente MODERADO: %s está lento agora, sem queda. %s %s Acompanhar; sem chamado por enquanto." % (alvo, passado, resumo))
+    return "Nenhum incidente em curso: %s responde normalmente agora. %s %s" % (alvo, passado, resumo)
+
+
+def _analise_custo_ia(ctx: Contexto) -> str:
+    """O trabalhador do processo de custo: soma o resumo de Finanças e compara com o orçamento informado."""
+    linhas = [l for a in ctx.arquivos if "custo_brl" in a.get("colunas", []) for l in a.get("linhas", [])]
+    custo = sum(_numero(l.get("custo_brl")) for l in linhas)
+    ganho = sum(_numero(l.get("ganho_brl")) for l in linhas)
+    execs = int(sum(_numero(l.get("execucoes")) for l in linhas))
+    orcamento = _numero(ctx.entrada.get("orcamento_brl"))
+    por_processo = "; ".join("%s: %s" % (l.get("processo"), _brl(_numero(l.get("custo_brl")))) for l in linhas[:4])
+    base = "Custo de IA do resumo de Finanças: %s em %d execuções (%s), com ganho estimado de %s." % (_brl(custo), execs, por_processo, _brl(ganho))
+    if not orcamento:
+        return base + " Sem orçamento informado, não consigo dizer se passou."
+    uso = custo / orcamento * 100
+    if custo > orcamento:
+        return base + " Orçamento de %s: ACIMA DO ORÇAMENTO em %s (%.0f%% usado). Vale avisar o time do CoE." % (_brl(orcamento), _brl(custo - orcamento), uso)
+    return base + " Orçamento de %s: DENTRO DO ORÇAMENTO (%.0f%% usado)." % (_brl(orcamento), uso)
+
+
 def _chamado_troca(ctx: Contexto) -> str:
     l, e = ctx.lojista or {}, ctx.estoque or {}
     texto = ""
@@ -249,6 +301,10 @@ def compor(ctx: Contexto, titulo: str, tools_passo: list[str], usou_ferramentas:
         return _resumo_troca(ctx)
     if f & {"abrir_chamado", "bloquear_repasse"}:
         return _encaminhamento(ctx)
+    if ctx.sistemas is not None and ctx.arquivos:
+        return _analise_incidente(ctx)
+    if any("custo_brl" in a.get("colunas", []) for a in ctx.arquivos):
+        return _analise_custo_ia(ctx)
     if ctx.chargebacks is not None and ctx.lojista is not None:
         return _analise_risco(ctx)
     if ctx.colaborador is not None:

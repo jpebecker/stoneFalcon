@@ -7,7 +7,7 @@ from app.agents.blueprint import Blueprint
 from app.core.identidade import PERSONAS
 from app.processos.compilar import compilar, trabalhador
 from app.processos.blueprint import ProcessoBlueprint
-from app.seed.agentes_exemplo import DUVIDA_LOJISTA, TRIAGEM_CHARGEBACK
+from tests.legado import DUVIDA_LOJISTA, TRIAGEM_CHARGEBACK
 from app.tools import dados_ficticios, executor
 from tests.conftest import como
 from tests.test_processos import ENTRADA, agente_publicado, fluxo, trabalhador as bp_trabalhador
@@ -44,7 +44,10 @@ def test_sugestao_traz_o_trabalhador_unico_e_se_o_fluxo_tem_varios_passos(api):
     assert len(t.passos) == 1 and t.passos[0].tipo == "agente" and trabalhador(t) is not None
     assert {"consultar_lojista", "buscar_politica"} <= set(t.passos[0].ferramentas)   # as consultas do fluxo viram ferramentas dele
     assert t.campos == Blueprint.model_validate(s["blueprint"]).campos and t.minutos_manual == 8
-    assert s["multipasso"] is True and len(s["blueprint"]["passos"]) > 2
+    # v8: o padrão da galeria já é um trabalhador de um passo; o processo vem pronto ao lado, pelo nome do agente
+    assert s["multipasso"] is False and s["blueprint"] == s["trabalhador"]
+    pbp = s["processo"]
+    assert [b["tipo"] for b in pbp["blocos"]] == ["dados", "dados", "agente"] and pbp["blocos"][-1]["agente_nome"] == t.nome
 
 
 def test_transformar_em_processo_cria_trabalhadores_rascunho_e_devolve_o_fluxo_de_blocos(api, sessao):
@@ -63,7 +66,9 @@ def test_transformar_em_processo_cria_trabalhadores_rascunho_e_devolve_o_fluxo_d
     assert t["status"] == "concluida"
 
 
-def test_so_criador_transforma_em_processo(api):
+def test_so_criador_transforma_em_processo(api, monkeypatch):
+    from tests.conftest import sem_criador
+    sem_criador(monkeypatch, "helena")
     assert api.post(f"{V1}/estudio/em-processo", json={"blueprint": DUVIDA_LOJISTA.model_dump()}, headers=como("helena")).status_code == 403
 
 

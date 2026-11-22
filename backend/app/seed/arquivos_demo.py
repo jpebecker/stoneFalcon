@@ -124,16 +124,21 @@ PROCESSOS = [
 ]
 
 
-def semear(s: Session) -> None:
-    """Integra o plugin (como a Marina, que é criadora), cria os arquivos da demo e os processos que os usam."""
-    from ..processos.blueprint import ProcessoBlueprint
-    from ..processos.tipo import ciclo as ciclo_processos
+def preparar(s: Session) -> None:
+    """Integra o plugin (como a Marina, que é criadora) e cria os arquivos da demo. Vem ANTES dos processos da demo, porque
+    alguns (a triagem de incidentes do Lucas, a revisão de custo da Helena) já leem esses arquivos."""
     try:
         plugins.integrar(s, PERSONAS["marina"], arquivos.PLUGIN_ID, "Estado inicial da demonstração.")
     except plugins.ErroPlugin:
         pass
     for nome, dono, classificacao, areas, colunas, linhas in ARQUIVOS:
         arquivos.criar_pelo_sistema(s, PERSONAS[dono], nome, colunas, linhas, classificacao, areas, demo=True)
+
+
+def semear(s: Session) -> None:
+    """Cria os processos da demo que usam o plugin Arquivos e Planilhas (o plugin e os arquivos já vêm de `preparar`)."""
+    from ..processos.blueprint import ProcessoBlueprint
+    from ..processos.tipo import ciclo as ciclo_processos
     for criador, areas, definicao in PROCESSOS:
         pessoa = PERSONAS[criador]
         p = ciclo_processos.criar(s, pessoa, ProcessoBlueprint.model_validate(definicao), "Estado inicial: usa o plugin Arquivos e Planilhas.")

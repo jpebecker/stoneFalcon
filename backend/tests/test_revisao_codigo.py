@@ -8,7 +8,7 @@ from app.llm.cliente import ChamadaFerramenta, RespostaLLM, simulador
 from app.runtime import modelos as m
 from app.runtime import motor
 from app.agents.blueprint import Blueprint
-from app.seed.agentes_exemplo import TRIAGEM_CHARGEBACK
+from tests.legado import TRIAGEM_CHARGEBACK
 from app.tools import dados_ficticios, executor
 from tests.conftest import como
 
@@ -59,7 +59,11 @@ def test_quem_nao_disparou_nem_e_curador_nao_decide(sessao, monkeypatch):
 
 
 # ---- #3: execução de blueprint livre só para criadores, na própria área, como teste ----
-def test_blueprint_livre_exige_criador(api):
+def test_blueprint_livre_exige_criador(api, monkeypatch):
+    from dataclasses import replace
+
+    from app.core.identidade import PERSONAS
+    monkeypatch.setitem(PERSONAS, "helena", replace(PERSONAS["helena"], papeis=PERSONAS["helena"].papeis - {"criador"}))   # v8.1: ela agora cria
     bp = {"nome": "Livre", "objetivo": "testar bypass", "area": "risco",
           "passos": [{"id": "a", "titulo": "A", "tipo": "ferramenta", "ferramenta": "abrir_chamado",
                       "entrada": {"fila": "ti", "titulo": "t", "descricao": "d"}}]}

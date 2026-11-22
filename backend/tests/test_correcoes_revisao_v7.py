@@ -40,7 +40,11 @@ def test_comparativo_sem_detalhe_por_modelo_usa_as_chamadas_da_execucao():
 
 
 # ---------- 2. relógio da demo: só o CoE e os criadores ----------
-def test_relogio_so_coe_e_criadores(api):
+def test_relogio_so_coe_e_criadores(api, monkeypatch):
+    from dataclasses import replace
+
+    from app.core.identidade import PERSONAS
+    monkeypatch.setitem(PERSONAS, "lucas", replace(PERSONAS["lucas"], papeis=PERSONAS["lucas"].papeis - {"criador"}))   # v8.1: ele agora cria
     assert api.post(f"{V1}/rotinas/relogio", json={"avancar_horas": 1}, headers=como("lucas")).status_code == 403
     assert api.get(f"{V1}/rotinas/relogio", headers=como("lucas")).json()["pode_mexer"] is False
     for quem in ("helena", "thiago"):

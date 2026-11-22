@@ -1,6 +1,6 @@
 # Ensaio geral e roteiro do pitch (8 a 10 minutos)
 
-Este arquivo é o ticket 10 do [PLANO-V6](PLANO-V6.md) (antes, o ticket 16 da v5): o que conferir antes de apresentar, como ensaiar e o que falar. **Na v6, quem apresenta Roteiros, Painel executivo e Perguntas da Ferramenta é a Helena**: as outras personas só iniciam o próprio roteiro pelo Início.
+Este arquivo (ticket 10 da v6, antes o 16 da v5) diz o que conferir antes de apresentar, como ensaiar e o que falar. **Na v6, quem apresenta Roteiros, Painel executivo e Perguntas da Ferramenta é a Helena**: as outras personas só iniciam o próprio roteiro pelo Início.
 
 ## 1. Teste automático dos roteiros (seis personas + o pitch v8)
 
@@ -35,7 +35,7 @@ Cada linha é um roteiro iniciado pela tela “Quem é você hoje?” (botão **
 | 0:00 | Abertura | Tela “Quem é você hoje?” | Seis pessoas, seis jornadas: criam, governam, medem. Tudo fictício, tudo reproduzível. |
 | 0:30 | **Marina** (2:30) | AS IS (8 min, hipótese) → Estúdio descreve o processo → sandbox com dado mascarado → publica sem fila → usa no helpdesk pela extensão → cartão AS IS × TO BE | Sem código, sem fila de Engenharia; o ganho é medido e cada número diz se é medido ou hipótese. |
 | 3:00 | **Rafael** (3:00) | Teste sem risco → “Enviar para revisão” → Lucas aprova (troca de perfil sozinha) → execução com o lojista suspeito: passos paralelos, Sonnet explicado, **pausa pedindo confirmação** → auditoria | Ação sensível nunca é automática; quem confirmou e quando fica na trilha encadeada. |
-| 6:00 | **Lucas** (1:30) | Sistema fora do ar → execução escala com motivo → alerta no sino → **Pausar** → normalizar e o alerta fecha | Governança sem headcount por time: catálogo uma vez, revisão só do risco alto. |
+| 6:00 | **Lucas** (1:30) | Sistema fora do ar → execução escala com motivo → alerta no sino → **assumir** e **Pausar** (a ação do alerta) → normalizar e o alerta fecha | Governança sem headcount por time: catálogo uma vez, revisão só do risco alto. |
 | 7:30 | **Helena** (2:00) | AS IS × TO BE consolidado → painel dos 5 critérios → economia do roteador → calculadora partindo de um processo | Retorno, custo e payback com premissas à vista. |
 | 9:30 | **Plugins** (1:00, opcional) | Thiago: aba Plugins → integrar o Slack (interno, direto) → agente avisa o #logistica → página do Slack com a mensagem. Carla: SAP vira pedido para o Lucas | Marketplace é a aquisição, Catálogo é a governança: sensível passa pelos quatro olhos. |
 | 10:30 | Fechamento | Alt + B (Helena) → duas Perguntas da Ferramenta com “Mostrar na tela” | Cada resposta tem a tela de prova. |
@@ -71,10 +71,11 @@ Atenção: **só o Claude roda de verdade; os outros provedores são simulados**
 O tempo acima é uma **estimativa por contagem de palavras e cliques** (a fala corrida soma menos de 5 min), ainda não cronometrada ao vivo.
 
 ### Checklist do fluxo v8 (antes de apresentar)
-- [ ] `uv run pytest -q` verde e `npm run build` feito; versão **8.0.0** em `/api/v1/saude` e na extensão (`StoneFalcon 8.0`).
-- [ ] Reiniciar a demo e conferir: o seletor radial abre com seis pessoas; Plugins mostra “Arquivos e Planilhas” com o selo **real**; Processos lista nove processos.
+- [ ] `uv run pytest -q` verde e `npm run build` feito; versão **8.1.0** em `/api/v1/saude` e na extensão (`StoneFalcon 8.1`).
+- [ ] Reiniciar a demo e conferir: o seletor radial abre com seis pessoas; Plugins mostra “Arquivos e Planilhas” com o selo **real**; Processos lista onze processos (a Helena e o Lucas têm o seu) e o sino de cada pessoa já traz um alerta.
 - [ ] Ensaiar uma vez, como Thiago: agente → processo → rotina → Arquivos e Planilhas (prévia e download) → “Crie o seu plugin”; depois, como Helena e Lucas, as duas aprovações.
 - [ ] Em Finanças (Helena): custo por processo, a lista dos agentes dentro de um processo e **Exportar para planilha** (o arquivo novo aparece no plugin).
+- [ ] **8.1, alertas:** como qualquer persona, abrir Alertas: o alerta do perfil já está lá (processo de dúvidas lento, triagem falhando, orçamento a 88%, estoque lento, transações fora para a Engenharia, custo a 88%); **Assumir** com uma nota e ver “em tratamento · por” em Saúde; usar a **ação** do alerta (pausar, abrir o processo, revisar o orçamento ou abrir o sistema em Saúde). Cada roteiro guiado traz o passo “veja e trate o seu alerta” e começa **sem** alertas.
 - [ ] Perguntas da Ferramenta (Alt + B): as três novas do v8 (agentes × processos, o plugin é de verdade, como evitar clonar um fornecedor), cada uma com “Mostrar na tela”.
 - [ ] Vindo da v7: remover a extensão antiga e carregar a pasta `extensao` de novo; o banco antigo abre sozinho (as tabelas e colunas novas são acrescentadas).
 

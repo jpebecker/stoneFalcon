@@ -8,7 +8,7 @@ import pytest
 
 from app.roteiros.catalogo import ROTEIROS
 from app.roteiros.perguntas import PERGUNTAS
-from app.seed.processos_demo import NOME_AGENTE, processo
+from app.seed.catalogo import NOME_AGENTE, processo
 from app.tools import dados_ficticios as fx
 from tests.conftest import como
 
@@ -152,7 +152,9 @@ def test_roteiro_marina(api):
 def test_roteiro_rafael(api):
     _iniciar(api, "rafael")
     aid, pbp, sug = _agente_e_processo(api, "rafael", "rafael", "triagem", "triagem_chargeback")
-    assert sug["risco"]["nivel"] == "alto" and sug["risco"]["exige_revisao_seguranca"]
+    assert sug["risco"]["nivel"] == "baixo"                                 # o trabalhador só lê; o risco alto é do PROCESSO
+    risco = api.post(f"{V1}/processos/validar", json={"blueprint": pbp}, headers=como("rafael")).json()["risco"]
+    assert risco["nivel"] == "alto" and risco["exige_revisao_seguranca"]
     assert sug["acoes_no_processo"]                                         # abrir chamado e reter repasse ficam no processo
 
     seguro = _testar_processo(api, "rafael", "rafael", pbp)                 # L1001: sem risco
@@ -214,15 +216,16 @@ def test_roteiro_thiago(api):
     # passo 'integrar': sem o plugin, o Estúdio orienta a integrar o Slack; integrar é direto (Slack é interno)
     texto = _passo("thiago", "criar").preenche["descricao"]
     antes = api.post(f"{V1}/estudio/sugerir", json={"descricao": texto}, headers=como("thiago")).json()
-    assert any("plugin do Slack" in a for a in antes["alertas"]) and "canal" not in [p["id"] for p in antes["blueprint"]["passos"]]
+    assert any("plugin do Slack" in a for a in antes["alertas"]) and "slack_enviar_mensagem" not in [b.get("ferramenta") for b in antes["processo"]["blocos"]]
     r = api.post(f"{V1}/plugins/slack/integrar", headers=como("thiago"))
     assert r.status_code == 200 and r.json()["resultado"] == "integrado", r.text
     cat = {f["id"]: f for f in api.get(f"{V1}/ferramentas", headers=como("thiago")).json()["ferramentas"]}
     assert cat["slack_enviar_mensagem"]["origem"] == "plugin Slack"
 
     aid, pbp, sug = _agente_e_processo(api, "thiago", "thiago", "troca", "troca_maquininha_estoque")
-    assert sug["risco"]["nivel"] == "medio"
-    assert sug["niveis"][0] == ["cadastro", "regra", "estoque"]             # três passos em paralelo
+    assert api.post(f"{V1}/processos/validar", json={"blueprint": pbp}, headers=como("thiago")).json()["risco"]["nivel"] == "medio"
+    from app.processos.blueprint import ProcessoBlueprint
+    assert ProcessoBlueprint.model_validate(pbp).niveis()[0] == ["cadastro", "regra", "estoque"]   # três blocos em paralelo
     assert "canal" in [b["id"] for b in pbp["blocos"]]                       # depois do chamado, avisa o canal
     assert _testar_processo(api, "thiago", "thiago", pbp)["status"] == "concluida"
 
@@ -327,10 +330,10 @@ def test_reiniciar_roteiro_devolve_o_estado_inicial(api):
 
 
 def test_campos_pedem_nome_e_nao_codigo(api):
-    ex = api.get(f"{V1}/agentes-exemplo", headers=como("marina")).json()
-    for bp in ex.values():
-        for c in bp["campos"]:
-            assert c["rotulo"] and not c["rotulo"].endswith("_id")
+    from app.seed.catalogo import TRABALHADORES
+    for bp in TRABALHADORES.values():
+        for c in bp.campos:
+            assert c.rotulo and not c.rotulo.endswith("_id")
     achados = api.get(f"{V1}/lojistas", params={"q": "relampago"}, headers=como("marina")).json()
     assert [l["id"] for l in achados] == ["L1003"] and achados[0]["nome"] == "Eletrônicos Relâmpago"
     eu = api.get(f"{V1}/colaboradores", headers=como("marina")).json()
@@ -384,7 +387,7 @@ def test_resultado_de_todos_os_roteiros_responde(api):
         d = r.json()
         assert d["linhas"] or d["indicadores"]
     ind = {i["nome"]: i for i in api.get(f"{V1}/roteiros/lucas/resultado", headers=como("lucas")).json()["indicadores"]}
-    assert ind["Agentes e processos publicados sem código novo"]["valor"] == 13
+    assert ind["Agentes e processos publicados sem código novo"]["valor"] == 17
     assert ind["Revisões de segurança feitas"]["valor"] == 1
 
 
@@ -417,7 +420,7 @@ def test_erros_diz_o_tamanho_da_amostra(api):
 
 def test_analise_de_risco_so_afirma_o_que_os_dados_mostram(sessao):
     from app.runtime import motor
-    from app.seed.agentes_exemplo import TRIAGEM_CHARGEBACK
+    from tests.legado import TRIAGEM_CHARGEBACK
     from app.core.identidade import PERSONAS
     exe, _ = motor.executar(sessao, PERSONAS["rafael"], TRIAGEM_CHARGEBACK, {"lojista_id": "L1003"})
     analise = exe.passos["analise"]["saida"]
@@ -437,7 +440,7 @@ def _cliente_que_falha(fatal: bool):
 def test_reserva_do_modo_real_e_visivel_e_nao_mascara_erro_de_chave(sessao, monkeypatch):
     from app.core.identidade import PERSONAS
     from app.runtime import motor
-    from app.seed.agentes_exemplo import DUVIDA_LOJISTA
+    from tests.legado import DUVIDA_LOJISTA
     entrada = {"lojista_id": "L1001", "pergunta": "Em quanto tempo o estorno cai para o cliente?"}
     bp = DUVIDA_LOJISTA.model_copy(update={"area": "atendimento"})
 
@@ -483,7 +486,7 @@ def test_reiniciar_a_demo_devolve_o_estado_inicial_exato(api, sessao):
 
     assert api.post(f"{V1}/demo/reiniciar", headers=h).json()["ok"]
     inicial = foto()
-    assert len(inicial[0]) == 4 and len(inicial[1]) == 9 and all(p[1] == "publicado" for p in inicial[1])
+    assert len(inicial[0]) == 6 and len(inicial[1]) == 11 and all(p[1] == "publicado" for p in inicial[1])
     pid = next(p["id"] for p in api.get(f"{V1}/processos", headers=h).json() if p["nome"] == "Orientação de férias")
     assert api.post(f"{V1}/processos/{pid}/pausar", json={"motivo": "teste"}, headers=como("lucas")).status_code == 200
     _executar_processo(api, "marina", next(p["id"] for p in api.get(f"{V1}/processos", headers=h).json()

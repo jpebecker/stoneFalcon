@@ -52,12 +52,20 @@ def resolver_agente(s: Session, b: Bloco, pessoa: Persona | None, usar: str) -> 
     return a, w, numero, bloqueio
 
 
-def compilar(s: Session, pbp: ProcessoBlueprint, pessoa: Persona | None = None, usar: str = "ultima") -> Blueprint:
+def compilar(s: Session | None, pbp: ProcessoBlueprint, pessoa: Persona | None = None, usar: str = "ultima",
+             trabalhadores: dict[str, Blueprint] | None = None) -> Blueprint:
+    """`trabalhadores` ({agente_id: blueprint}) compila sem banco, com os agentes dados (estimativas do catálogo da demo)."""
     passos: list[Passo] = []
     for b in pbp.blocos:
         base = dict(id=b.id, titulo=b.titulo, depende_de=list(b.depende_de), bloco=b.tipo,
                     ramo=b.ramo.model_dump() if b.ramo else None)
-        if b.tipo == "agente":
+        if b.tipo == "agente" and trabalhadores is not None:
+            bpa = trabalhadores[b.agente_id]
+            w = trabalhador(bpa)
+            passos.append(Passo(tipo="agente", instrucao=w.instrucao, ferramentas=list(w.ferramentas), modelo=w.modelo,
+                                max_iteracoes=w.max_iteracoes, agente_ref={"id": b.agente_id, "nome": bpa.nome, "versao": 1},
+                                contexto_agente={"nome": bpa.nome, "objetivo": bpa.objetivo, "instrucoes": bpa.instrucoes}, **base))
+        elif b.tipo == "agente":
             a, w, numero, bloqueio = resolver_agente(s, b, pessoa, usar)
             bpa = Blueprint.model_validate(s.get(am.VersaoAgente, "%s-v%d" % (a.id, numero)).blueprint)
             passos.append(Passo(tipo="agente", instrucao=w.instrucao, ferramentas=list(w.ferramentas), modelo=w.modelo,

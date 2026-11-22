@@ -79,7 +79,7 @@ def test_filtros_se_combinam(api, sessao):
     assert 0 < so_area < todos and 0 < n_ambos <= so_area
     assert {n["area"] for n in ambos["nos"] if n["tipo"] == "agente"} == {"atendimento"}
     assert {n["provedor"] for n in ambos["nos"] if n["tipo"] == "modelo"} == {"anthropic"}
-    vazio = _mapa(api, "?area=gestao")
+    vazio = _mapa(api, "?area=juridico")
     assert [n for n in vazio["nos"] if n["tipo"] == "agente"] == []
 
 

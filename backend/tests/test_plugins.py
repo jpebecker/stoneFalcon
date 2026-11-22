@@ -525,12 +525,11 @@ def test_resposta_do_zendesk_nao_ocupa_o_lugar_do_chamado_da_plataforma():
 ])
 def test_passo_do_slack_so_quando_a_descricao_fala_do_slack(descricao, entra):
     from app.plugins import estado
-    from app.studio.sugestao import _com_plugins
+    from app.studio.sugestao import _slack_no_processo
     estado.INTEGRADOS.add("slack")
     try:
-        dados = {"passos": []}
-        assert _com_plugins(PERSONAS["thiago"], dados, descricao, "padrao:troca_maquininha_estoque") == []
-        assert bool(dados["passos"]) is entra
+        usa, avisos = _slack_no_processo(PERSONAS["thiago"], descricao)
+        assert avisos == [] and usa is entra
     finally:
         estado.INTEGRADOS.discard("slack")
 

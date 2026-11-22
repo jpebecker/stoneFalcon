@@ -11,7 +11,7 @@ from app.observability import alertas
 from app.runtime import modelos as rm
 from app.runtime import motor
 from app.seed import historico
-from app.seed.agentes_exemplo import DUVIDA_LOJISTA
+from tests.legado import DUVIDA_LOJISTA
 from app.seed.demo import semear
 from app.tools import dados_ficticios, executor
 from tests.conftest import como
@@ -81,7 +81,7 @@ def test_orcamento_alerta_em_80_e_corta_em_100(sessao, monkeypatch):
     _rodar(sessao, a)
     assert resumo.gasto_no_mes(sessao, a.id) > 0
     gasto = {"v": 85.0}
-    monkeypatch.setattr(resumo, "gasto_no_mes", lambda s, agente_id: gasto["v"])
+    monkeypatch.setattr(resumo, "gasto_no_mes", lambda s, agente_id, tipo="agente": gasto["v"])
     ciclo.definir_orcamento(sessao, P["helena"], a.id, 100)
     alertas.avaliar(sessao)
     al = [x for x in sessao.exec(select(alertas.Alerta)) if x.regra == "orcamento"]
@@ -137,7 +137,7 @@ def test_indicadores_da_banca(sessao):
     i = resumo.indicadores(sessao, P["helena"])
     assert 0 < i["tempo_execucao"]["agente_min"] < i["tempo_execucao"]["manual_min"]
     assert i["custo_operacional"]["agente_brl"] < i["custo_operacional"]["manual_brl"]
-    assert i["produtividade"]["tarefas_concluidas"] > 0 and i["produtividade"]["agentes_ativos"] == 4
+    assert i["produtividade"]["tarefas_concluidas"] > 0 and i["produtividade"]["agentes_ativos"] == 6
     assert 0 < i["taxa_erros"]["agente"] < 0.2
     assert i["roi"]["projecao_payback_mes"] is not None
 
@@ -161,7 +161,7 @@ def test_premissas_trazem_medidas_e_demo_reinicia(api):
     assert api.post("/api/v1/demo/reiniciar", headers=h).json()["ok"]
     p = api.get("/api/v1/financas/premissas", headers=h).json()
     assert p["medidas"]["minutos_por_tarefa"] > 0 and p["medidas_demo"]
-    assert len(api.get("/api/v1/agentes", headers=h).json()) == 4
+    assert len(api.get("/api/v1/agentes", headers=h).json()) == 6
     assert api.get("/api/v1/auditoria/verificar", headers=h).json()["integra"]
 
 
@@ -170,7 +170,7 @@ def test_financas_por_processo_com_detalhe_por_agente(sessao):
     semear(sessao)
     r = resumo.resumo(sessao, P["helena"])
     processos = [x for x in r["por_agente"] if x["tipo"] == "processo"]
-    assert len(processos) == 9 and all(x["execucoes"] > 0 for x in processos)      # os de só ferramentas não gastam token
+    assert len(processos) == 11 and all(x["execucoes"] > 0 for x in processos)      # os de só ferramentas não gastam token
     triagem = next(x for x in processos if x["nome"] == "Triagem de chargebacks")
     assert [a["nome"] for a in triagem["agentes"]] == ["Analista de risco de chargebacks"]
     assert 0 < triagem["agentes"][0]["execucoes"] <= triagem["execucoes"]       # escaladas antes do agente não contam nele

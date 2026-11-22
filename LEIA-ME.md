@@ -31,11 +31,11 @@ Nunca coloque a chave no código, na extensão ou no Git (`.env` está no `.giti
 ```bash
 cd backend && uv sync && uv run uvicorn app.main:app --reload --port 8765   # um processo só (sem --workers): os plugins integrados ficam num cache em memória
 cd frontend && npm install && npm run dev        # http://localhost:5173 (repassa /api ao backend)
-cd backend && uv run pytest -q                   # 701 testes, sem chave nem internet
+cd backend && uv run pytest -q                   # sem chave nem internet
 ```
 
 ### Extensão copiloto (Chrome/Edge)
-> **Vinha da v7 (ou anterior)?** Remova a extensão antiga em `chrome://extensions` e carregue a pasta `extensao` de novo: o Chrome guarda a versão antiga até isso. Depois da troca, a página de extensões mostra **StoneFalcon 8.0** (versão 8.0.0).
+> **Vinha da v7 (ou anterior)?** Remova a extensão antiga em `chrome://extensions` e carregue a pasta `extensao` de novo: o Chrome guarda a versão antiga até isso. Depois da troca, a página de extensões mostra **StoneFalcon 8.1** (versão 8.1.0).
 
 `chrome://extensions` → Modo do desenvolvedor → **Carregar sem compactação** → pasta `extensao`. Na primeira vez abre uma tela de boas-vindas e testa a conexão com a plataforma (com diagnóstico: servidor desligado, endereço errado, demora). Depois:
 
@@ -46,7 +46,7 @@ cd backend && uv run pytest -q                   # 701 testes, sem chave nem int
 
 ## Como contribuir
 
-- **Um ticket = um commit** no branch `v8` (um PR por ticket também serve); os critérios de aceite estão em [PLAN-V8.md](PLAN-V8.md).
+- **Um ticket = um commit** num branch do plano (um PR por ticket também serve); os planos e os critérios de aceite ficam em [`docs/`](docs/) (o da 8.1 é [PLANO-PROCESSOS-ALERTAS.md](docs/PLANO-PROCESSOS-ALERTAS.md)); o guia de trabalho é [docs/AGENTS.md](docs/AGENTS.md).
 - **A esteira de CI** (`.github/workflows/ci.yml`) roda em todo PR e em `main` e precisa estar verde para juntar:
   1. **Back:** `pytest` em Python 3.11 e 3.14, em modo simulado (sem chave da API).
   2. **Front:** checagem de tipos e compilação de produção (`npm run build`).
@@ -63,11 +63,30 @@ cd backend && uv run pytest -q                   # 701 testes, sem chave nem int
 | Onboarding guiado | Descrição em português → agente montado (passos, ferramentas, modelo, risco, custo), explicado em linguagem simples, editável no canvas e testável no sandbox | Estúdio · `app/studio` |
 | Integração segura de ferramentas | Catálogo governado; cada ferramenta tem classificação (pública → restrita) e áreas; roda com as permissões de **quem disparou** o agente; ações sensíveis pedem confirmação humana | Ferramentas · `app/tools` |
 | Guardrails nativos e silenciosos | CPF, CNPJ, cartão, e-mail, telefone e segredos viram marcadores antes de qualquer modelo; o sistema interno recebe o dado real **só se a classificação dele cobrir a do sistema de onde o dado veio** (dado confidencial não vaza para uma ferramenta interna); saída limpa; conteúdo externo com cara de instrução é isolado | `app/guardrails`, `app/runtime` |
-| Saúde e observabilidade | Métricas por agente e por sistema integrado, nota de saúde, 5 regras de alerta ao dono (falhas, lentidão, sistema fora, sistema lento, orçamento) que fecham sozinhas | Saúde, Alertas · `app/observability` |
+| Saúde e observabilidade | Métricas por agente e por sistema integrado, nota de saúde, regras de alerta ao dono de agentes e processos (falhas, lentidão, sistema fora, sistema lento, orçamento, provedor) que fecham sozinhas e podem ser **assumidas** e tratadas | Saúde, Alertas · `app/observability` |
 | Rastreabilidade e ciclo de vida | Rascunho → revisão → publicado ⇄ pausado → depreciado; versões imutáveis com diff; revisão da Segurança (quatro olhos) para risco alto; pausa de emergência também barra ações já pendentes; trilha encadeada por hash | Agentes, Revisões, Auditoria · `app/agents`, `app/audit` |
 | Gestão financeira | Custo por execução/agente/área/modelo, economia do roteador, retorno por agente, orçamento mensal com corte, calculadora (VPL, TIR, payback) | Finanças, Calculadora · `app/finance` |
 | Agente: decisão, ferramentas, sequência/paralelo, raciocínio | Grafo de passos (paralelos rodam juntos), loop pensar → agir → observar com tool use, limites de passos e de custo, escalada segura para humano | `app/runtime` |
 | Critérios de avaliação (tempo, custo, produtividade, erros, ROI) | Painel executivo com os 5, medidos nas execuções | Painel executivo |
+
+## Novidades da 8.1
+
+- **Lucas e Helena também têm o seu processo.** Lucas (Engenharia): **Triagem de incidente de sistema** (registro de incidentes + estado atual dos sistemas → *Analista de incidentes* → condição “é crítico?” → chamado na fila da Engenharia). Helena (CoE de IA): **Revisão mensal do custo de IA** (resumo de Finanças → *Analista de custo de IA* → condição “passou do orçamento?” → aviso no Slack). Os dois ganharam o papel de **criador** (eles publicam pelo ciclo real e são donos). A ferramenta nova *Consultar o estado dos sistemas* mostra ok, lento ou fora de cada sistema da Stone.
+- **Galeria do Estúdio v8.** Os padrões agora são **trabalhador + processo**: escolher um abre o agente de um passo e o processo pronto para montar (“Montar o processo”), sem o aviso “legado”. Há um padrão por persona e tudo vem de um **catálogo único da demo** (`backend/app/seed/catalogo.py`). O endpoint `agentes-exemplo` saiu.
+- **Alertas entendem processos.** As regras avaliam processos publicados ou pausados: muitas execuções escaladas, lentidão, **orçamento a 80% (atenção) e 100% (crítico, as execuções são bloqueadas)** e sistema integrado com problema usado por um bloco. O alerta vai ao dono do processo (e à Engenharia, no caso de sistema), uma vez por processo, com o link **Abrir o processo**; Saúde conta o alerta na nota e lista os processos.
+- **Cada persona entra com um alerta.** Processo de dúvidas lento (Marina), triagem falhando (Rafael), orçamento a 88% (Carla), estoque lento (Thiago), sistema de transações fora, só para a Engenharia (Lucas), e custo a 88% (Helena). Cada cenário toca só o que é da persona, e o passo “veja e trate o seu alerta” de cada roteiro guiado molda o mesmo cenário. Nenhum alerta é inserido direto: o estado é moldado e as regras reais o abrem. “Reiniciar a demo” restaura; os roteiros guiados começam sem alertas.
+- **Assumir e tratar.** Quem recebe o alerta o **assume** com uma nota (“em tratamento · por X” para todos os destinatários), pode **devolver**, e cada regra oferece uma **ação** que respeita o perfil: pausar o processo, abrir o processo (lento), revisar o orçamento, abrir o sistema em Saúde ou restaurar o provedor. A ação assume o alerta sozinha (se outra pessoa já estava tratando, só a Helena age, e assume no lugar dela); tudo vai para a trilha, e o alerta fecha sozinho quando o problema some (guardando quem tratava).
+- **Roteiros:** os seis ganham o passo “veja e trate o seu alerta”.
+
+### Matriz de acesso da 8.1 (o que mudou)
+
+| Recurso | Quem | Regra |
+|---|---|---|
+| Papel **criador** | + Lucas e Helena | cada um cria e mantém o processo da própria área; a aba Estúdio aparece para eles |
+| Alerta: ver | destinatários (dono; Engenharia no sistema) e a Helena (todos) | os demais não veem (404 na API) |
+| Alerta: **assumir** | quem vê o alerta | uma pessoa por vez (outro destinatário recebe 409); alerta resolvido não se assume |
+| Alerta: **devolver** | quem assumiu ou a Helena | fica na trilha |
+| Alerta: **ação** | pausar: quem opera o processo; orçamento: o dono ou a Helena; provedor: a Helena; abrir o sistema em Saúde ou o processo lento: quem recebe o alerta; alerta assumido por outra pessoa: só a Helena | quem não pode não vê o botão; a API devolve 403 (ou 409, se outra pessoa está tratando) |
 
 ## Novidades da v8
 
@@ -109,7 +128,7 @@ cd backend && uv run pytest -q                   # 701 testes, sem chave nem int
 - **Mapa de IA** (aba só da Helena): quem criou → agentes → modelos por provedor → plugins/ferramentas → plataformas, atualizado sozinho a cada poucos segundos, com pulso por execução, filtros por área e provedor e linha do tempo.
 - **Tarefa de rotina:** o criador agenda um agente publicado (“toda segunda às 9h”) com entrada fixa; roda em nome de quem agendou, com as mesmas permissões, guardrails e orçamento; ação sensível espera a confirmação humana. Na demo, o relógio acelerado e “Rodar agora” mostram isso sem esperar.
 - **Plugin Google Sheets** (só leitura) e a **planilha fictícia local** (`/demo/planilha`, para ensaiar sem internet). O Google Sheets desenha a grade sem texto selecionável, então a extensão lê só o **endereço** da aba e a plataforma importa a versão **publicada na web**.
-- **Roteiro do pitch v7** (aba Roteiros, da Helena) e três Perguntas da Ferramenta novas. Detalhes em [ENSAIO-GERAL.md](ENSAIO-GERAL.md).
+- **Roteiro do pitch v7** (aba Roteiros, da Helena) e três Perguntas da Ferramenta novas. Detalhes em [ENSAIO-GERAL.md](docs/ENSAIO-GERAL.md).
 
 ## Acesso por perfil e plugins (v6)
 
@@ -153,7 +172,7 @@ Cada roteiro termina num cartão **AS IS × TO BE** nos 5 critérios (tempo, cus
 
 **Perguntas da Ferramenta** (só da Helena): tela própria (menu, ou **Alt + B** de qualquer lugar) com 3 a 5 perguntas por persona e por tema (segurança, custo, escala, por que não um low-code genérico), cada uma com a resposta curta e o botão **Mostrar na tela**.
 
-**Roteiro do pitch de 8 a 10 minutos e checklist:** [ENSAIO-GERAL.md](ENSAIO-GERAL.md). **Perfis (login simulado):** as seis personas acima; nos campos do agente ninguém digita código: lojista se escolhe pelo nome, colaborador vem como “Eu mesmo” (e o RH busca outros por nome).
+**Roteiro do pitch de 8 a 10 minutos e checklist:** [ENSAIO-GERAL.md](docs/ENSAIO-GERAL.md). **Perfis (login simulado):** as seis personas acima; nos campos do agente ninguém digita código: lojista se escolhe pelo nome, colaborador vem como “Eu mesmo” (e o RH busca outros por nome).
 
 ## Arquitetura
 

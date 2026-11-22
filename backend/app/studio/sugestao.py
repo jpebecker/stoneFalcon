@@ -22,12 +22,12 @@ from ..agents.governanca import Estimativa, Risco, avaliar_risco, estimar_custo
 from ..core.identidade import Persona
 from ..llm import precos
 from ..llm.cliente import ClienteSimulado, ErroModelo, obter_cliente
-from ..seed.agentes_exemplo import DUVIDA_LOJISTA
+from ..seed import catalogo
 from ..texto.semelhanca import Indice
 from ..tools.catalogo import CATALOGO
 from ..plugins import planilhas
 from ..tools.permissoes import avaliar
-from .modelos_prontos import PADROES
+from .modelos_prontos import PADROES, por_id
 
 LIMIAR_PADRAO = 0.25
 AREA_POLITICA = {"pessoas": "rh", "engenharia": "ti", "risco": "risco", "atendimento": "atendimento", "logistica": "logistica"}
@@ -44,12 +44,17 @@ class Sugestao:
     alertas: list[str] = field(default_factory=list)
     custo_sugestao_brl: float = 0.0
     entrada_sugerida: dict = field(default_factory=dict)   # valores prontos para o teste (ex.: a planilha da fonte)
+    processo: dict | None = None                  # padrão da galeria: o processo pronto para montar (blocos; o agente vem pelo nome)
 
     def publico(self) -> dict:
         from ..processos.conversao import acoes_do_fluxo, eh_multipasso, trabalhador_do_fluxo
         t = trabalhador_do_fluxo(self.blueprint)
+        acoes = acoes_do_fluxo(self.blueprint)
+        if self.processo:
+            acoes = sorted({CATALOGO[b["ferramenta"]].nome for b in self.processo["blocos"]
+                            if b.get("ferramenta") and CATALOGO[b["ferramenta"]].acao != "leitura"})
         return {
-            "acoes_no_processo": acoes_do_fluxo(self.blueprint),
+            "processo": self.processo, "acoes_no_processo": acoes,
             # `blueprint` é o FLUXO sugerido (vários passos); `trabalhador` é o agente único que o Estúdio cria a partir dele
             "trabalhador": t.model_dump(), "multipasso": eh_multipasso(self.blueprint),
             "blueprint": self.blueprint.model_dump(), "origem": self.origem, "explicacao": self.explicacao,
@@ -104,28 +109,48 @@ def _filtrar_permissoes(pessoa: Persona, dados: dict) -> tuple[dict, dict[str, s
 _MENCAO_CANAL = re.compile(r"\bslack\b|#[\w-]+", re.I)   # "canal" sozinho ("canal de vendas") não é Slack
 
 
-def _com_plugins(pessoa: Persona, dados: dict, descricao: str, origem: str) -> list[str]:
-    """Se a descrição fala de avisar um canal e o plugin do Slack está integrado, o agente ganha o passo de avisar o canal
-    (depois do chamado). Sem o plugin, a pessoa é orientada a integrá-lo na aba Plugins. Devolve avisos."""
-    if origem == "planilha":
-        mencionou = True       # o processo da planilha termina avisando o time da logística quando o Slack está integrado
-    else:
-        mencionou = origem == "padrao:troca_maquininha_estoque" and bool(_MENCAO_CANAL.search(descricao))
-    if not mencionou:
+def _slack_no_processo(pessoa: Persona, descricao: str) -> tuple[bool, list[str]]:
+    """Padrão de troca: se a descrição fala de avisar um canal e o plugin do Slack está integrado, o aviso do processo usa o
+    bloco do Slack. Sem o plugin, a pessoa é orientada a integrá-lo na aba Plugins. Devolve (usa o Slack, avisos)."""
+    if not _MENCAO_CANAL.search(descricao):
+        return False, []
+    if not avaliar(pessoa, CATALOGO["slack_enviar_mensagem"]).permitido:
+        return False, ["Você falou em avisar um canal do Slack, mas o plugin do Slack ainda não está integrado. "
+                       "Integre-o na aba Plugins e descreva o processo de novo."]
+    return True, []
+
+
+def _com_plugins(pessoa: Persona, dados: dict, origem: str) -> list[str]:
+    """Fonte de planilha: o processo termina avisando o time da logística quando o Slack está integrado (o agente ganha o
+    passo de avisar o canal depois do chamado). Sem o plugin, a pessoa é orientada a integrá-lo. Devolve avisos."""
+    if origem != "planilha":
         return []
     esp = CATALOGO["slack_enviar_mensagem"]
     if not avaliar(pessoa, esp).permitido:
-        if origem == "planilha":
-            return ["O aviso ao canal da logística no Slack entra quando o plugin do Slack estiver integrado "
-                    "(aba Plugins). Integre-o e abra o atalho de novo."]
-        return ["Você falou em avisar um canal do Slack, mas o plugin do Slack ainda não está integrado. "
-                "Integre-o na aba Plugins e descreva o processo de novo."]
+        return ["O aviso ao canal da logística no Slack entra quando o plugin do Slack estiver integrado "
+                "(aba Plugins). Integre-o e abra o atalho de novo."]
     dados["passos"].append({
-        "id": "canal", "titulo": "Avisar o canal da logística", "tipo": "agente",
-        "modelo": "auto" if origem == "planilha" else "rapido",
+        "id": "canal", "titulo": "Avisar o canal da logística", "tipo": "agente", "modelo": "auto",
         "depende_de": ["chamado", "cadastro", "estoque"], "ferramentas": ["slack_enviar_mensagem"],
         "instrucao": "Publique no canal #logistica um aviso curto com o modelo, o protocolo do chamado e a situação do estoque."})
     return []
+
+
+def _processo_do_padrao(pessoa: Persona, chave: str, descricao: str) -> tuple[dict | None, dict[str, str], list[str]]:
+    """O processo pronto do padrão `chave`, pelo nome do trabalhador (a tela troca pelo id do que a pessoa criar).
+    Se o perfil não pode usar alguma ferramenta dos blocos, não oferece o processo e explica. Devolve (processo, removidas, avisos)."""
+    slack, avisos = (False, [])
+    if chave == "troca":
+        slack, avisos = _slack_no_processo(pessoa, descricao)
+    pronto = catalogo.processo(chave, catalogo.NOME_AGENTE[chave], slack=slack, por_nome=True)
+    removidas: dict[str, str] = {}
+    for b in pronto["blocos"]:
+        f = b.get("ferramenta")
+        if f and f in CATALOGO and not avaliar(pessoa, CATALOGO[f]).permitido:
+            removidas[f] = avaliar(pessoa, CATALOGO[f]).motivo
+    if removidas:
+        return None, removidas, avisos
+    return dict(pronto, area=pessoa.area), {}, avisos
 
 
 def blueprint_planilha(fonte: str) -> dict:
@@ -239,6 +264,8 @@ Regras:
 - Use SOMENTE as ferramentas listadas. Consultas fixas viram passo "ferramenta"; julgamento vira "agente".
 - Passos independentes NÃO dependem entre si (rodam em paralelo).
 - Prefira "rapido" para redação e classificação simples; "forte" só para análise com vários fatores.
+- Prefira UM trabalhador: um passo "agente" com as ferramentas de LEITURA de que ele precisa. Ações em outros sistemas
+  (abrir chamado, avisar, reter repasse) ficam para o processo, onde a confirmação humana fica à vista.
 - Ações de escrita sensíveis já pedem confirmação humana sozinhas; não invente ferramentas.
 - Responda APENAS com o JSON, sem comentários."""
 
@@ -259,7 +286,7 @@ def _com_modelo(pessoa: Persona, descricao: str) -> tuple[dict, float]:
         "Ferramentas disponíveis para esta pessoa:\n" + json.dumps(
             [{"id": f["name"], "descricao": f["description"], "parametros": f["input_schema"]["properties"],
               "obrigatorios": f["input_schema"]["required"]} for f in permitidas], ensure_ascii=False),
-        "Exemplo de agente bem montado:\n" + DUVIDA_LOJISTA.model_dump_json(),
+        "Exemplo de agente bem montado (um trabalhador de um passo):\n" + catalogo.TRABALHADORES["duvida"].model_dump_json(),
     ])
     pedido = "Área da pessoa: %s.\nDescrição do processo:\n%s" % (pessoa.area, descricao)
     cliente = obter_cliente()
@@ -310,11 +337,18 @@ def sugerir(pessoa: Persona, descricao: str, simulado: bool | None = None, fonte
         alertas += avisos
 
     dados["area"] = pessoa.area
-    alertas += _com_plugins(pessoa, dados, descricao_masc, origem)
+    alertas += _com_plugins(pessoa, dados, origem)
+    processo = None
+    removidas_processo: dict[str, str] = {}
+    if origem.startswith("padrao:"):
+        chave = por_id(origem.removeprefix("padrao:"))["chave"]
+        processo, removidas_processo, avisos = _processo_do_padrao(pessoa, chave, descricao_masc)
+        alertas += avisos
     minutos = extrair_minutos(descricao)
     if minutos:
         dados["minutos_manual"] = minutos
     dados, removidas = _filtrar_permissoes(pessoa, dados)
+    removidas = {**removidas_processo, **removidas}
     if removidas:
         alertas.append("Algumas ferramentas ficaram de fora porque o seu perfil não pode usá-las. "
                        "Se o processo precisar delas, peça acesso à Engenharia de Plataforma.")
@@ -327,7 +361,7 @@ def sugerir(pessoa: Persona, descricao: str, simulado: bool | None = None, fonte
     estimativa = estimar_custo(bp)
     entrada = {"planilha": planilha} if planilha and origem == "planilha" else {}
     return Sugestao(bp, origem, explicar(bp, estimativa), removidas, avaliar_risco(bp), estimativa,
-                    alertas, round(precos.usd_para_brl(custo_usd), 4), entrada)
+                    alertas, round(precos.usd_para_brl(custo_usd), 4), entrada, processo)
 
 
 def _fonte_planilha(fonte: dict | None) -> str | None:

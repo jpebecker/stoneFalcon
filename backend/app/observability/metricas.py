@@ -35,9 +35,12 @@ def _desde(horas: float) -> str:
     return (agora() - timedelta(hours=horas)).isoformat()
 
 
-def execucoes(s: Session, agente_id: str | None = None, horas: float = 24 * 7) -> list[rm.Execucao]:
+def execucoes(s: Session, agente_id: str | None = None, horas: float = 24 * 7, tipo: str = "agente") -> list[rm.Execucao]:
+    """Execuções de um agente (`tipo` "agente") ou de um processo (`tipo` "processo", pelo `dono_id`)."""
     q = select(rm.Execucao).where(rm.Execucao.inicio >= _desde(horas))
-    if agente_id:
+    if agente_id and tipo == "processo":
+        q = q.where(rm.Execucao.dono_tipo == "processo").where(rm.Execucao.dono_id == agente_id)
+    elif agente_id:
         q = q.where(rm.Execucao.agente_id == agente_id)
     return list(s.exec(q.order_by(rm.Execucao.inicio)))
 

@@ -33,14 +33,15 @@ export default function Saude() {
       <PainelBalanceador />
 
       <section>
-        <h2 className="mb-3 text-lg">Agentes</h2>
+        <h2 className="mb-3 text-lg">Agentes e processos</h2>
         <div className="grid gap-3 lg:grid-cols-2">
           {ag.data?.map((s) => (
-            <Link key={s.agente.id} to={"/agentes/" + s.agente.id} className="caixa flex gap-4 p-4 transition hover:border-pedra">
+            <Link key={s.agente.id} to={(s.agente.tipo === "processo" ? "/processos/" : "/agentes/") + s.agente.id} className="caixa flex gap-4 p-4 transition hover:border-pedra">
               <Medidor nota={s.score.nota} status={s.score.status} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <h3 className="truncate text-base">{s.agente.nome}</h3>
+                  {s.agente.tipo === "processo" && <span className="selo bg-info-fundo text-info">processo</span>}
                   <span className={"selo " + COR_SAUDE[s.score.status]}>{NOME_SAUDE[s.score.status]}</span>
                   {s.agente.estado === "pausado" && <span className="selo bg-alerta-fundo text-alerta">pausado</span>}
                 </div>
@@ -51,7 +52,9 @@ export default function Saude() {
                   <div><dt className="text-tinta-3">Custo 7d</dt><dd className="font-semibold">{reais(s.metricas.custo_brl)}</dd></div>
                 </dl>
                 {s.alertas.map((a) => (
-                  <p key={a.id} className={"mt-2 text-xs " + (a.severidade === "critico" ? "text-erro" : "text-alerta")}>⚠ {a.titulo}</p>
+                  <p key={a.id} className={"mt-2 text-xs " + (a.severidade === "critico" ? "text-erro" : "text-alerta")}>
+                    ⚠ {a.titulo}{a.tratando_nome && <span className="ml-1 text-tinta-2">· em tratamento por {a.tratando_nome}{a.tratando_nota ? ` (“${a.tratando_nota}”)` : ""}</span>}
+                  </p>
                 ))}
               </div>
             </Link>

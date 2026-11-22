@@ -25,7 +25,7 @@ def test_helena_e_a_analista_de_ia_e_continuam_seis_perfis():
     assert [p.id for p in PERSONAS.values() if p.tem(ANALISTA_IA)] == ["helena"]
 
 
-@pytest.mark.parametrize("perfil,ok", [("marina", True), ("rafael", True), ("carla", True), ("thiago", True), ("lucas", True), ("helena", False)])
+@pytest.mark.parametrize("perfil,ok", [("marina", True), ("rafael", True), ("carla", True), ("thiago", True), ("lucas", True), ("helena", True)])   # v8.1: a Helena também cria
 def test_so_criadores_e_engenharia_pedem_e_a_api_confere(api, perfil, ok):
     r = api.post(f"{V1}/rascunho", json=_pedido(), headers=como(perfil))
     assert (r.status_code == 200) is ok, r.text
