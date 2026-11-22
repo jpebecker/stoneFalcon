@@ -66,7 +66,7 @@ export default function RodaPersonas({ pessoas, iniciando, aoEntrar, aoIniciarRo
     <div ref={raiz} className="roda relative mx-auto aspect-square" data-testid="roda-personas"
       style={{ width: "min(100%, 46rem, calc(100vh - 13rem))", minWidth: "28rem" }}
       onBlur={(e) => { if (!raiz.current?.contains(e.relatedTarget as Node)) { setFocado(null); agendarNeutro(); } }}>
-      <svg viewBox={`0 0 ${T} ${T}`} className="absolute inset-0 h-full w-full" role="group" aria-label="Escolha quem é você hoje">
+      <svg viewBox={`0 0 ${T} ${T}`} className="absolute inset-0 h-full w-full" role="group" aria-label="Escolha quem é você hoje. Use as setas para passar de uma pessoa a outra e Enter para entrar.">
         <defs>
           {pessoas.map((x, i) => {
             const c = -90 + i * passo;

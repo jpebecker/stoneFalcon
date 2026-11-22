@@ -42,7 +42,7 @@ O front (porta 5173) repassa `/api`, `/demo` e `/avatares` ao back; se o back es
 
 ## 3. Testar e verificar
 
-Rode o mesmo que a CI, na raiz do repositório:
+Rode as mesmas checagens da CI, na raiz do repositório. Aqui o back usa `uv` por comodidade; a CI instala com `pip` (`python -m pip install -r backend/requirements.txt pytest httpx`) e roda `python -m pytest -q` dentro de `backend/` com `MODO_SIMULADO=1`. Os testes são os mesmos.
 
 ```bash
 cd backend && MODO_SIMULADO=1 uv run pytest -q

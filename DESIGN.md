@@ -86,7 +86,7 @@ Componente: `frontend/src/components/RodaPersonas.tsx`; estilos `.roda-*` em `gl
 Regras:
 
 - Cada fatia é um botão (`role="button"`) com rótulo acessível “Nome, cargo, área. Entrar como Nome”. O nome sai do desenho, mas **não** do rótulo.
-- Navegação por teclado: Tab entra na roda (uma fatia só na ordem do Tab), setas movem entre fatias, Home e End vão às pontas, Enter ou Espaço entram. A instrução não é anunciada no texto porque só vale depois de focar uma fatia.
+- Navegação por teclado: Tab entra na roda (uma fatia só na ordem do Tab), setas movem entre fatias, Home e End vão às pontas, Enter ou Espaço entram. A instrução não aparece no texto visível porque só vale depois de focar uma fatia; quem usa leitor de tela a ouve no rótulo acessível do grupo da roda ao entrar nela.
 - Clicar numa fatia entra como a persona e abre o Início; o botão do miolo inicia o roteiro guiado.
 - O miolo tem `aria-live="polite"`, então leitores de tela ouvem a persona ativa.
 - Geometria em unidades de um `viewBox` de 720: raio externo 320, interno 190, folga de 1,2° entre fatias.

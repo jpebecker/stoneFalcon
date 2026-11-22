@@ -122,6 +122,9 @@ export default function App() {
     setPerfil(id);
     qc.clear();
   };
+  // entrar (pela tela de entrada ou trocando pelo menu do avatar) sempre abre o Início da persona,
+  // qualquer que seja a tela em que a pessoa anterior estava
+  const entrarNoInicio = (id: string) => { trocar(id); navegar("/"); };
 
   const pessoa = eu.data;
   const podePerguntas = !!pessoa?.abas.includes("perguntas");
@@ -145,8 +148,7 @@ export default function App() {
     return <ProvedorRoteiro trocar={trocar}><ViaExtensao aoEntrar={trocar} /></ProvedorRoteiro>;
   }
   if (!perfil || eu.isError) {
-    // entrar sempre abre o Início da persona, qualquer que seja a tela em que a pessoa anterior estava ao sair
-    return <ProvedorRoteiro trocar={trocar}><Entrar aoEntrar={(id) => { trocar(id); navegar("/"); }} /></ProvedorRoteiro>;
+    return <ProvedorRoteiro trocar={trocar}><Entrar aoEntrar={entrarNoInicio} /></ProvedorRoteiro>;
   }
 
   return (
@@ -188,7 +190,7 @@ export default function App() {
                 )}
               </Link>
             )}
-            {pessoa && <MenuPessoa pessoa={pessoa} aoTrocar={(id) => { trocar(id); navegar("/"); }} aoSair={() => trocar(null)} />}
+            {pessoa && <MenuPessoa pessoa={pessoa} aoTrocar={entrarNoInicio} aoSair={() => trocar(null)} />}
           </header>
           <main className={"mx-auto w-full max-w-[1400px] flex-1 px-8 py-8 " + (roteiroAtivo ? "pb-32" : "")}>
             {pessoa && (

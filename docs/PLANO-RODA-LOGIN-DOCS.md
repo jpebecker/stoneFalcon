@@ -1,6 +1,8 @@
 # StoneFalcon — Plano: roda seletora, entrada no Início e documentos do repositório
 
-> Parte do estado entregue na v8 (`main`). Cada ticket é uma fatia vertical, demonstrável sozinha, entregue como um PR com a esteira de CI verde. Este arquivo é a fonte única da execução: siga a ordem da seção 4 e marque as caixas aqui conforme avança.
+> Parte do estado da v8 (parte de `main`, branch `docs/roda-login-docs`). Cada ticket é uma fatia vertical, demonstrável sozinha, com a esteira de CI verde. Este arquivo é a fonte única da execução: siga a ordem da seção 4 e marque as caixas aqui conforme avança.
+>
+> **Exceção ao “um ticket = um branch = um PR” do [AGENTS.md](../AGENTS.md):** os sete tickets deste plano vão juntos no branch `docs/roda-login-docs`, num PR só, com um commit por grupo de tickets (01–02, 03, 04–07). São mudanças pequenas e os documentos (04–07) descrevem a roda já redesenhada (01–02), então revisar tudo junto evita documentar um estado que ainda não está em `main`.
 
 ## 1. O que muda e por quê
 
@@ -48,14 +50,16 @@ Fronteira inicial: 01, 03, 04 e 05 podem começar em paralelo.
 
 **Bloqueado por:** nenhum (pode começar já).
 
-**Status:** feito (falta a evidência no PR)
+**Status:** feito e verificado (falta anexar a evidência ao PR)
 
 - [x] Em repouso, nenhuma fatia exibe nome ou texto sobreposto; apenas a foto (ou as iniciais, quando a foto falha).
 - [x] Em repouso, as fotos aparecem sem a camada escura.
 - [x] O miolo em repouso não menciona setas nem teclado.
 - [x] Cada fatia mantém o rótulo acessível com nome, cargo e área.
 - [x] Tab, setas e Enter continuam funcionando na roda.
-- [ ] Checagem de tipos e build passam; captura de tela da roda em repouso no PR.
+- [x] Checagem de tipos e build passam (`npm run build`, 2026-11-22).
+- [x] Verificado no navegador: em repouso só fotos, sem texto nas fatias e sem camada escura.
+- [ ] Captura de tela da roda em repouso anexada ao PR.
 
 ### 02: Miolo da roda enxuto ao passar o mouse
 
@@ -63,14 +67,16 @@ Fronteira inicial: 01, 03, 04 e 05 podem começar em paralelo.
 
 **Bloqueado por:** 01.
 
-**Status:** feito (falta a evidência no PR)
+**Status:** feito e verificado (falta anexar a evidência ao PR)
 
 - [x] O miolo ativo mostra apenas: nome, cargo · área, descrição (máx. 2 linhas), selo de acesso e botão de roteiro.
 - [x] Os selos de papel não aparecem no miolo; continuam nos cartões da tela estreita.
 - [x] O escurecimento das vizinhas só existe enquanto uma fatia está ativa.
 - [x] Dá para ir da fatia ao botão do miolo com o mouse sem o miolo voltar ao repouso.
 - [x] Com movimento reduzido ligado, não há animação; foco do teclado segue visível.
-- [ ] Checagem de tipos e build passam; capturas de tela (repouso, ativa, foco) no PR.
+- [x] Checagem de tipos e build passam (`npm run build`, 2026-11-22).
+- [x] Verificado no navegador: miolo ativo com nome, cargo · área, descrição, selo de acesso e botão de roteiro; vizinhas a 18%; setas movem o foco.
+- [ ] Capturas de tela (repouso, ativa, foco) anexadas ao PR.
 
 ### 03: Entrar sempre abre o Início da persona
 
@@ -78,14 +84,16 @@ Fronteira inicial: 01, 03, 04 e 05 podem começar em paralelo.
 
 **Bloqueado por:** nenhum (pode começar já).
 
-**Status:** feito (falta a evidência no PR)
+**Status:** feito e verificado (falta anexar a evidência ao PR)
 
 - [x] Estando em uma tela interna (ex.: Processos), "Sair para a tela inicial" e entrar com outra persona abre o Início.
 - [x] O mesmo vale entrando pelos cartões da tela estreita.
 - [x] Trocar de perfil pelo menu do avatar continua abrindo o Início.
 - [x] Iniciar um roteiro guiado pela tela de entrada continua abrindo o primeiro passo do roteiro.
 - [x] A entrada pela extensão e pelo helpdesk não muda.
-- [ ] Checagem de tipos e build passam; roteiro manual da verificação descrito no PR.
+- [x] Checagem de tipos e build passam (`npm run build`, 2026-11-22).
+- [x] Verificado no navegador: em Processos, sair e entrar com outra persona (roda, por teclado) abre `/`; trocar pelo menu do avatar estando em Processos também abre `/`.
+- [ ] Roteiro manual da verificação descrito no PR.
 
 ### 04: ARCHITECTURE.md
 
