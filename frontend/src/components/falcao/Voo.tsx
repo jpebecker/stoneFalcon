@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
+import Balao, { tempoDaFala, type Fala } from "./Balao";
 import Falcao from "./Falcao";
 
 /** Um alvo do voo: um elemento da tela ou um ponto (px da janela). Ausente = sem alvo. */
@@ -12,6 +13,8 @@ export interface PedidoVoo {
   para: Alvo;
   /** Se `para` estiver ausente ou fora da tela (menu recolhido), voa até este (ex.: o botão do menu). */
   alternativo?: Alvo;
+  /** Pousa EM CIMA do alvo (o poleiro), em vez de ao lado dele. */
+  sobre?: boolean;
   /** Voa por cima da barra do roteiro (só o voo da etapa concluída, que acontece dentro dela). */
   acima?: boolean;
   /**
@@ -44,8 +47,26 @@ const MIN_MS = 600;
 /** Voo de retorno: os alvos são nomes de `data-alvo`; o que recebe o falcão ganha o destaque curto ao chegar. */
 export interface Retorno { de?: Alvo; para: string; alternativo?: string }
 
-interface ApiFalcao { voar: (p: PedidoVoo) => void; retornar: (r: Retorno) => void; cancelar: () => void }
-const nada: ApiFalcao = { voar: (p) => p.aoChegar?.(), retornar: () => {}, cancelar: () => {} };
+/** Opções de uma fala: onde o balão aponta (o poleiro, se não disser), por quanto tempo fica e se ignora o silêncio. */
+export interface OpcoesFala { alvo?: Alvo; ms?: number; forcar?: boolean }
+
+interface ApiFalcao {
+  voar: (p: PedidoVoo) => void; retornar: (r: Retorno) => void; cancelar: () => void;
+  /** Há um voo na tela (o poleiro fica vazio enquanto isso). */
+  emVoo: boolean;
+  /** Mostra uma frase curta no balão. Não faz nada se a pessoa silenciou o falcão (salvo `forcar`). Devolve se mostrou. */
+  falar: (texto: string, opcoes?: OpcoesFala) => boolean;
+  calar: () => void;
+  /** "Silenciar o falcão": sem balão e sem comportamento ambiente; os voos de retorno de uma ação continuam. */
+  silenciado: boolean;
+  alternarSilencio: () => void;
+}
+const nada: ApiFalcao = { voar: (p) => p.aoChegar?.(), retornar: () => {}, cancelar: () => {}, emVoo: false, falar: () => false, calar: () => {}, silenciado: false, alternarSilencio: () => {} };
+
+// O silêncio é conveniência de quem usa (por navegador): se o armazenamento falhar, o falcão segue falando e nada quebra.
+const CHAVE_SILENCIO = "stonefalcon.falcao.silenciado";
+const lerSilencio = (): boolean => { try { return localStorage.getItem(CHAVE_SILENCIO) === "1"; } catch { return false; } };
+const guardarSilencio = (v: boolean) => { try { if (v) localStorage.setItem(CHAVE_SILENCIO, "1"); else localStorage.removeItem(CHAVE_SILENCIO); } catch { /* sem armazenamento */ } };
 const Contexto = createContext<ApiFalcao>(nada);
 
 /**
@@ -92,7 +113,7 @@ function destinoDe(a: Alvo, deX: number): { x: number; y: number } | null {
 function resolver(p: PedidoVoo, caminho: string, id: number): Voo | null {
   const dePonto = centroDe(p.de);
   const refX = dePonto?.x ?? 0;
-  let para = destinoDe(p.para, refX);
+  let para = p.sobre && p.para instanceof Element ? centroDe(p.para) : destinoDe(p.para, refX);
   let chegada = p.para instanceof Element ? p.para : undefined;
   if (!para) { para = destinoDe(p.alternativo, refX); chegada = p.alternativo instanceof Element ? p.alternativo : undefined; }
   if (!para || !Number.isFinite(para.x) || !Number.isFinite(para.y)) return null; // sem alvo na tela: não voa
@@ -158,6 +179,8 @@ export function ProvedorFalcao({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
   const [voo, setVoo] = useState<Voo | null>(null);
   const contador = useRef(0);
+  const [fala, setFala] = useState<Fala | null>(null);
+  const [silenciado, setSilenciado] = useState(lerSilencio);
 
   const voar = useCallback((p: PedidoVoo) => {
     const novo = resolver(p, window.location.pathname, ++contador.current);
@@ -176,7 +199,24 @@ export function ProvedorFalcao({ children }: { children: ReactNode }) {
   // trocar de página cancela o voo que veio da página anterior (um voo iniciado já na nova página segue)
   useEffect(() => { setVoo((v) => (v && v.caminho !== pathname ? null : v)); }, [pathname]);
 
-  const valor = useMemo(() => ({ voar, retornar, cancelar }), [voar, retornar, cancelar]);
+  const calar = useCallback(() => setFala(null), []);
+  const silencioRef = useRef(silenciado);
+  silencioRef.current = silenciado;
+  const falar = useCallback((texto: string, o: OpcoesFala = {}) => {
+    if (silencioRef.current && !o.forcar) return false;
+    setFala({ id: ++contador.current, texto, alvo: o.alvo, ms: o.ms ?? tempoDaFala(texto) });
+    return true;
+  }, []);
+  const alternarSilencio = useCallback(() => {
+    setSilenciado((v) => { guardarSilencio(!v); return !v; });
+    setFala(null);   // silenciar também recolhe o recado que estiver na tela
+  }, []);
+  // o recado é da página em que nasceu: trocar de página o recolhe
+  useEffect(() => { setFala(null); }, [pathname]);
+
+  const emVoo = voo !== null;
+  const valor = useMemo(() => ({ voar, retornar, cancelar, emVoo, falar, calar, silenciado, alternarSilencio }),
+    [voar, retornar, cancelar, emVoo, falar, calar, silenciado, alternarSilencio]);
   // o painel da extensão é escuro: a camada herda os tokens do `.ext-tema`
   const extensao = pathname.startsWith("/extensao");
   return (
@@ -185,6 +225,7 @@ export function ProvedorFalcao({ children }: { children: ReactNode }) {
       <div className={"falcao-camada" + (extensao ? " ext-tema" : "") + (voo?.acima ? " falcao-acima" : "")} aria-hidden="true">
         {voo && <Camada key={voo.id} voo={voo} aoFim={aoFim} />}
       </div>
+      {!extensao && <Balao fala={fala} aoFechar={calar} />}
     </Contexto.Provider>
   );
 }

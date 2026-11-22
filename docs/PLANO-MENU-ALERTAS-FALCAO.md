@@ -92,7 +92,7 @@ What was checked in the code and in the local database before writing the ticket
 | 05 | Shared process: verified end to end and visible on both sides | — | feito |
 | 06 | Shared-process alerts reach the shared area | 02, 05 | feito |
 | 07 | Share a process from the UI | 05 | feito |
-| 08 | Falcon companion: perch, speech bubble and the new motion rule | 01 | ready-for-agent |
+| 08 | Falcon companion: perch, speech bubble and the new motion rule | 01 | feito |
 | 09 | Falcon as the guide of guided tours | 08 | ready-for-agent |
 | 10 | Falcon ambient routines | 08, 03 | ready-for-agent |
 | 11 | Docs, tours and version 8.3.0 | 01, 04, 06, 07, 09, 10 | ready-for-agent |
@@ -308,20 +308,26 @@ switch in the persona menu hides the bubble and ambient behaviour (feedback flig
 
 **Blocked by:** 01 (the perch lives in the regrouped side menu).
 
-**Status:** ready-for-agent
+**Status:** feito
 
-- [ ] Perched falcon visible beside the brand on every logged-in page, using the existing idle sprite; it leaves the perch
+- [x] Perched falcon visible beside the brand on every logged-in page, using the existing idle sprite; it leaves the perch
       for flights and comes back after them.
-- [ ] Speech bubble component: short text, auto-hides, dismissable, announced politely to screen readers, never covers
+- [x] Speech bubble component: short text, auto-hides, dismissable, announced politely to screen readers, never covers
       the main action button.
-- [ ] Greeting on login (through the persona wheel) with the persona's first name and their open alert count.
-- [ ] DESIGN.md §7.5 rewritten with the new rule and its limits (frequency cap, never during typing or a modal, never
+- [x] Greeting on login (through the persona wheel) with the persona's first name and their open alert count.
+- [x] DESIGN.md §7.5 rewritten with the new rule and its limits (frequency cap, never during typing or a modal, never
       during an action flight); §7.6 updated.
-- [ ] "Silenciar o falcão" switch, per-viewer, remembered as a convenience only (works without storage).
-- [ ] Reduced motion: perched still, no greeting flight, bubble without animation.
-- [ ] `npm run build` passes; checked in the browser, normal and reduced motion.
+- [x] "Silenciar o falcão" switch, per-viewer, remembered as a convenience only (works without storage).
+- [x] Reduced motion: perched still, no greeting flight, bubble without animation.
+- [x] `npm run build` passes; checked in the browser, normal and reduced motion.
 
 ---
+
+**Notes (what was built):** `Poleiro` (static sprite beside the brand, empty while a flight runs), `Balao` (polite live region,
+auto-hide 5-10 s, paused on hover/focus, closes with × or Esc, picks another side if it would cover an `acao-*` button, closes on
+page change), and `falar` / `calar` / `silenciado` / `emVoo` in `useFalcao()`. The greeting flies to the perch (`sobre: true`)
+and then speaks; with reduced motion it only speaks. DESIGN.md section 8 now defines four roles (perch, return, guide, ambient)
+with the limits tickets 09 and 10 follow. The switch lives in the persona menu and is stored per browser.
 
 # 09: Falcon as the guide of guided tours
 
