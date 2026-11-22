@@ -8,6 +8,8 @@ import Avatar from "../components/Avatar";
 import CampoEntrada from "../components/CampoEntrada";
 import Marca from "../components/Marca";
 import { COR_STATUS, NOME_STATUS, ms, reais, versaoCurta } from "../components/formato";
+import Icone from "../components/Icone";
+import Carregando from "../components/falcao/Carregando";
 
 type Item = { id: string; agente: string; quando: string; status: string; resultado: string; execId: string };
 const CHAVE_HIST = "stonefalcon.extensao.historico";
@@ -274,7 +276,7 @@ export default function Extensao({ pessoa, aoEntrar, aoSair, erroPerfil }: {
           </section>
         )}
 
-        {analise.isPending && <div className="space-y-2" aria-busy="true"><div className="h-14 animate-pulse rounded-caixa bg-folha" /><div className="h-24 animate-pulse rounded-caixa bg-folha" /></div>}
+        <Carregando ativo={analise.isPending} texto="Analisando o trecho…" tamanho={56} />
         {analise.isError && <p className="rounded-caixa bg-erro-fundo p-3 text-sm text-erro">{(analise.error as Error).message}</p>}
         {analise.data && agentes.length === 0 && (
           <p className="caixa p-4 text-sm text-tinta-2">Nenhum processo ou agente publicado para a sua área ainda. Crie um no Estúdio da plataforma.</p>
@@ -310,13 +312,13 @@ export default function Extensao({ pessoa, aoEntrar, aoSair, erroPerfil }: {
                 aoMudar={(v) => setEntrada((e) => ({ ...e, [c.id]: v }))} />
             ))}
             <button className="botao-pedra w-full" disabled={executar.isPending || faltando.length > 0} onClick={() => executar.mutate()}>
-              {executar.isPending ? "Executando…" : faltando.length ? "Preencha: " + faltando.map((c) => c.rotulo.toLowerCase()).join(", ") : agente?.tipo === "processo" ? "Executar processo" : "Executar agente"}
+              <Icone nome="executar" />{executar.isPending ? "Executando…" : faltando.length ? "Preencha: " + faltando.map((c) => c.rotulo.toLowerCase()).join(", ") : agente?.tipo === "processo" ? "Executar processo" : "Executar agente"}
             </button>
             {executar.isError && <p className="text-sm text-erro">{(executar.error as Error).message}</p>}
           </section>
         )}
 
-        {executar.isPending && <div className="h-20 animate-pulse rounded-caixa bg-folha" aria-busy="true" />}
+        <Carregando ativo={executar.isPending} texto="Executando…" tamanho={56} />
         {exe && <Resposta exe={exe} pessoa={pessoa} ao_vivo={aoVivo} aoMudar={(e) => { setAoVivo(false); setExe(e); }} />}
 
         {historico.length > 0 && (

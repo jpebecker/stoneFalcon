@@ -1,3 +1,4 @@
+import type { NomeIcone } from "./Icone";
 const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 4 });
 
 /** "8.0.0" -> "8.0", como a versão aparece para as pessoas. */
@@ -18,6 +19,12 @@ export const COR_STATUS: Record<string, string> = {
   aguardando_aprovacao: "bg-alerta-fundo text-alerta", aguardando: "bg-alerta-fundo text-alerta",
   escalada: "bg-falcao-fundo text-falcao", escalado: "bg-falcao-fundo text-falcao",
   falhou: "bg-erro-fundo text-erro", recusado: "bg-papel text-tinta-2", pulado: "bg-papel text-tinta-3", em_andamento: "bg-info-fundo text-info",
+};
+
+/** Ícone do selo de resultado, além da cor: concluído, falhou e atenção (aguardando, escalado). */
+export const ICONE_STATUS: Record<string, NomeIcone> = {
+  concluida: "concluido", concluido: "concluido", falhou: "falhou", recusado: "falhou",
+  aguardando_aprovacao: "atencao", aguardando: "atencao", escalada: "atencao", escalado: "atencao",
 };
 
 export const COR_RISCO: Record<string, string> = {

@@ -3,6 +3,9 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, type Alerta, type Persona } from "../api/cliente";
 import { quando } from "../components/formato";
+import Carregando from "../components/falcao/Carregando";
+import { alvoDe, useFalcao } from "../components/falcao/Voo";
+import Vazio from "../components/falcao/Vazio";
 
 type Filtro = "abertos" | "tratamento" | "todos";
 const FILTROS: [Filtro, string][] = [["abertos", "Abertos"], ["tratamento", "Em tratamento"], ["todos", "Todos"]];
@@ -19,11 +22,16 @@ function Tratamento({ a, pessoa }: { a: Alerta; pessoa: Persona }) {
     for (const k of ["alertas", "notificacoes", "saude-agentes", "processos"]) qc.invalidateQueries({ queryKey: [k] });
     setAberto(null); setNota(""); setMotivo(""); setValor("");
   };
+  const { retornar } = useFalcao();
   const assumir = useMutation({ mutationFn: () => api(`/alertas/${a.id}/assumir`, { nota }), onSuccess: atualizar });
   const devolver = useMutation({ mutationFn: () => api(`/alertas/${a.id}/devolver`, {}), onSuccess: atualizar });
   const executar = useMutation({
     mutationFn: () => api<{ rota?: string }>(`/alertas/${a.id}/acao`, { motivo, valor_brl: valor ? Number(valor.replace(",", ".")) : null }),
-    onSuccess: (r) => { atualizar(); if (r.rota) navegar(r.rota); },
+    onSuccess: (r) => {
+      const de = alvoDe("acao-alerta");   // lido antes de a tela trocar
+      atualizar(); if (r.rota) navegar(r.rota);
+      retornar({ de, para: "sino" });   // o resultado virou alerta
+    },
   });
   if (a.resolvido_em) return null;
   const meu = a.tratando_por === pessoa.id;
@@ -34,10 +42,13 @@ function Tratamento({ a, pessoa }: { a: Alerta; pessoa: Persona }) {
     <div className="mt-3 space-y-2 border-t border-linha pt-3 text-sm">
       <div className="flex flex-wrap items-center gap-2">
         {acao && (
-          <button className="botao-pedra" disabled={executar.isPending}
+          <button className="botao-pedra" data-alvo="acao-alerta" disabled={executar.isPending}
             onClick={() => (pedeCampo && aberto !== "acao" ? setAberto("acao") : executar.mutate())}>
             {executar.isPending ? "Executando…" : acao.rotulo}
           </button>
+        )}
+        {acao && (
+          <Carregando ativo={executar.isPending} texto="Executando o tratamento…" />
         )}
         {!a.tratando_por && <button className="botao-claro" onClick={() => setAberto(aberto === "assumir" ? null : "assumir")}>Assumir</button>}
         {a.tratando_por && (meu || pessoa.papeis.includes("gestor_ia")) && (
@@ -102,7 +113,7 @@ export default function Alertas({ pessoa }: { pessoa: Persona }) {
           ))}
         </div>
       </div>
-      {lista.length === 0 && <p className="caixa p-5 text-tinta-3">{filtro === "tratamento" ? "Nenhum alerta em tratamento." : "Tudo certo por aqui."}</p>}
+      {lista.length === 0 && <Vazio>{filtro === "tratamento" ? "Nenhum alerta em tratamento." : "Tudo certo por aqui."}</Vazio>}
       <ul className="space-y-3">
         {lista.map((a) => (
           <li key={a.id} className={"caixa border-l-4 p-4 " + (a.resolvido_em ? "border-l-linha opacity-70" : a.severidade === "critico" ? "border-l-erro" : "border-l-alerta")}>

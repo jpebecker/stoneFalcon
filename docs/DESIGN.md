@@ -1,6 +1,6 @@
 # StoneFalcon — Design
 
-A linguagem visual do StoneFalcon (v8): cores, tipografia, componentes, padrões de tela e a roda seletora. A fonte do código é `frontend/src/styles/global.css` e `frontend/tailwind.config.js`; se este documento e o código divergirem, o código vale e este arquivo deve ser corrigido. Contexto: [ARCHITECTURE.md](ARCHITECTURE.md), [REQUIREMENTS.md](REQUIREMENTS.md), [AGENTS.md](AGENTS.md).
+A linguagem visual do StoneFalcon (v8.2): cores, tipografia, componentes, padrões de tela, a roda seletora, o falcão e os ícones de linha. A fonte do código é `frontend/src/styles/global.css` e `frontend/tailwind.config.js`; se este documento e o código divergirem, o código vale e este arquivo deve ser corrigido. Contexto: [ARCHITECTURE.md](ARCHITECTURE.md), [REQUIREMENTS.md](REQUIREMENTS.md), [AGENTS.md](AGENTS.md).
 
 > Protótipo acadêmico (UFSC) para o desafio StoneLab. Não é um produto da Stone: nenhum logotipo ou marca oficial.
 
@@ -58,7 +58,9 @@ As fontes são servidas pela própria plataforma (`frontend/public/fontes`, com 
 | Selo | `.selo` + `bg-*-fundo text-*` | Estado curto: nível de acesso (`info`), simulado (`alerta`), papel (`papel`), resultado. Sempre com texto. |
 | Selo “simulado” | `SeloSimulado` | Em todo lugar onde aparece um modelo ou sistema que não roda de verdade. |
 | Avatar | `Avatar` | Foto da persona; sem foto ou com erro, iniciais na cor da persona. |
-| Marca | `Marca` | Identidade no topo da entrada e no menu lateral. |
+| Marca | `Marca` | Identidade no topo da entrada, no menu lateral e no painel da extensão: o **rosto do falcão** (ver §8). Sobre quadrado escuro arredondado; com a prop `claro`, sobre fundo translúcido no menu escuro. |
+| Ícone | `Icone` | Linha de 24 px com traço 1,8 e pontas redondas, sempre ao lado de texto (ver §9). |
+| Falcão (corpo) | `Falcao`, `Carregando`, `Vazio` | Pairando na carga, voando no retorno, parado nos estados vazios (ver §8). |
 
 Foco visível global: `:focus-visible` desenha um contorno de 2 px na cor `pedra`. Não remova; ao criar um componente com foco próprio, mantenha pelo menos esse contraste.
 
@@ -69,7 +71,7 @@ Foco visível global: `:focus-visible` desenha um contorno de 2 px na cor `pedra
 - **Páginas de lista e detalhe:** título, ação principal (`botao-pedra`) à direita, conteúdo em `.caixa`.
 - **Canvas** (React Flow): arestas em `tinta-3`; nó novo e aresta recém-ligada destacados em `pedra`.
 - **Barra do roteiro:** fixa na base enquanto há roteiro ativo; o conteúdo ganha folga inferior.
-- **Estados vazios, de erro e de carga:** frase curta em português dizendo o que houve e o que fazer; erro em `text-erro` ou `role="alert"`; carga com `aria-busy`.
+- **Estados vazios, de erro e de carga:** frase curta em português dizendo o que houve e o que fazer; erro em `text-erro` ou `role="alert"`; carga com `aria-busy` e o falcão pairando ao lado do texto (`Carregando`); lista vazia com o falcão parado (`Vazio`); erro e bloqueio nunca levam o falcão.
 - **Tela estreita:** o que é desenho radial ou canvas ganha alternativa em cartões ou lista.
 
 ## 6. A roda seletora de personas
@@ -100,8 +102,41 @@ Regras que todo ticket de tela deve seguir:
 3. **Cor não basta.** Estado e categoria também em texto ou ícone; contraste de texto adequado sobre `papel` e `folha`.
 4. **Avisos.** Erro de formulário e de servidor com `role="alert"`; carga com `aria-busy`; região que muda sozinha com `aria-live`.
 5. **Movimento com propósito.** Animação só para dar retorno ou orientar (ampliar a fatia, entrada de nó novo); curta (≈ 0,2 s para retorno) e sem efeito decorativo.
-6. **Reduzir movimento.** Toda animação ou transição nova tem tratamento em `@media (prefers-reduced-motion: reduce)` (sem animação, estado final direto). Já cobertos: roda, Mapa de IA e `animate-pulse`.
+6. **Reduzir movimento.** Toda animação ou transição nova tem tratamento em `@media (prefers-reduced-motion: reduce)` (sem animação, estado final direto). Já cobertos: roda, Mapa de IA, `animate-pulse` e o falcão (batida de asa, travessia, destaque e saída da camada de voo).
 7. **Imagens que falham.** Foto de persona nunca deixa buraco: iniciais na cor da persona.
 8. **Idioma.** `lang="pt-BR"`; texto em português do Brasil, linguagem simples, sem jargão.
 9. **Tela estreita.** Sem rolagem horizontal; alternativa para desenhos radiais e canvas.
 10. **Verificação.** O front não tem testes automatizados: cumpra estas regras com `npm run build` verde e conferência no navegador (repouso, ativo e foco para telas com estados), com captura de tela no PR.
+
+## 8. O falcão
+
+O animal do nome Stone**Falcon** (grupo PinkFalcon) tem duas formas. O **rosto** é o ícone do sistema e fica sempre visível. O **corpo** é animado (pairando e voo lateral) e aparece só nos momentos de retorno. Os dois são desenhados por código em `scripts/gera_falcao.mjs`, em traço de pincel que engrossa e afina, e usam as cores do sistema: traço `pedra`, penas `falcao`, rastro `tinta-3`; sobre o menu escuro (`claro`), tons mais claros. Os arquivos gerados (`frontend/src/components/falcao/quadros.ts`, `frontend/public/icone.svg`, `extensao/icones/rosto.*` e os PNGs) entram no Git e **não se editam à mão**: mude o gerador e rode `node scripts/gera_falcao.mjs`.
+
+**Rosto (marca).** Arco verde da cabeça, bico em gancho claro, penas rosa do pescoço; é legível em 16 px. Aparece no menu, na entrada, no favicon, no painel e no botão flutuante da extensão. Sobre o quadrado escuro usa `#1FB37A`, `#E0428F` e `#E8F3EE` (os valores da `Marca`).
+
+**Corpo.** `<Falcao estado="parado" | "voo" | "estatico" direcao tamanho />`: quadro de 128 × 112, 6 quadros em 1,1 s parado e 8 quadros em 0,56 s no voo (com rastro). O traço engrossa em tamanhos pequenos (×1,7 até 48 px, ×1,3 até 72 px). É sempre `aria-hidden`: o falcão nunca é a única informação.
+
+**Regra de movimento (§7.5).** O corpo só aparece para dar retorno ou orientar, por isso **só depois de uma ação da pessoa** e **no máximo um voo por ação**. Com movimento reduzido (§7.6) não há batida de asa nem travessia: o falcão aparece parado no destino por 1,2 s e some.
+
+| Momento | Onde | O que faz |
+|---|---|---|
+| Executar agente, processo ou teste | Agente, Processo, Editor de processo, Estúdio, Alertas | Paira ao lado do status (`Carregando`); ao terminar bem, voa até o sino (alerta) ou até a aba Execuções, que ganha destaque. |
+| Montar o agente a partir da descrição | Estúdio | Paira com “Montando o seu agente…”. |
+| Publicar agente ou processo | Estúdio, Agente, Editor de processo | Voa até a aba Agentes ou Processos. |
+| Enviar para revisão / pedir plugin | Estúdio, Editor de processo, Criar plugin | Paira enquanto gera; voa até Revisões ou, se a pessoa não tem a aba, até o sino. |
+| Analisar o trecho e executar | Painel da extensão | Paira no lugar dos blocos pulsantes. |
+| Entrar pela roda | Entrada → Início | Voo de boas-vindas até a marca do menu. |
+| Etapa do roteiro concluída | Barra do roteiro | Voo curto da etapa feita até a próxima (única exceção em que o falcão voa por cima da barra). |
+| Lista vazia | Alertas, Revisões, Execuções, Plugins | Parado, sem animação, ao lado da frase (`Vazio`). |
+
+**Quando não usar:** erro, falha, bloqueio de guardrail, listas cheias, e qualquer voo sem uma ação da pessoa antes. Não use o falcão como decoração nem para preencher espaço.
+
+**Camada de voo** (`ProvedorFalcao`, `useFalcao()`): `voar({ de, para, alternativo, aoChegar })` e `retornar({ de, para: "aba-execucoes", alternativo: "sino" })`. Os alvos são elementos com `data-alvo` (`aba-<nome>`, `sino`, `marca`). A camada é fixa, fica acima do conteúdo e do menu e abaixo da barra do roteiro, sem capturar cliques; um voo por vez, cancelado ao trocar de página. O falcão paira ~0,9 s ao lado do alvo e some em 0,25 s; o alvo ganha o destaque `pedra-fundo` por ~1,6 s, porque o retorno não pode depender só do movimento. Alvo ausente ou fora da tela: voa até o alternativo ou não voa, sem erro.
+
+## 9. Ícones da interface
+
+`Icone` (`frontend/src/components/Icone.tsx`): linhas no mesmo traço do sino do cabeçalho (grade 24, traço 1,8, pontas redondas, `currentColor`), sem biblioteca. 18 px no menu, 16 px em botões e selos.
+
+- **Entram em:** as 15 abas do menu, o botão de ação principal (`botao-pedra`: Executar, Publicar, Enviar para revisão), os selos de resultado (concluído, falhou, simulado/atenção) e o menu da pessoa (Trocar de perfil, Sair).
+- **Não entram em:** títulos, tabelas, links de texto, cartões nem botões claros.
+- **Sempre ao lado de texto visível, nunca no lugar dele.** O ícone é `aria-hidden`; nenhum controle vira só ícone.

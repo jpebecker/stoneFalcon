@@ -7,6 +7,9 @@ import LinhaDoTempo from "../components/LinhaDoTempo";
 import ListaMudancas from "../components/ListaMudancas";
 import PainelRotina from "../components/PainelRotina";
 import { BLOCOS, COR_ESTADO, COR_RISCO, NOME_ESTADO, NOME_EVENTO, NOME_RISCO, quando, reais } from "../components/formato";
+import Icone from "../components/Icone";
+import Carregando from "../components/falcao/Carregando";
+import { alvoDe, useFalcao } from "../components/falcao/Voo";
 
 export default function ProcessoDetalhe({ pessoa }: { pessoa: Persona }) {
   const { id } = useParams();
@@ -20,13 +23,20 @@ export default function ProcessoDetalhe({ pessoa }: { pessoa: Persona }) {
   useEffect(() => { setExe(null); setEntrada({}); }, [id]);
 
   const recarregar = () => { qc.invalidateQueries({ queryKey: ["processo", id] }); qc.invalidateQueries({ queryKey: ["processos"] }); };
+  const { retornar } = useFalcao();
   const acao = useMutation({
     mutationFn: ({ rota, corpo }: { rota: string; corpo?: unknown }) => api(`/processos/${id}/${rota}`, corpo ?? {}),
-    onSuccess: recarregar,
+    onSuccess: (_r, v) => {
+      recarregar();
+      if (v.rota === "publicar") retornar({ de: alvoDe("acao-publicar"), para: "aba-processos", alternativo: "sino" });
+    },
   });
   const executar = useMutation({
     mutationFn: () => api<Execucao>(`/processos/${id}/executar`, { entrada }),
-    onSuccess: (e) => { setExe(e); recarregar(); },
+    onSuccess: (e) => {
+      setExe(e); recarregar();
+      if (e.status === "concluida") retornar({ de: alvoDe("acao-executar"), para: "aba-execucoes", alternativo: "sino" });
+    },
   });
   const verDiff = async (numero: number) => {
     const mudancas = await api<Mudanca[]>(`/processos/${id}/diff?de=${numero - 1}&para=${numero}`);
@@ -61,7 +71,7 @@ export default function ProcessoDetalhe({ pessoa }: { pessoa: Persona }) {
         <div className="flex flex-wrap gap-2">
           {p.pode_editar && p.estado !== "depreciado" && <Link to={`/processos/${p.id}/editar`} className="botao-claro">Editar processo</Link>}
           {p.pode_editar && ultima?.estado === "rascunho" && p.estado !== "depreciado" && (
-            <button className="botao-pedra" onClick={() => acao.mutate({ rota: "publicar" })}>Publicar v{ultima.numero}</button>
+            <button className="botao-pedra" data-alvo="acao-publicar" onClick={() => acao.mutate({ rota: "publicar" })}><Icone nome="publicar" />Publicar v{ultima.numero}</button>
           )}
           {operador && p.estado === "publicado" && (
             <button className="botao-claro" onClick={() => { const m = prompt("Motivo da pausa (opcional):") ?? ""; acao.mutate({ rota: "pausar", corpo: { motivo: m } }); }}>Pausar</button>
@@ -90,9 +100,10 @@ export default function ProcessoDetalhe({ pessoa }: { pessoa: Persona }) {
                 {campos.map((c) => (
                   <CampoEntrada key={c.id} campo={c} pessoa={pessoa} valor={entrada[c.id] ?? ""} aoMudar={(v) => setEntrada((e) => ({ ...e, [c.id]: v }))} />
                 ))}
-                <button className="botao-pedra" disabled={executar.isPending || campos.some((c) => !entrada[c.id])} onClick={() => executar.mutate()}>
-                  {executar.isPending ? "Executando…" : "Executar"}
+                <button className="botao-pedra" data-alvo="acao-executar" disabled={executar.isPending || campos.some((c) => !entrada[c.id])} onClick={() => executar.mutate()}>
+                  <Icone nome="executar" />{executar.isPending ? "Executando…" : "Executar"}
                 </button>
+                <Carregando ativo={executar.isPending} texto="Executando o processo…" />
               </div>
               {executar.isError && <p className="mt-2 text-sm text-erro">{(executar.error as Error).message}</p>}
               {exe && <div className="mt-5 border-t border-linha pt-5"><LinhaDoTempo exe={exe} pessoa={pessoa} cotacao={saude.data?.cotacao_dolar ?? 5.52} aoMudar={setExe} /></div>}

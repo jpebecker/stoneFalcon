@@ -2,42 +2,51 @@
 
     python gerar.py
 
-Desenha a marca do StoneFalcon (falcão em três faces) sobre um quadrado escuro arredondado,
-com suavização por superamostragem 4x4.
+Desenha o rosto do falcão do StoneFalcon sobre um quadrado escuro arredondado, com suavização por
+superamostragem 4x4. Os polígonos vêm de rosto.json, gerado por scripts/gera_falcao.mjs (não edite à mão).
 """
+import json
 import struct
 import zlib
 from pathlib import Path
 
-FUNDO = (16, 32, 26)
-VERDE = (31, 179, 122)
-CLARO = (232, 243, 238)
-ROSA = (224, 66, 143)
-# formas no espaço 40x40 da marca da plataforma
-FORMAS = [
-    (VERDE, [(7, 10), (33, 10), (29.6, 17.4), (10.4, 17.4)]),
-    (CLARO, [(12, 20.4), (28, 20.4), (25.1, 26.7), (14.9, 26.7)]),
-    (ROSA, [(16.4, 29.6), (23.6, 29.6), (20, 35)]),
-]
+PASTA = Path(__file__).resolve().parent
+
+
+def _cor(hexa):
+    return tuple(int(hexa[i:i + 2], 16) for i in (1, 3, 5))
+
+
+ROSTO = json.loads((PASTA / "rosto.json").read_text(encoding="utf-8"))
+LADO = ROSTO["lado"]
+RAIO = ROSTO["raio"]
+FUNDO = _cor(ROSTO["cores"]["fundo"])
+# ordem de pintura do rosto: rosa, verde, claro
+FORMAS = [(_cor(ROSTO["cores"][f["cor"]]), f["poligonos"]) for f in ROSTO["formas"]]
 
 
 def dentro(poligono, x, y):
-    n, certo = len(poligono), False
+    """Regra do enrolamento não nulo, a mesma do preenchimento padrão do SVG."""
+    volta = 0
+    n = len(poligono)
     for i in range(n):
         x1, y1 = poligono[i]
         x2, y2 = poligono[(i + 1) % n]
-        if (y1 > y) != (y2 > y) and x < (x2 - x1) * (y - y1) / (y2 - y1) + x1:
-            certo = not certo
-    return certo
+        lado = (x2 - x1) * (y - y1) - (x - x1) * (y2 - y1)
+        if y1 <= y < y2 and lado > 0:
+            volta += 1
+        elif y2 <= y < y1 and lado < 0:
+            volta -= 1
+    return volta != 0
 
 
-def quadrado_arredondado(x, y, raio=9.0):
-    cx, cy = min(max(x, raio), 40 - raio), min(max(y, raio), 40 - raio)
+def quadrado_arredondado(x, y, raio=RAIO):
+    cx, cy = min(max(x, raio), LADO - raio), min(max(y, raio), LADO - raio)
     return (x - cx) ** 2 + (y - cy) ** 2 <= raio ** 2
 
 
 def pixel(px, py, tamanho, sub=4):
-    esc = 40 / tamanho
+    esc = LADO / tamanho
     acum = [0.0, 0.0, 0.0, 0.0]
     for sy in range(sub):
         for sx in range(sub):
@@ -45,8 +54,8 @@ def pixel(px, py, tamanho, sub=4):
             if not quadrado_arredondado(x, y):
                 continue
             cor = FUNDO
-            for c, forma in FORMAS:
-                if dentro(forma, x, y):
+            for c, poligonos in FORMAS:
+                if any(dentro(p, x, y) for p in poligonos):
                     cor = c
             for k in range(3):
                 acum[k] += cor[k]
@@ -72,7 +81,7 @@ def png(tamanho):
 
 
 if __name__ == "__main__":
-    pasta = Path(__file__).resolve().parent
+    pasta = PASTA
     for t in (16, 32, 48, 128):
         (pasta / ("icone%d.png" % t)).write_bytes(png(t))
         print("icone%d.png" % t)

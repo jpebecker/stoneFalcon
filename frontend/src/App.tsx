@@ -3,6 +3,8 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { api, definirPerfil, perfilAtual, type Persona, type Saude } from "./api/cliente";
 import Avatar from "./components/Avatar";
+import Icone, { type NomeIcone } from "./components/Icone";
+import { alvoDe, ProvedorFalcao, useFalcao } from "./components/falcao/Voo";
 import Marca from "./components/Marca";
 import AgenteDetalhe from "./pages/AgenteDetalhe";
 import Auditoria from "./pages/Auditoria";
@@ -36,22 +38,22 @@ import { useEstadoRoteiro } from "./roteiro/estado";
 import { versaoCurta } from "./components/formato";
 
 // O menu e as rotas só leem `pessoa.abas`, que vem do back (a fonte da verdade do acesso por perfil).
-const NAV: { aba: string; para: string; rotulo: string }[] = [
-  { aba: "inicio", para: "/", rotulo: "Início" },
-  { aba: "roteiros", para: "/roteiros", rotulo: "Roteiros" },
-  { aba: "painel", para: "/painel", rotulo: "Painel executivo" },
-  { aba: "mapa", para: "/mapa", rotulo: "Mapa de IA" },
-  { aba: "estudio", para: "/estudio", rotulo: "Estúdio" },
-  { aba: "agentes", para: "/agentes", rotulo: "Agentes" },
-  { aba: "processos", para: "/processos", rotulo: "Processos" },
-  { aba: "plugins", para: "/plugins", rotulo: "Plugins" },
-  { aba: "revisoes", para: "/revisoes", rotulo: "Revisões" },
-  { aba: "execucoes", para: "/execucoes", rotulo: "Execuções" },
-  { aba: "saude", para: "/saude", rotulo: "Saúde" },
-  { aba: "financas", para: "/financas", rotulo: "Finanças" },
-  { aba: "ferramentas", para: "/ferramentas", rotulo: "Ferramentas" },
-  { aba: "auditoria", para: "/auditoria", rotulo: "Auditoria" },
-  { aba: "perguntas", para: "/perguntas", rotulo: "Perguntas da Ferramenta" },
+const NAV: { aba: string; para: string; rotulo: string; icone: NomeIcone }[] = [
+  { aba: "inicio", para: "/", rotulo: "Início", icone: "inicio" },
+  { aba: "roteiros", para: "/roteiros", rotulo: "Roteiros", icone: "roteiros" },
+  { aba: "painel", para: "/painel", rotulo: "Painel executivo", icone: "painel" },
+  { aba: "mapa", para: "/mapa", rotulo: "Mapa de IA", icone: "mapa" },
+  { aba: "estudio", para: "/estudio", rotulo: "Estúdio", icone: "estudio" },
+  { aba: "agentes", para: "/agentes", rotulo: "Agentes", icone: "agentes" },
+  { aba: "processos", para: "/processos", rotulo: "Processos", icone: "processos" },
+  { aba: "plugins", para: "/plugins", rotulo: "Plugins", icone: "plugins" },
+  { aba: "revisoes", para: "/revisoes", rotulo: "Revisões", icone: "revisoes" },
+  { aba: "execucoes", para: "/execucoes", rotulo: "Execuções", icone: "execucoes" },
+  { aba: "saude", para: "/saude", rotulo: "Saúde", icone: "saude" },
+  { aba: "financas", para: "/financas", rotulo: "Finanças", icone: "financas" },
+  { aba: "ferramentas", para: "/ferramentas", rotulo: "Ferramentas", icone: "ferramentas" },
+  { aba: "auditoria", para: "/auditoria", rotulo: "Auditoria", icone: "auditoria" },
+  { aba: "perguntas", para: "/perguntas", rotulo: "Perguntas da Ferramenta", icone: "perguntas" },
 ];
 
 /** Rota restrita: quem não tem a aba (ex.: endereço digitado) volta ao Início, sem tela quebrada. */
@@ -81,7 +83,7 @@ function MenuPessoa({ pessoa, aoTrocar, aoSair }: { pessoa: Persona; aoTrocar: (
       </button>
       {aberto && (
         <div role="menu" className="caixa absolute right-0 top-full z-30 mt-2 w-72 p-2">
-          <div className="px-2 pb-1 pt-1 text-xs font-semibold uppercase tracking-wide text-tinta-3">Trocar de perfil</div>
+          <div className="flex items-center gap-1.5 px-2 pb-1 pt-1 text-xs font-semibold uppercase tracking-wide text-tinta-3"><Icone nome="trocar" tamanho={14} />Trocar de perfil</div>
           {perfis.data?.map((p) => (
             <button key={p.id} role="menuitem" className={"flex w-full items-center gap-3 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-papel " + (p.id === pessoa.id ? "bg-pedra-fundo/50" : "")}
               onClick={() => { setAberto(false); if (p.id !== pessoa.id) aoTrocar(p.id); }}>
@@ -91,7 +93,7 @@ function MenuPessoa({ pessoa, aoTrocar, aoSair }: { pessoa: Persona; aoTrocar: (
             </button>
           ))}
           <div className="mt-1 border-t border-linha pt-1">
-            <button role="menuitem" className="w-full rounded-lg px-2 py-1.5 text-left text-sm text-tinta-2 hover:bg-papel" onClick={() => { setAberto(false); aoSair(); }}>Sair para a tela inicial</button>
+            <button role="menuitem" className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-tinta-2 hover:bg-papel" onClick={() => { setAberto(false); aoSair(); }}><Icone nome="sair" />Sair para a tela inicial</button>
           </div>
         </div>
       )}
@@ -99,7 +101,12 @@ function MenuPessoa({ pessoa, aoTrocar, aoSair }: { pessoa: Persona; aoTrocar: (
   );
 }
 
+/** A camada de voo do falcão envolve tudo: entrada, área logada e painel da extensão. */
 export default function App() {
+  return <ProvedorFalcao><AppInterno /></ProvedorFalcao>;
+}
+
+function AppInterno() {
   // a extensão abre /extensao?perfil=<id>: entra direto como essa pessoa
   if (location.pathname.startsWith("/extensao")) {
     const p = new URLSearchParams(location.search).get("perfil");
@@ -125,6 +132,15 @@ export default function App() {
   // entrar (pela tela de entrada ou trocando pelo menu do avatar) sempre abre o Início da persona,
   // qualquer que seja a tela em que a pessoa anterior estava
   const entrarNoInicio = (id: string) => { trocar(id); navegar("/"); };
+  // entrar pela roda: voo de boas-vindas até a marca do menu (só aqui; trocar de pessoa pelo menu não faz festa)
+  const { voar } = useFalcao();
+  const boasVindas = useRef(false);
+  const entrarPelaRoda = (id: string) => { boasVindas.current = true; entrarNoInicio(id); };
+  useEffect(() => {
+    if (!boasVindas.current || !perfil) return;
+    boasVindas.current = false;
+    window.setTimeout(() => voar({ de: { x: window.innerWidth * 0.62, y: window.innerHeight * 0.5 }, para: alvoDe("marca") }), 350);
+  }, [perfil, voar]);
 
   const pessoa = eu.data;
   const podePerguntas = !!pessoa?.abas.includes("perguntas");
@@ -148,7 +164,7 @@ export default function App() {
     return <ProvedorRoteiro trocar={trocar}><ViaExtensao aoEntrar={trocar} /></ProvedorRoteiro>;
   }
   if (!perfil || eu.isError) {
-    return <ProvedorRoteiro trocar={trocar}><Entrar aoEntrar={entrarNoInicio} /></ProvedorRoteiro>;
+    return <ProvedorRoteiro trocar={trocar}><Entrar aoEntrar={entrarPelaRoda} /></ProvedorRoteiro>;
   }
 
   return (
@@ -158,9 +174,10 @@ export default function App() {
           <Marca claro />
           <nav className="flex flex-col gap-1" aria-label="Seções">
             {NAV.filter((n) => pessoa?.abas.includes(n.aba)).map((n) => (
-              <NavLink key={n.para} to={n.para} end={n.para === "/"}
-                className={({ isActive }) => "rounded-lg px-3 py-2 text-sm font-medium transition " +
+              <NavLink key={n.para} to={n.para} end={n.para === "/"} data-alvo={"aba-" + n.aba}
+                className={({ isActive }) => "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition " +
                   (isActive ? "bg-white text-tinta" : "text-white/75 hover:bg-white/10 hover:text-white")}>
+                <Icone nome={n.icone} tamanho={18} />
                 {n.rotulo}
               </NavLink>
             ))}
@@ -180,10 +197,8 @@ export default function App() {
               </span>
             )}
             {pessoa && (
-              <Link to="/alertas" className="relative rounded-lg p-2 text-tinta-2 hover:bg-papel hover:text-tinta" aria-label={`Alertas: ${notif.data?.nao_lidos ?? 0} não lidos`}>
-                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                  <path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-                </svg>
+              <Link to="/alertas" data-alvo="sino" className="relative rounded-lg p-2 text-tinta-2 hover:bg-papel hover:text-tinta" aria-label={`Alertas: ${notif.data?.nao_lidos ?? 0} não lidos`}>
+                <Icone nome="sino" tamanho={20} />
                 {!!notif.data?.nao_lidos && (
                   <span className={"absolute -right-0.5 -top-0.5 min-w-[18px] rounded-full px-1 text-center text-[11px] font-bold text-white " +
                     (notif.data.criticos ? "bg-erro" : "bg-alerta")}>{notif.data.nao_lidos}</span>
