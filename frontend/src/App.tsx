@@ -145,7 +145,8 @@ export default function App() {
     return <ProvedorRoteiro trocar={trocar}><ViaExtensao aoEntrar={trocar} /></ProvedorRoteiro>;
   }
   if (!perfil || eu.isError) {
-    return <ProvedorRoteiro trocar={trocar}><Entrar aoEntrar={trocar} /></ProvedorRoteiro>;
+    // entrar sempre abre o Início da persona, qualquer que seja a tela em que a pessoa anterior estava ao sair
+    return <ProvedorRoteiro trocar={trocar}><Entrar aoEntrar={(id) => { trocar(id); navegar("/"); }} /></ProvedorRoteiro>;
   }
 
   return (
