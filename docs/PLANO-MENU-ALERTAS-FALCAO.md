@@ -87,7 +87,7 @@ What was checked in the code and in the local database before writing the ticket
 |---|---|---|---|
 | 01 | Grouped, collapsible side menu | — | feito |
 | 02 | Seed version stamp: stale databases get the demo alerts | — | feito |
-| 03 | Rich demo alerts: pending, read, in treatment and resolved | 02 | ready-for-agent |
+| 03 | Rich demo alerts: pending, read, in treatment and resolved | 02 | feito |
 | 04 | Alerts on the Início of each persona | 03 | ready-for-agent |
 | 05 | Shared process: verified end to end and visible on both sides | — | ready-for-agent |
 | 06 | Shared-process alerts reach the shared area | 02, 05 | ready-for-agent |
@@ -166,21 +166,26 @@ stays intact. Guided tours keep starting clean, as today.
 
 **Blocked by:** 02 (the stamp must change so existing databases receive the new scenarios).
 
-**Status:** ready-for-agent
+**Status:** feito
 
-- [ ] Per persona, after a fresh seed: ≥ 1 open unread, ≥ 1 open read, ≥ 1 in treatment (with note), ≥ 1 resolved; each tied
+- [x] Per persona, after a fresh seed: ≥ 1 open unread, ≥ 1 open read, ≥ 1 in treatment (with note), ≥ 1 resolved; each tied
       to something that is theirs (their process, their systems, their budget). Suggested second scenarios:
       Marina — FAQ process budget near limit; Rafael — "listar chargebacks" slow; Carla — benefits process failing;
       Thiago — exchange process slow (resolved yesterday); Lucas — provider outage (resolved) and the shared incident process;
       Helena — sees all of the above plus a provider outage resolved last week.
-- [ ] No alert is inserted directly; tests assert each alert has its `alerta_aberto` (and, for resolved ones,
+- [x] No alert is inserted directly; tests assert each alert has its `alerta_aberto` (and, for resolved ones,
       `alerta_resolvido`) audit entry by the system.
-- [ ] No persona receives an alert unrelated to them (Helena excepted: she sees all by role).
-- [ ] The bell's unread count and the page filters (Abertos, Em tratamento, Todos) show the mix correctly for each persona.
-- [ ] Tours still reset without alerts and keep their "veja e trate o seu alerta" step working.
-- [ ] The seed version is bumped; `pytest -q` green; checked in the browser for all 6 personas.
+- [x] No persona receives an alert unrelated to them (Helena excepted: she sees all by role).
+- [x] The bell's unread count and the page filters (Abertos, Em tratamento, Todos) show the mix correctly for each persona.
+- [x] Tours still reset without alerts and keep their "veja e trate o seu alerta" step working.
+- [x] The seed version is bumped; `pytest -q` green; checked in the browser for all 6 personas.
 
 ---
+
+**Notes (what was built):** a process that only reads files spends nothing on a model, so the budget rule cannot fire on it;
+those processes use the "slow" and "failing" rules instead. Resolved alerts keep the real seed time (the audit trail is
+chained and does not accept an invented time). The seed is slower (about 8 s instead of 2 s) because it runs the rules a few
+extra times; `gasto_no_mes` now sums in the database to keep that down.
 
 # 04: Alerts on the Início of each persona
 

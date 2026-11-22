@@ -271,6 +271,15 @@ def visiveis(s: Session, p: Persona, so_abertos: bool = True) -> list[Alerta]:
     return [a for a in todos if p.id in (a.destinatarios or [])]
 
 
+def marcar_lido(s: Session, al: Alerta, p: Persona) -> Alerta:
+    """"Marcar como lido" para `p` (a tela e a demonstração usam esta mesma função; não mexe no estado do alerta)."""
+    if p.id not in (al.lido_por or []):
+        al.lido_por = sorted(set(al.lido_por or []) | {p.id})
+        s.add(al)
+        s.commit()
+    return al
+
+
 def score(taxa_sucesso: float | None, alertas_abertos: list[Alerta]) -> dict:
     """0 a 100. Começa pela taxa de sucesso e perde pontos por alerta aberto."""
     nota = 100.0 if taxa_sucesso is None else 40 + 60 * taxa_sucesso

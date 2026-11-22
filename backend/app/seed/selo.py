@@ -11,7 +11,7 @@ from sqlmodel import Field, Session, SQLModel
 
 from ..core.relogio import agora
 
-VERSAO_SEMENTE = 1
+VERSAO_SEMENTE = 2
 CHAVE = "demo"
 
 

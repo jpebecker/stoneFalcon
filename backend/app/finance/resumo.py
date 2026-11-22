@@ -10,6 +10,7 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import timedelta
 
+from sqlalchemy import func
 from sqlmodel import Session, select
 
 from ..agents import modelos as am
@@ -90,13 +91,12 @@ def inicio_do_mes() -> str:
 
 def gasto_no_mes(s: Session, dono_id: str, tipo: str = "agente") -> float:
     """Gasto do mês de um agente ou de um processo (as execuções antigas, sem dono gravado, valem pelo agente_id)."""
-    q = select(rm.Execucao).where(rm.Execucao.inicio >= inicio_do_mes())
+    q = select(func.coalesce(func.sum(rm.Execucao.custo_usd), 0.0)).where(rm.Execucao.inicio >= inicio_do_mes())   # soma no banco: não traz as execuções
     if tipo == "agente":
         q = q.where(rm.Execucao.agente_id == dono_id)
     else:
         q = q.where(rm.Execucao.dono_tipo == tipo).where(rm.Execucao.dono_id == dono_id)
-    execs = s.exec(q).all()
-    return round(brl(sum(e.custo_usd for e in execs)), 4)
+    return round(brl(float(s.exec(q).one())), 4)
 
 
 def _agentes_visiveis(s: Session, p: Persona) -> dict[str, "am.Agente | pm.Processo"]:
