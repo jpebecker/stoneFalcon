@@ -36,6 +36,7 @@ def semear(s: Session, sem: frozenset[str] | set[str] = frozenset()) -> bool:
     ("duvida", "triagem", "ferias", "troca"), para o roteiro começar do zero daquele fluxo."""
     if s.exec(select(m.Agente).limit(1)).first():
         return False
+    arquivos_demo.preparar(s)      # o plugin e os arquivos primeiro: os processos de Lucas e Helena já leem arquivos
     for chave in CHAVES:
         if chave not in sem:
             criar_processo_demo(s, chave)

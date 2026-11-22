@@ -387,7 +387,7 @@ def test_resultado_de_todos_os_roteiros_responde(api):
         d = r.json()
         assert d["linhas"] or d["indicadores"]
     ind = {i["nome"]: i for i in api.get(f"{V1}/roteiros/lucas/resultado", headers=como("lucas")).json()["indicadores"]}
-    assert ind["Agentes e processos publicados sem código novo"]["valor"] == 13
+    assert ind["Agentes e processos publicados sem código novo"]["valor"] == 17
     assert ind["Revisões de segurança feitas"]["valor"] == 1
 
 
@@ -486,7 +486,7 @@ def test_reiniciar_a_demo_devolve_o_estado_inicial_exato(api, sessao):
 
     assert api.post(f"{V1}/demo/reiniciar", headers=h).json()["ok"]
     inicial = foto()
-    assert len(inicial[0]) == 4 and len(inicial[1]) == 9 and all(p[1] == "publicado" for p in inicial[1])
+    assert len(inicial[0]) == 6 and len(inicial[1]) == 11 and all(p[1] == "publicado" for p in inicial[1])
     pid = next(p["id"] for p in api.get(f"{V1}/processos", headers=h).json() if p["nome"] == "Orientação de férias")
     assert api.post(f"{V1}/processos/{pid}/pausar", json={"motivo": "teste"}, headers=como("lucas")).status_code == 200
     _executar_processo(api, "marina", next(p["id"] for p in api.get(f"{V1}/processos", headers=h).json()

@@ -30,6 +30,7 @@ MODULOS = {
     "atendimento": "Atendimento e logística",
     "pessoas": "Pessoas (RH)",
     "comunicacao": "Comunicação e conhecimento",
+    "plataforma": "Plataforma e sistemas",
     "plugins": "Plugins integrados",
 }
 
@@ -142,6 +143,24 @@ def _enviar_notificacao(e: dict, c: Contexto) -> dict:
     return {"notificacao_id": n["id"], "status": "enviada (simulado)"}
 
 
+def _consultar_estado_sistemas(_e: dict, c: Contexto) -> dict:
+    """O estado de cada sistema da Stone que as ferramentas tocam: ok, lento ou fora (a falha simulada pela Engenharia)."""
+    from ..mapa import SISTEMA_STONE
+    from . import executor
+    s = c.extras["sessao"]
+    por_sistema: dict[str, dict] = {}
+    for fid, (_sid, nome) in SISTEMA_STONE.items():
+        falha = executor.estado(s, fid).falha
+        estado = "fora" if falha in ("erro", "fora_do_ar") else "lento" if falha == "lento" else "ok"
+        item = por_sistema.setdefault(nome, {"sistema": nome, "estado": "ok", "ferramentas": []})
+        item["ferramentas"].append(CATALOGO[fid].nome if fid in CATALOGO else fid)
+        if estado == "fora" or (estado == "lento" and item["estado"] == "ok"):
+            item["estado"] = estado
+    sistemas = list(por_sistema.values())
+    return {"sistemas": sistemas, "total_sistemas": len(sistemas),
+            "com_problema": sum(1 for x in sistemas if x["estado"] != "ok")}
+
+
 def _bloquear_repasse(e: dict, c: Contexto) -> dict:
     l = _lojista(e["lojista_id"])
     b = {"id": fx.novo_id("BL", fx.BLOQUEIOS), "lojista_id": l["id"], "motivo": e["motivo"],
@@ -209,6 +228,11 @@ CATALOGO: dict[str, Especificacao] = {e.id: e for e in [
          "destino": {"type": "string", "description": "E-mail ou canal (#nome)."},
          "mensagem": {"type": "string"}},
         ("canal", "destino", "mensagem"), _enviar_notificacao, limite_por_minuto=10),
+    Especificacao(
+        "consultar_estado_sistemas", "Consultar o estado dos sistemas",
+        "Mostra se cada sistema interno (cadastro, transações, repasses, chamados...) está ok, lento ou fora do ar agora.",
+        "plataforma", Classificacao.INTERNA, ("engenharia", "gestao"), "leitura",
+        {}, (), _consultar_estado_sistemas, latencia_ms=90),
     Especificacao(
         "bloquear_repasse", "Reter repasses do lojista",
         "Retém preventivamente os repasses de um lojista sob suspeita. Ação sensível: "

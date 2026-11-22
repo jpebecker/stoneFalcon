@@ -39,7 +39,7 @@ def _tokens_do_custo(chave: str, custo_usd: float) -> tuple[int, int]:
     return int(custo_usd * 0.5 / m.preco_entrada * 1_000_000), int(custo_usd * 0.5 / m.preco_saida * 1_000_000)
 
 
-VOLUME_DIA = {"atendimento": 22, "risco": 9, "pessoas": 12, "logistica": 10}   # execuções por dia útil
+VOLUME_DIA = {"atendimento": 22, "risco": 9, "pessoas": 12, "logistica": 10, "engenharia": 5, "gestao": 2}   # execuções por dia útil
 
 
 def _passos(bp: Blueprint, est, custo_usd: float, status: str, motivo: str | None) -> dict:

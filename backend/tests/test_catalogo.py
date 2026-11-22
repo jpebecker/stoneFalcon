@@ -33,8 +33,17 @@ def test_galeria_so_tem_trabalhadores_de_um_passo():
         assert len(Blueprint.model_validate(p["blueprint"]).passos) == 1
 
 
+@pytest.fixture()
+def plugin_arquivos():
+    """Os processos de Lucas e Helena leem arquivos: na demo o plugin nasce integrado."""
+    from app.plugins import estado
+    estado.INTEGRADOS.add("arquivos")
+    yield
+    estado.INTEGRADOS.discard("arquivos")
+
+
 @pytest.mark.parametrize("padrao", [p["id"] for p in PADROES])
-def test_cada_exemplo_cai_no_padrao_certo(padrao):
+def test_cada_exemplo_cai_no_padrao_certo(padrao, plugin_arquivos):
     demo = catalogo.por_padrao(padrao)
     for texto in demo.exemplos:
         s = sugerir(PERSONAS[demo.persona], texto)

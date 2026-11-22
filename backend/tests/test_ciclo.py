@@ -102,7 +102,7 @@ def test_nova_versao_de_agente_publicado_em_revisao_mantem_a_anterior_no_ar(sess
 def test_nao_cria_com_ferramenta_que_nao_pode_usar(sessao):
     with pytest.raises(ciclo.ErroCiclo, match="não pode usar"):
         ciclo.criar(sessao, P["marina"], TRIAGEM_CHARGEBACK)
-    with pytest.raises(ciclo.ErroCiclo, match="não cria"):
+    with pytest.raises(ciclo.ErroCiclo, match="não pode usar"):      # v8.1: a Helena cria, mas só com as ferramentas da área dela
         ciclo.criar(sessao, P["helena"], DUVIDA_LOJISTA)
 
 
@@ -151,7 +151,7 @@ def test_semente_da_demo_publica_agentes_e_mantem_trilha_integra(sessao):
     assert semear(sessao) and not semear(sessao)
     estados = {a.nome: (a.estado, a.versao_publicada) for a in sessao.exec(__import__("sqlmodel").select(m.Agente))}
     assert estados["Analista de risco de chargebacks"] == (m.PUBLICADO, 1)
-    assert len(estados) == 4 and trilha.verificar(sessao)["integra"]
+    assert len(estados) == 6 and trilha.verificar(sessao)["integra"]
 
 
 def test_api_publicar_revisar_executar(api):

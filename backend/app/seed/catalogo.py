@@ -22,7 +22,7 @@ class Demo:
     """Uma entrada do catálogo: o trabalhador e o processo de uma persona, com o que a demo precisa saber deles."""
     chave: str                  # estável: "duvida", "triagem", "ferias", "troca"
     persona: str                # quem cria (e dona do processo)
-    roteiro: str                # roteiro guiado que o realiza
+    roteiro: str | None         # roteiro guiado que o realiza (None: o processo não tem AS IS × TO BE, é de governança)
     area: str
     nome_agente: str
     nome_processo: str
@@ -57,6 +57,17 @@ DEMOS: dict[str, Demo] = {d.chave: d for d in (
              "Conferir cadastro, regra de troca e estoque da maquininha antes de abrir o chamado",
              "Quando o lojista diz que a maquininha quebrou eu confiro o cadastro e abro chamado de troca na logística",
              "Maquininha com defeito: verificar o cliente e pedir a troca")),
+    # v8.1: Lucas (Engenharia) e Helena (CoE de IA) também têm o seu processo
+    Demo("incidente", "lucas", None, "engenharia", "Analista de incidentes", "Triagem de incidente de sistema", 60.0,
+         "Triagem de incidentes: registro, estado dos sistemas e chamado para a Engenharia.", "triagem_incidente", (
+             "Quando um sistema cai eu confiro o registro de incidentes e o estado dos sistemas e, se for crítico, abro chamado na fila da Engenharia",
+             "Triar um incidente de sistema: ver o histórico, o estado atual e decidir se vira chamado",
+             "Analisar se um sistema fora do ar é um incidente crítico e avisar a Engenharia")),
+    Demo("custo_ia", "helena", None, "gestao", "Analista de custo de IA", "Revisão mensal do custo de IA", 40.0,
+         "Revisão mensal do custo de IA contra o orçamento.", "revisao_custo_ia", (
+             "Todo mês confiro o resumo de Finanças, comparo o custo de IA com o orçamento e aviso o time se passou",
+             "Revisar o custo de IA do mês e dizer se está acima do orçamento",
+             "Ler o arquivo de finanças, somar o custo e o ganho e avisar quando o orçamento estoura")),
 )}
 
 CHAVES = tuple(DEMOS)
@@ -98,6 +109,16 @@ TRABALHADORES: dict[str, Blueprint] = {
         "ferias", "Responder dúvidas de férias e benefícios usando a ficha do colaborador e a política de RH.",
         "Não exponha dados de outros colaboradores. Linguagem acolhedora.", ["consultar_colaborador", "buscar_politica"],
         "Responda à pergunta usando o saldo e os benefícios da ficha e a política encontrada.", "rapido"),
+    "incidente": _trabalhador(
+        "incidente", "Avaliar se um incidente de sistema é crítico, com o registro de incidentes e o estado atual dos sistemas.",
+        "Cite os números do registro e do estado dos sistemas. Nunca abra chamado sozinho: quem abre é o processo.",
+        ["buscar_politica"],
+        "Com o histórico do registro e o estado atual dos sistemas, diga se o incidente é crítico e por quê, citando os números.", "auto"),
+    "custo_ia": _trabalhador(
+        "custo_ia", "Comparar o custo de IA do resumo de Finanças com o orçamento mensal e dizer se está acima.",
+        "Cite os valores do arquivo de finanças e o orçamento informado. Não invente números.",
+        [],
+        "Some o custo e o ganho do resumo de Finanças, compare com o orçamento mensal informado e diga se está acima ou dentro.", "rapido"),
     "troca": _trabalhador(
         "troca", "Avaliar um pedido de troca de maquininha com o cadastro, a regra de troca e o estoque do modelo.",
         "Confirme o modelo e o endereço antes de abrir o chamado. Se o estoque estiver baixo, diga isso.",
@@ -149,6 +170,43 @@ def processo(chave: str, agente: str, slack: bool = False, por_nome: bool = Fals
                     _b("ficha", "dados", "Consultar ficha do colaborador", ferramenta="consultar_colaborador", entrada={"colaborador_id": "{{entrada.colaborador_id}}"}),
                     _b("politica", "dados", "Buscar a política de RH", ferramenta="buscar_politica", entrada={"area": "rh", "consulta": "{{entrada.pergunta}}"}),
                     _b("resposta", "agente", "Responder ao colaborador", ["ficha", "politica"], **chave_agente)]}
+    if chave == "incidente":
+        return {**base, "objetivo": "Conferir o registro de incidentes e o estado dos sistemas, avaliar se o incidente é crítico e, se for, abrir chamado na fila da Engenharia.",
+                "minutos_manual": 15,
+                "campos": [{"id": "sistema", "rotulo": "Sistema com problema", "tipo": "opcao",
+                            "opcoes": ["Cadastro de lojistas", "Transações e contestações", "Repasses e liquidação", "Central de chamados",
+                                       "Base de políticas", "Cadastro de colaboradores", "Estoque e logística", "Mensageria interna"],
+                            "exemplo": "Cadastro de lojistas", "ajuda": "Escolha o sistema pelo nome."}],
+                "blocos": [
+                    _b("registro", "dados", "Ler o histórico do sistema no registro de incidentes", ferramenta="arquivos_ler_linhas",
+                       entrada={"arquivo": "registro-incidentes.csv", "coluna": "sistema", "valor": "{{entrada.sistema}}", "limite": 10}),
+                    _b("estado", "dados", "Conferir o estado atual dos sistemas", ferramenta="consultar_estado_sistemas", entrada={}),
+                    _b("analise", "agente", "Avaliar o incidente", ["registro", "estado"], **chave_agente),
+                    _b("critico", "condicao", "O incidente é crítico?", ["analise"],
+                       regra={"fonte": "passos.analise.saida", "operador": "contem", "valor": "Incidente CRÍTICO"}),
+                    _b("chamado", "plugin", "Abrir chamado na fila da Engenharia", ["critico"], ferramenta="abrir_chamado",
+                       ramo={"condicao": "critico", "valor": "sim"},
+                       entrada={"fila": "engenharia", "titulo": "Incidente crítico: {{entrada.sistema}}", "descricao": "{{passos.analise.saida}}",
+                                "prioridade": "alta"}),
+                    _b("sem_incidente", "saida", "Sem incidente crítico: seguir o acompanhamento", ["critico"],
+                       ramo={"condicao": "critico", "valor": "nao"},
+                       texto="Sem incidente crítico neste sistema agora: nenhum chamado aberto. Segue o acompanhamento de rotina.")]}
+    if chave == "custo_ia":
+        return {**base, "objetivo": "Ler o resumo de Finanças, comparar o custo de IA com o orçamento do mês e avisar o time quando passar.",
+                "minutos_manual": 30,
+                "campos": [{"id": "orcamento_brl", "rotulo": "Orçamento mensal de IA (R$)", "tipo": "texto", "exemplo": "100",
+                            "ajuda": "Quanto a empresa topa gastar com IA no mês, em reais."}],
+                "blocos": [
+                    _b("financas", "dados", "Ler o resumo de Finanças", ferramenta="arquivos_ler_linhas",
+                       entrada={"arquivo": "financas-resumo-inicial.csv", "limite": 50}),
+                    _b("analise", "agente", "Comparar o custo com o orçamento", ["financas"], **chave_agente),
+                    _b("acima", "condicao", "O custo passou do orçamento?", ["analise"],
+                       regra={"fonte": "passos.analise.saida", "operador": "contem", "valor": "ACIMA DO ORÇAMENTO"}),
+                    _b("aviso", "saida", "Avisar o time do CoE no Slack", ["acima"], ferramenta="enviar_notificacao",
+                       ramo={"condicao": "acima", "valor": "sim"},
+                       entrada={"canal": "slack", "destino": "#coe-ia", "mensagem": "Custo de IA acima do orçamento: {{passos.analise.saida}}"}),
+                    _b("dentro", "saida", "Dentro do orçamento: nada a fazer", ["acima"], ramo={"condicao": "acima", "valor": "nao"},
+                       texto="O custo de IA está dentro do orçamento do mês: nenhum aviso. Segue a revisão do próximo mês.")]}
     aviso = (_b("canal", "plugin", "Avisar o canal da logística no Slack", ["chamado"], ferramenta="slack_enviar_mensagem",
                 entrada={"canal": "#logistica", "mensagem": "Troca de {{entrada.modelo}}: {{passos.analise.saida}}"}) if slack else
              _b("canal", "saida", "Avisar o canal da logística", ["chamado"], ferramenta="enviar_notificacao",
