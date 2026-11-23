@@ -4,6 +4,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { api, type Alerta, type Persona } from "../api/cliente";
 import { quando } from "../components/formato";
 import Carregando from "../components/falcao/Carregando";
+import SeloSeveridade, { bordaDaSeveridade } from "../components/SeloSeveridade";
 import { alvoDe, destacar, useFalcao } from "../components/falcao/Voo";
 import Vazio from "../components/falcao/Vazio";
 
@@ -127,11 +128,9 @@ export default function Alertas({ pessoa }: { pessoa: Persona }) {
       {lista.length === 0 && <Vazio dica={filtro === "tratamento" ? "Assuma um alerta aberto para ele aparecer aqui com o seu nome." : "Quando algo sair do normal, o alerta aparece aqui e no sino."}>{filtro === "tratamento" ? "Nenhum alerta em tratamento." : "Tudo certo por aqui."}</Vazio>}
       <ul className="space-y-3">
         {lista.map((a) => (
-          <li key={a.id} data-alerta-id={a.id} tabIndex={-1} className={"caixa border-l-4 p-4 outline-none " + (a.resolvido_em ? "border-l-linha opacity-70" : a.severidade === "critico" ? "border-l-erro" : "border-l-alerta")}>
+          <li key={a.id} data-alerta-id={a.id} tabIndex={-1} className={"caixa alerta-focavel border-l-4 p-4 " + (a.resolvido_em ? "border-l-linha opacity-70" : bordaDaSeveridade(a.severidade))}>
             <div className="flex flex-wrap items-center gap-2">
-              <span className={"selo " + (a.severidade === "critico" ? "bg-erro-fundo text-erro" : "bg-alerta-fundo text-alerta")}>
-                {a.severidade === "critico" ? "Crítico" : "Atenção"}
-              </span>
+              <SeloSeveridade severidade={a.severidade} />
               {a.resolvido_em && <span className="selo bg-pedra-fundo text-pedra-forte">Resolvido</span>}
               {a.tratando_por && !a.resolvido_em && <span className="selo bg-info-fundo text-info" data-testid="em-tratamento">em tratamento · por {a.tratando_nome}</span>}
               {!a.lido && !a.resolvido_em && <span className="h-2 w-2 rounded-full bg-falcao" aria-label="não lido" />}

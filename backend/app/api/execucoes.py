@@ -13,11 +13,11 @@ from sqlmodel import Session, select
 from .. import guardrails
 from ..agents.blueprint import Blueprint
 from ..core.db import sessao
-from ..core.identidade import CRIADOR, GESTOR_IA, Persona, exigir, usuario_atual
+from ..core.identidade import CRIADOR, Persona, exigir, usuario_atual
 from ..rotinas import marcar as marcar_rotina
 from ..observability import avaliar_seguro
-from ..processos import modelos as pm
 from ..runtime import modelos as m
+from ..runtime import visibilidade
 from ..runtime import motor
 
 rotas = APIRouter(prefix="/api/v1", tags=["execucoes"])
@@ -32,16 +32,8 @@ def _publico(exe: m.Execucao, mapa: dict | None = None) -> dict:
     return d
 
 
-def _recebe_o_processo(s: Session, p: Persona, exe: m.Execucao) -> bool:
-    """A execução é de um processo compartilhado com a área de `p` (as duas áreas veem a mesma história do processo)."""
-    if exe.dono_tipo != "processo" or not exe.dono_id:
-        return False
-    proc = s.get(pm.Processo, exe.dono_id)
-    return proc is not None and p.area in (proc.compartilhado_com or [])
-
-
 def _pode_ver(s: Session, p: Persona, exe: m.Execucao) -> None:
-    if not (p.id == exe.persona or p.area == exe.area or p.tem(GESTOR_IA) or _recebe_o_processo(s, p, exe)):
+    if not visibilidade.pode_ver(s, p, exe):
         raise HTTPException(status_code=403, detail="Você não tem acesso a esta execução.")
 
 
@@ -70,11 +62,9 @@ def executar(pedido: PedidoExecucao, pessoa: Persona = Depends(usuario_atual), s
 def listar(pendentes: bool = False, limite: int = 50, pessoa: Persona = Depends(usuario_atual),
            s: Session = Depends(sessao)):
     q = select(m.Execucao)
-    if not pessoa.tem(GESTOR_IA):
-        # as execuções da pessoa, da área dela e dos processos que outras áreas compartilham com a área dela
-        compartilhados = [x.id for x in s.exec(select(pm.Processo)) if pessoa.area in (x.compartilhado_com or [])]
-        q = q.where((m.Execucao.persona == pessoa.id) | (m.Execucao.area == pessoa.area)
-                    | ((m.Execucao.dono_tipo == "processo") & m.Execucao.dono_id.in_(compartilhados)))
+    condicao = visibilidade.filtro(s, pessoa)
+    if condicao is not None:
+        q = q.where(condicao)
     if pendentes:
         q = q.where(m.Execucao.status == m.AGUARDANDO)
     itens = s.exec(q.order_by(m.Execucao.inicio.desc()).limit(min(max(limite, 1), 500))).all()

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { api, type Processo } from "../api/cliente";
+import Carregando from "./falcao/Carregando";
 
 export type Area = { id: string; nome: string };
 
@@ -36,7 +37,7 @@ export default function PainelCompartilhar({ p, aoFechar }: { p: Processo; aoFec
       </div>
       <fieldset className="flex flex-wrap gap-x-6 gap-y-2" disabled={salvar.isPending}>
         <legend className="sr-only">Áreas com acesso</legend>
-        {areas.isPending && <p className="text-sm text-tinta-3">Carregando as áreas…</p>}
+        <Carregando ativo={areas.isPending} texto="Carregando as áreas…" tamanho={32} />
         {outras.map((a) => (
           <label key={a.id} className="flex items-center gap-2 text-sm">
             <input type="checkbox" className="h-4 w-4 accent-[rgb(var(--pedra))]" checked={marcadas.includes(a.id)} onChange={() => alternar(a.id)} />

@@ -315,7 +315,7 @@ switch in the persona menu hides the bubble and ambient behaviour (feedback flig
 - [x] Speech bubble component: short text, auto-hides, dismissable, announced politely to screen readers, never covers
       the main action button.
 - [x] Greeting on login (through the persona wheel) with the persona's first name and their open alert count.
-- [x] DESIGN.md §7.5 rewritten with the new rule and its limits (frequency cap, never during typing or a modal, never
+- [x] DESIGN.md §7.5 rewritten with the new rule and its limits (§7 rule 5 points to the falcon's motion rule in §8) (frequency cap, never during typing or a modal, never
       during an action flight); §7.6 updated.
 - [x] "Silenciar o falcão" switch, per-viewer, remembered as a convenience only (works without storage).
 - [x] Reduced motion: perched still, no greeting flight, bubble without animation.
@@ -383,9 +383,11 @@ and are off with reduced motion or with the falcon silenced.
 **Status:** feito
 
 - [x] One scheduler for all ambient routines with a configurable cap; no two ambient behaviours within the cap window.
-- [x] Each routine above triggers only on its real condition and can be turned on in a test page for review (extend the
-      existing falcon test page).
-- [x] Paused during typing, open dialogs, action flights and active tours; off with reduced motion and when silenced.
+- [ ] Each routine above triggers only on its real condition and can be turned on in a test page for review (extend the
+      existing falcon test page). *Partial: the triggers are in; the test page lives outside Git (`.git/info/exclude`), so
+      the review can't use it from the branch.*
+- [ ] Paused during typing, open dialogs, action flights and active tours; off with reduced motion and when silenced.
+      *Partial: reduced motion was checked by reading the code only, not in the browser.*
 - [x] Tips and bubble lines are short, in Portuguese, and follow the UX writing in DESIGN.md.
 - [x] No ambient routine moves focus, blocks a click or covers the main action button.
 - [x] `npm run build` passes; checked in the browser for 10 minutes of normal use as Helena without excessive appearances.
@@ -400,6 +402,10 @@ with the cap lowered from the console, a real new alert (a system set to "down" 
 say "Chegaram 3 alertas novos." The local test page (`frontend/falcao-teste.html`, kept out of Git by `.git/info/exclude`) was extended with the perch, the bubble and a button per routine, but that change is not part of the commit; in the app `window.__ambiente.capMs` lowers the cap from the console.
 Not exercised for real: the "first run of the day" routine (only in the test page) and reduced motion for the ambient part (the
 scheduler returns early; checked by reading the code).
+
+**Review follow-up:** "the day" is now the viewer's local day (it was the UTC date, which turns at 21:00 in Brasília), and any
+successful run from today counts, including one made before reloading the page (it used to count only runs after the page
+loaded). `window.__ambiente` is set only in development.
 
 # 11: Docs, tours and version 8.3.0
 

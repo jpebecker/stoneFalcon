@@ -104,7 +104,7 @@ python scripts/fumaca_iniciar.py
 - Não calcule permissão no front, nem duplique a lista de abas.
 - Não grave dado real ou pessoal; os dados de demonstração são inventados.
 - Não use `--workers` no back nem tarefas que dependam de vários processos.
-- Não rode “Reiniciar a demo” contra um banco que importa: **apaga o banco, inclusive a trilha de auditoria**.
+- Não rode “Reiniciar a demo” contra um banco que importa: **apaga o banco, inclusive a trilha de auditoria**. Desde a 8.3 o mesmo acontece **sozinho ao ligar** quando o banco não tem o selo de versão do seed ou tem um selo antigo (todo banco da 8.2 ou anterior); para ligar sobre um banco que importa, use `STONEFALCON_SEMEAR=0` (veja [ARCHITECTURE.md](ARCHITECTURE.md)).
 - Não mude a versão, o contrato da API ou a matriz de acesso sem o ticket pedir; atualize os documentos ([REQUIREMENTS.md](REQUIREMENTS.md), [ARCHITECTURE.md](ARCHITECTURE.md)) quando mudar.
 - Não pule a CI nem os hooks.
 

@@ -102,7 +102,7 @@ Regras que todo ticket de tela deve seguir:
 2. **Nome acessível.** Todo controle sem texto visível (ícone, foto, fatia) tem `aria-label` ou `alt`.
 3. **Cor não basta.** Estado e categoria também em texto ou ícone; contraste de texto adequado sobre `papel` e `folha`.
 4. **Avisos.** Erro de formulário e de servidor com `role="alert"`; carga com `aria-busy`; região que muda sozinha com `aria-live`.
-5. **Movimento com propósito.** Animação só para dar retorno ou orientar (ampliar a fatia, entrada de nó novo); curta (≈ 0,2 s para retorno) e sem efeito decorativo.
+5. **Movimento com propósito.** Animação só para dar retorno ou orientar (ampliar a fatia, entrada de nó novo); curta (≈ 0,2 s para retorno) e sem efeito decorativo. A exceção é o falcão: desde a 8.3 ele também tem os papéis de presença, guia e ambiente, cada um com o seu limite (teto de frequência, nunca enquanto a pessoa digita, com um diálogo aberto ou durante um voo de ação), descritos na regra de movimento do §8.
 6. **Reduzir movimento.** Toda animação ou transição nova tem tratamento em `@media (prefers-reduced-motion: reduce)` (sem animação, estado final direto). Já cobertos: roda, Mapa de IA, `animate-pulse` e o falcão (batida de asa, travessia, destaque, saída da camada de voo, entrada do balão e o poleiro, que fica parado). Com movimento reduzido o falcão companheiro não faz voo de chegada, não tem comportamento ambiente e o balão aparece sem animação (§8, regra de movimento).
 7. **Imagens que falham.** Foto de persona nunca deixa buraco: iniciais na cor da persona.
 8. **Idioma.** `lang="pt-BR"`; texto em português do Brasil, linguagem simples, sem jargão.
@@ -117,7 +117,7 @@ O animal do nome Stone**Falcon** (grupo PinkFalcon) tem duas formas. O **rosto**
 
 **Corpo.** `<Falcao estado="parado" | "voo" | "estatico" direcao tamanho />`: quadro de 128 × 112, 6 quadros em 1,1 s parado e 8 quadros em 0,56 s no voo (com rastro). O traço engrossa em tamanhos pequenos (×1,7 até 48 px, ×1,3 até 72 px). É sempre `aria-hidden`: o falcão nunca é a única informação.
 
-**Regra de movimento (§7.5, reescrita na 8.3).** O falcão é parte da interface, não só um efeito de retorno. Ele pode estar em quatro papéis, cada um com o seu limite:
+**Regra de movimento (amplia a regra 5 do §7 na 8.3).** O falcão é parte da interface, não só um efeito de retorno. Ele pode estar em quatro papéis, cada um com o seu limite:
 
 1. **Poleiro (presença).** Parado ao lado da marca, no menu, em toda tela logada (quadro estático, sem animação). Enquanto um voo acontece o poleiro fica vazio e, quando o voo termina, o falcão volta a ele. Não é decoração que se mexe: não anima sozinho.
 2. **Retorno (feedback de uma ação).** Como sempre: **só depois de uma ação da pessoa** e **no máximo um voo por ação**.

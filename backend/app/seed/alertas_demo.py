@@ -186,33 +186,20 @@ def _ligar_orcamento(s: Session, p: pm.Processo) -> Desfazer:
     return lambda: definir(anterior)
 
 
-# os roteiros guiados chamam estas (sem desfazer): moldam e deixam
-def _falhando(s: Session, p: pm.Processo) -> None:
-    _ligar_falhando(s, p)
-
-
-def _lento(s: Session, p: pm.Processo) -> None:
-    _ligar_lento(s, p)
-
-
-def _orcamento_a_88(s: Session, p: pm.Processo) -> None:
-    _ligar_orcamento(s, p)
-
-
 def _cenario(s: Session, persona: str) -> None:
     """Molda o cenário principal de `persona` (o mesmo no estado inicial e no passo do roteiro)."""
     if persona == "marina":
         p = _processo(s, "duvida")
         if p is not None:
-            _lento(s, p)
+            _ligar_lento(s, p)   # o cenário molda e deixa (sem desfazer)
     elif persona == "rafael":
         p = _processo(s, "triagem")
         if p is not None:
-            _falhando(s, p)
+            _ligar_falhando(s, p)
     elif persona in ("carla", "helena"):
         p = _processo(s, "ferias" if persona == "carla" else "custo_ia")
         if p is not None:
-            _orcamento_a_88(s, p)
+            _ligar_orcamento(s, p)
     elif persona == "thiago":
         executor.definir_falha(s, SISTEMA_LENTO_THIAGO, "lento", "sistema")
     elif persona == "lucas":

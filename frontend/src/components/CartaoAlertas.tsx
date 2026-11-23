@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { api, type Alerta } from "../api/cliente";
+import Carregando from "./falcao/Carregando";
 import Vazio from "./falcao/Vazio";
+import SeloSeveridade from "./SeloSeveridade";
 
 const MAXIMO = 3;
 
@@ -28,7 +30,7 @@ export default function CartaoAlertas() {
         <Link to="/alertas" className="text-sm font-semibold text-pedra-forte">Ver todos</Link>
       </div>
 
-      {q.isPending && <p className="mt-3 text-sm text-tinta-3" aria-busy="true">Carregando…</p>}
+      <Carregando ativo={q.isPending} texto="Carregando os alertas…" tamanho={32} className="mt-3" />
       {q.isSuccess && abertos.length === 0 && <Vazio caixa={false} className="mt-2 px-0 py-2" dica="Sem alertas por enquanto. Se algo sair do normal, ele aparece aqui.">Nenhum alerta aberto. Tudo certo por aqui.</Vazio>}
 
       {mostrados.length > 0 && (
@@ -36,9 +38,7 @@ export default function CartaoAlertas() {
           {mostrados.map((a) => (
             <li key={a.id}>
               <Link to={"/alertas?alerta=" + a.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5 text-sm hover:bg-papel">
-                <span className={"selo " + (a.severidade === "critico" ? "bg-erro-fundo text-erro" : "bg-alerta-fundo text-alerta")}>
-                  {a.severidade === "critico" ? "Crítico" : "Atenção"}
-                </span>
+                <SeloSeveridade severidade={a.severidade} />
                 {!a.lido && <span className="h-2 w-2 shrink-0 rounded-full bg-falcao" role="img" aria-label="não lido" />}
                 <span className="min-w-0 flex-1 font-medium">{a.titulo}</span>
                 {a.tratando_por && <span className="selo bg-info-fundo text-info">em tratamento · por {a.tratando_nome}</span>}

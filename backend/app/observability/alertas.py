@@ -29,6 +29,7 @@ from sqlmodel import Field, Session, SQLModel, select
 from ..agents import modelos as am
 from ..agents.blueprint import Blueprint
 from ..agents.ciclo import ErroCiclo
+from ..agents.dono import AGENTE, PROCESSO
 from ..audit import trilha
 from ..core.db import trava
 from ..core.identidade import CRIADOR, ENGENHARIA_PLATAFORMA, GESTOR_IA, PERSONAS, Persona
@@ -150,7 +151,7 @@ def _condicoes_dono(s: Session, d, tipo: str) -> list[dict]:
 
 
 def _condicoes_agente(s: Session, a: am.Agente) -> list[dict]:
-    return _condicoes_dono(s, a, "agente")
+    return _condicoes_dono(s, a, AGENTE)
 
 
 def regras_que_valem(s: Session, d, tipo: str) -> set[str]:
@@ -201,10 +202,15 @@ def _abrir_ou_atualizar(s: Session, abertos: dict[str, Alerta], chave: str, dado
     if a:
         novos = sorted(set(destinatarios))
         if novos != sorted(a.destinatarios or []):   # o processo passou a ser (ou deixou de ser) compartilhado com outra área
+            saiu_quem_tratava = a.tratando_por is not None and a.tratando_por not in novos
             trilha.registrar(s, "alerta_destinatarios_alterados", "sistema", agente_id or processo_id,
-                             {"alerta": a.id, "de": sorted(a.destinatarios or []), "para": novos},
-                             dono_tipo="processo" if processo_id else "agente")
+                             {"alerta": a.id, "de": sorted(a.destinatarios or []), "para": novos,
+                              "tratando_por_removido": a.tratando_por if saiu_quem_tratava else None},
+                             dono_tipo=PROCESSO if processo_id else AGENTE)
             a.destinatarios, a.atualizado_em = novos, agora_iso
+            a.lido_por = [x for x in (a.lido_por or []) if x in novos]   # quem saiu não conta mais como leitor
+            if saiu_quem_tratava:   # quem assumiu deixou de receber o alerta: ele volta a estar sem dono
+                a.tratando_por = a.tratando_nota = a.tratando_desde = None
             s.add(a)
         if a.detalhe != dados["detalhe"] or a.severidade != dados["severidade"]:
             a.detalhe, a.severidade, a.atualizado_em = dados["detalhe"], dados["severidade"], agora_iso
@@ -218,7 +224,7 @@ def _abrir_ou_atualizar(s: Session, abertos: dict[str, Alerta], chave: str, dado
     abertos[chave] = a
     trilha.registrar(s, "alerta_aberto", "sistema", agente_id or processo_id, {
         "alerta": a.id, "regra": a.regra, "severidade": a.severidade, "conector": a.conector,
-        "destinatarios": a.destinatarios, "titulo": a.titulo}, dono_tipo="processo" if processo_id else "agente")
+        "destinatarios": a.destinatarios, "titulo": a.titulo}, dono_tipo=PROCESSO if processo_id else AGENTE)
 
 
 def avaliar(s: Session) -> dict:
@@ -236,7 +242,7 @@ def avaliar(s: Session) -> dict:
             for c in _condicoes_agente(s, a):
                 _abrir_ou_atualizar(s, abertos, "%s:%s:" % (c["regra"], a.id), c, a.id, [a.dono], vistos)
         for p, _bp in processos:
-            for c in _condicoes_dono(s, p, "processo"):
+            for c in _condicoes_dono(s, p, PROCESSO):
                 _abrir_ou_atualizar(s, abertos, "%s:%s:" % (c["regra"], p.id), c, None, destinatarios_do_processo(p), vistos, processo_id=p.id)
 
         for cid, c in _condicoes_conectores(s).items():
@@ -267,7 +273,7 @@ def avaliar(s: Session) -> dict:
             s.add(a)
             resolvidos.append(a.id)
             trilha.registrar(s, "alerta_resolvido", "sistema", a.agente_id or a.processo_id, {"alerta": a.id, "regra": a.regra, "tratando_por": a.tratando_por},
-                             dono_tipo="processo" if a.processo_id else "agente")
+                             dono_tipo=PROCESSO if a.processo_id else AGENTE)
         s.commit()
         return {"abertos": sorted(vistos - antes), "resolvidos": resolvidos}
 

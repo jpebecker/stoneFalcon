@@ -75,6 +75,26 @@ def test_mudar_as_areas_compartilhadas_muda_os_destinatarios_na_proxima_rodada(s
     assert len([e for e in trilha.listar(sessao, tipo="alerta_destinatarios_alterados", limite=50) if e.dados["alerta"] == antes]) == 2
 
 
+def test_tirar_a_area_de_quem_assumiu_devolve_o_alerta_sem_dono(sessao):
+    """Se a área de quem assumiu (ou leu) o alerta deixa de receber o processo, o alerta não fica "em tratamento" por alguém que não o vê."""
+    from app.observability import tratamento
+    semear(sessao, alertas=False)
+    p = _compartilhado(sessao)
+    alertas_demo._ligar_falhando(sessao, p)
+    alertas.avaliar(sessao)
+    a = _alerta(sessao, "processo_falhando", p)
+    tratamento.assumir(sessao, a, PERSONAS["lucas"], "olhando")
+    alertas.marcar_lido(sessao, a, PERSONAS["lucas"])
+    alertas.marcar_lido(sessao, a, PERSONAS["thiago"])
+    ciclo_processos.compartilhar(sessao, PERSONAS["thiago"], p.id, [])
+    alertas.avaliar(sessao)
+    a = _alerta(sessao, "processo_falhando", p)
+    assert a.destinatarios == ["thiago"] and a.lido_por == ["thiago"]
+    assert a.tratando_por is None and a.tratando_nota is None and a.tratando_desde is None
+    ev = [e for e in trilha.listar(sessao, tipo="alerta_destinatarios_alterados", limite=50) if e.dados["alerta"] == a.id]
+    assert ev[-1].dados["tratando_por_removido"] == "lucas"
+
+
 def test_a_demo_tem_um_alerta_no_processo_compartilhado_so_para_thiago_lucas_e_helena(sessao):
     semear(sessao)
     p = _compartilhado(sessao)

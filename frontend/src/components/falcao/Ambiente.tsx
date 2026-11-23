@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
-import { api, type Execucao, type Persona } from "../../api/cliente";
+import { SANDBOX, api, type Execucao, type Persona } from "../../api/cliente";
 import { CONFIG_AMBIENTE } from "./agendador";
 import { alvoDe, useFalcao } from "./Voo";
 
@@ -53,7 +53,10 @@ export const rotinas = {
 
 // ---------- os gatilhos reais ----------
 const CHAVE_DIA = "stonefalcon.falcao.comemorou.";
-const hoje = () => new Date().toISOString().slice(0, 10);
+// o dia da pessoa, no fuso do navegador (o dia UTC viraria às 21h em Brasília)
+const doisDigitos = (n: number) => String(n).padStart(2, "0");
+const hoje = () => { const d = new Date(); return `${d.getFullYear()}-${doisDigitos(d.getMonth() + 1)}-${doisDigitos(d.getDate())}`; };
+const inicioDeHoje = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); };
 const jaComemorou = (pessoa: string, memoria: Set<string>): boolean => {
   if (memoria.has(pessoa + hoje())) return true;
   try { return localStorage.getItem(CHAVE_DIA + pessoa) === hoje(); } catch { return false; }
@@ -62,7 +65,6 @@ const marcarComemorou = (pessoa: string, memoria: Set<string>) => {
   memoria.add(pessoa + hoje());
   try { localStorage.setItem(CHAVE_DIA + pessoa, hoje()); } catch { /* sem armazenamento: vale só nesta sessão */ }
 };
-const inicioDaSessao = Date.now();
 
 /**
  * Liga as rotinas ambiente ao que acontece de verdade: o não lido do sino subindo, o tempo sem mexer na tela e a primeira execução
@@ -70,8 +72,10 @@ const inicioDaSessao = Date.now();
  */
 export function useAmbiente({ pessoa, naoLidos }: { pessoa: Persona | undefined; naoLidos: number | undefined }) {
   const falcao = useFalcao();
-  useEffect(() => { (window as unknown as { __ambiente?: typeof CONFIG_AMBIENTE }).__ambiente = CONFIG_AMBIENTE; }, []);   // a revisão ajusta o teto pelo console
-  const f = useRef(falcao);
+  useEffect(() => {   // só em desenvolvimento: a revisão ajusta o teto pelo console (window.__ambiente.capMs)
+    if (import.meta.env.DEV) (window as unknown as { __ambiente?: typeof CONFIG_AMBIENTE }).__ambiente = CONFIG_AMBIENTE;
+  }, []);
+  const f = useRef(falcao);   // a API do falcão mais recente, para os temporizadores não guardarem uma antiga
   f.current = falcao;
   const { pathname } = useLocation();
   const caminho = useRef(pathname);
@@ -110,7 +114,8 @@ export function useAmbiente({ pessoa, naoLidos }: { pessoa: Persona | undefined;
     return () => { eventos.forEach((e) => window.removeEventListener(e, mexeu, { capture: true })); clearInterval(t); };
   }, []);
 
-  // 3) primeira execução bem-sucedida do dia: uma execução DESTA sessão, da própria pessoa, de verdade (não histórico, não rotina agendada)
+  // 3) primeira execução bem-sucedida do dia: de hoje (no fuso da pessoa), da própria pessoa, de verdade (não demonstração,
+  //    não rotina agendada, não teste). Vale também a execução feita antes de recarregar a página.
   const memoria = useRef(new Set<string>());
   const execs = useQuery({
     queryKey: ["execucoes-ambiente", pessoa?.id], enabled: !!pessoa, refetchInterval: 20_000,
@@ -119,7 +124,7 @@ export function useAmbiente({ pessoa, naoLidos }: { pessoa: Persona | undefined;
   useEffect(() => {
     if (!pessoa || !execs.data || jaComemorou(pessoa.id, memoria.current)) return;
     const feita = execs.data.some((e) => e.persona === pessoa.id && e.status === "concluida" && !e.demo && !e.rotina
-      && e.agente_id !== "sandbox" && e.dono_id !== "sandbox" && new Date(e.inicio).getTime() >= inicioDaSessao - 5_000);
+      && e.agente_id !== SANDBOX && e.dono_id !== SANDBOX && new Date(e.inicio).getTime() >= inicioDeHoje());
     if (!feita) return;
     f.current.pedirAmbiente({ id: "primeira-do-dia", prio: 2, validadeMs: 180_000, executar: () => {
       marcarComemorou(pessoa.id, memoria.current);

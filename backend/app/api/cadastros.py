@@ -3,7 +3,7 @@ import unicodedata
 
 from fastapi import APIRouter, Depends
 
-from ..core.identidade import CONSULTA_COLABORADORES, PERSONAS, Persona, usuario_atual
+from ..core.identidade import CONSULTA_COLABORADORES, Persona, areas_da_demo, usuario_atual
 from ..tools import dados_ficticios as fx
 
 rotas = APIRouter(prefix="/api/v1", tags=["cadastros"])
@@ -28,10 +28,7 @@ def lojistas(q: str = "", limite: int = 20, _p: Persona = Depends(usuario_atual)
 @rotas.get("/areas")
 def areas(_p: Persona = Depends(usuario_atual)):
     """As áreas da empresa (as que têm gente na demo), para escolher com quem compartilhar um processo."""
-    vistas: dict[str, str] = {}
-    for p in PERSONAS.values():
-        vistas.setdefault(p.area, p.area_nome)
-    return [{"id": i, "nome": n} for i, n in sorted(vistas.items(), key=lambda x: x[1])]
+    return [{"id": i, "nome": n} for i, n in sorted(areas_da_demo().items(), key=lambda x: x[1])]
 
 
 @rotas.get("/colaboradores")

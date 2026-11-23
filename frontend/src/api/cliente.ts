@@ -108,6 +108,9 @@ export type RegistroPasso = {
 
 export type Pendencia = { passo: string; tipo: "ferramenta" | "aprovacao"; conector?: string; conector_nome?: string; entrada?: Record<string, unknown>; justificativa?: string | null; titulo?: string };
 
+/** O `agente_id`/`dono_id` das execuções de teste do Estúdio (o "Testar" de um rascunho). */
+export const SANDBOX = "sandbox";
+
 export type Execucao = {
   id: string; agente_id: string | null; dono_tipo?: "agente" | "processo"; dono_id?: string | null; versao?: number | null; agente_nome: string; area: string; persona: string; status: string;
   motivo: string | null; entrada: Record<string, unknown>; blueprint: Blueprint; passos: Record<string, RegistroPasso>;
