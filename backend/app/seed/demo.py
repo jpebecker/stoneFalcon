@@ -32,10 +32,11 @@ def criar_processo_demo(s: Session, chave: str):
     return p
 
 
-def semear(s: Session, sem: frozenset[str] | set[str] = frozenset(), alertas: bool = True) -> bool:
+def semear(s: Session, sem: frozenset[str] | set[str] = frozenset(), alertas: bool = True, origem: str | None = None) -> bool:
     """Estado inicial da demo. `sem` tira os processos (e o trabalhador de cada um) que um roteiro faz a persona criar ao vivo
     ("duvida", "triagem", "ferias", "troca"), para o roteiro começar do zero daquele fluxo. Com `alertas`, cada persona entra com
-    pelo menos um alerta aberto pelas regras reais (veja alertas_demo.py); os roteiros guiados começam sem eles."""
+    pelo menos um alerta aberto pelas regras reais (veja alertas_demo.py); os roteiros guiados começam sem eles. `origem` é o que
+    o selo grava: "demo" quando há alertas; sem alertas, o id do roteiro que reiniciou o banco ("roteiro" se ninguém disser)."""
     if s.exec(select(m.Agente).limit(1)).first():
         return False
     arquivos_demo.preparar(s)      # o plugin e os arquivos primeiro: os processos de Lucas e Helena já leem arquivos
@@ -46,7 +47,7 @@ def semear(s: Session, sem: frozenset[str] | set[str] = frozenset(), alertas: bo
     historico.gerar(s)
     if alertas:
         alertas_demo.moldar(s)
-    selo.gravar(s)                 # com que versão do seed este banco nasceu (veja selo.py e partida.py)
+    selo.gravar(s, selo.ORIGEM_DEMO if alertas else (origem or "roteiro"))   # versão e origem do seed (veja selo.py e partida.py)
     return True
 
 

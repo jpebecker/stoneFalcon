@@ -18,7 +18,7 @@ export default function ExecucaoDetalhe({ pessoa }: { pessoa: Persona }) {
       <div>
         <h1 className="flex items-center gap-3 text-3xl">{e.agente_nome}
           {e.rotina && <span className="selo bg-info-fundo text-info" title={e.rotina.origem === "manual" ? "Rotina: Rodar agora" : "Rotina: disparou sozinha"}>rotina</span>}</h1>
-        <p className="mt-1 text-sm text-tinta-3">{e.rotina ? "Rotina, em nome de" : "Disparada por"} {e.persona} em {quando(e.inicio)} · entrada {JSON.stringify(e.entrada)}</p>
+        <p className="mt-1 text-sm text-tinta-3 [overflow-wrap:anywhere]">{e.rotina ? "Rotina, em nome de" : "Disparada por"} {e.persona} em {quando(e.inicio)} · entrada {JSON.stringify(e.entrada)}</p>
       </div>
       <LinhaDoTempo exe={e} pessoa={pessoa} cotacao={saude.data?.cotacao_dolar ?? 5.52}
         aoMudar={(nova) => { qc.setQueryData<Execucao>(["execucao", id], nova); }} />

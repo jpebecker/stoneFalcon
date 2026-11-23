@@ -12,7 +12,7 @@
 
 <p align="center">
   <a href="https://github.com/jpebecker/stoneFalcon/actions/workflows/ci.yml"><img src="https://github.com/jpebecker/stoneFalcon/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <img src="https://img.shields.io/badge/vers%C3%A3o-8.3.0-2ea44f" alt="Versão 8.3.0">
+  <img src="https://img.shields.io/badge/vers%C3%A3o-8.3.1-2ea44f" alt="Versão 8.3.1">
   <img src="https://img.shields.io/badge/python-3.11%2B-3776ab" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/FastAPI-backend-009688" alt="FastAPI">
   <img src="https://img.shields.io/badge/React_18-TypeScript-61dafb" alt="React 18 + TypeScript">

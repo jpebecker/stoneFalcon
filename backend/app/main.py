@@ -48,9 +48,10 @@ async def ciclo(_app: FastAPI):
     if os.environ.get("STONEFALCON_SEMEAR", "1") != "0":
         from sqlmodel import Session
 
-        from .seed.partida import preparar
+        from .seed.partida import descrever, preparar
         with Session(db.motor()) as s:
-            preparar(s)   # banco vazio: semeia; sem o selo do seed atual: refaz o estado inicial; com o selo: não toca
+            resultado = preparar(s)   # vazio: semeia; selo antigo, ausente ou de roteiro guiado: refaz a demo; selo atual: não toca
+        print("  Demo: " + descrever(resultado), flush=True)
     tarefa = asyncio.create_task(_vigiar()) if os.environ.get("STONEFALCON_VIGIA", "1") != "0" else None
     agendador = asyncio.create_task(_agendar()) if os.environ.get("STONEFALCON_AGENDADOR", "1") != "0" else None
     yield

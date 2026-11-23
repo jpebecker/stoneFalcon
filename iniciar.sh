@@ -1,6 +1,7 @@
 #!/bin/sh
 # Liga o StoneFalcon no Mac ou no Linux:  sh iniciar.sh
-# Variáveis opcionais: STONEFALCON_PORTA (padrão 8765) e STONEFALCON_SEM_NAVEGADOR=1 (não abre o navegador).
+# Variáveis opcionais: STONEFALCON_PORTA (padrão 8765), STONEFALCON_SEM_NAVEGADOR=1 (não abre o navegador) e
+# STONEFALCON_DEMO_NOVA=1 (refaz a demonstração do zero, com alertas: APAGA o banco e a trilha de auditoria).
 cd "$(dirname "$0")" || exit 1
 PORTA="${STONEFALCON_PORTA:-8765}"
 command -v python3 >/dev/null 2>&1 || { echo "Instale o Python 3.11+: https://www.python.org/downloads/"; exit 1; }
@@ -33,7 +34,12 @@ elif [ "$rc" -ne 0 ]; then
   exit 1
 fi
 
+if [ -n "$STONEFALCON_DEMO_NOVA" ] && [ "$STONEFALCON_DEMO_NOVA" != "0" ] && [ "$STONEFALCON_SEMEAR" != "0" ]; then
+  echo "ATENÇÃO: STONEFALCON_DEMO_NOVA está ligada. A demonstração será refeita do zero a cada vez que ligar:"
+  echo "o banco e a trilha de auditoria serão APAGADOS. Para voltar ao normal: unset STONEFALCON_DEMO_NOVA"
+fi
 echo "Abrindo http://localhost:$PORTA  (Ctrl+C para desligar)"
+echo "A linha \"Demo:\" logo abaixo diz o que foi feito com a demonstração: criada, mantida ou refeita."
 if [ -z "$STONEFALCON_SEM_NAVEGADOR" ]; then
   ( sleep 2; command -v open >/dev/null && open "http://localhost:$PORTA" || xdg-open "http://localhost:$PORTA" ) >/dev/null 2>&1 &
 fi

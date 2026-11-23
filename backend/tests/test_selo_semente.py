@@ -121,3 +121,85 @@ def test_semear_zero_nao_toca_num_banco_antigo(banco_v7):
         pass
     with Session(db.motor()) as s:
         assert selo.ler(s) is None and not _abertos(s)
+
+
+# ---- v8.3.1/03: o selo também diz COMO o banco foi semeado (demonstração completa ou roteiro guiado) ----
+
+def _nao_lidos(c, perfil):
+    return c.get(f"{V1}/notificacoes/contagem", headers=como(perfil)).json()["nao_lidos"]
+
+
+def test_selo_novo_guarda_a_origem_demo(sessao):
+    assert preparar(sessao) == "semeado"
+    assert selo.origem(sessao) == selo.ORIGEM_DEMO
+
+
+def test_selo_da_8_3_sem_coluna_de_origem_conta_como_demonstracao_completa(sessao):
+    """Bancos selados antes desta mudança ganham a coluna com o valor padrão: continuam sendo mantidos."""
+    semear(sessao)
+    sessao.merge(selo.SeloSemente(chave=selo.CHAVE, versao=selo.VERSAO_SEMENTE, origem=""))   # linha antiga, sem origem
+    sessao.commit()
+    assert selo.origem(sessao) == selo.ORIGEM_DEMO and preparar(sessao) == "mantido"
+
+
+def test_tabela_do_selo_da_8_3_ganha_a_coluna_origem_como_demo(sessao):
+    """O caso real: a tabela `selo_semente` da 8.3 não tem a coluna `origem`. A partida a acrescenta com o padrão "demo"."""
+    from sqlalchemy import text
+    semear(sessao)
+    sessao.close()
+    tabela = selo.SeloSemente.__tablename__
+    with db.motor().begin() as con:
+        con.execute(text('ALTER TABLE "%s" DROP COLUMN "origem"' % tabela))   # como um banco selado pela 8.3
+    assert "%s.origem" % tabela in db.acrescentar_colunas(db.motor())
+    with Session(db.motor()) as s:
+        assert selo.origem(s) == selo.ORIGEM_DEMO and preparar(s) == "mantido"
+
+
+def test_reset_por_roteiro_grava_a_origem_e_a_partida_refaz_a_demonstracao_completa(sessao, caplog):
+    from app.roteiros.reinicio import reiniciar
+    reiniciar(sessao, "marina")                           # o que a tela faz ao começar o roteiro da Marina
+    with Session(db.motor()) as s:
+        assert selo.origem(s) == "marina" and not selo.atualizado(s)
+        assert not _abertos(s)                            # o roteiro começa sem alertas, de propósito
+        with caplog.at_level(logging.INFO, logger="stonefalcon.semente"):
+            assert preparar(s) == "reiniciado"            # a próxima partida traz os alertas de volta
+    avisos = [r for r in caplog.records if r.name == "stonefalcon.semente" and "roteiro guiado" in r.getMessage()]
+    assert len(avisos) == 1 and "marina" in avisos[0].getMessage()      # uma linha só, com o motivo
+    with Session(db.motor()) as s:
+        assert selo.origem(s) == selo.ORIGEM_DEMO and selo.atualizado(s)
+        _todas_as_personas_veem_alerta(s)
+        assert trilha.verificar(s)["integra"] is True
+        assert preparar(s) == "mantido"                   # e agora não mexe mais
+
+
+def test_o_servidor_ao_subir_depois_de_um_roteiro_mostra_alertas_para_todos(sessao, monkeypatch, capsys):
+    """De ponta a ponta: roteiro → desliga → liga de novo (o que iniciar.bat faz) → o sino das 6 pessoas tem alerta não lido."""
+    from app.main import app
+    from app.roteiros.reinicio import reiniciar
+    reiniciar(sessao, "rafael")
+    monkeypatch.setenv("STONEFALCON_SEMEAR", "1")
+    with TestClient(app) as c:
+        for perfil in PERSONAS:
+            assert _nao_lidos(c, perfil) >= 1, perfil
+    assert "Demo: Demonstração refeita" in capsys.readouterr().out
+
+
+def test_demo_nova_forca_a_demonstracao_limpa_mesmo_com_selo_atual(sessao, monkeypatch):
+    assert preparar(sessao) == "semeado"
+    assert preparar(sessao) == "mantido"
+    monkeypatch.setenv("STONEFALCON_DEMO_NOVA", "1")
+    assert preparar(sessao) == "reiniciado"
+    monkeypatch.setenv("STONEFALCON_DEMO_NOVA", "0")      # "0" desliga
+    with Session(db.motor()) as s:
+        assert preparar(s) == "mantido"
+
+
+def test_semear_zero_nao_refaz_nem_um_banco_de_roteiro(sessao, monkeypatch):
+    from app.main import app          # o conftest já desliga o seed (STONEFALCON_SEMEAR=0); DEMO_NOVA também não vale
+    from app.roteiros.reinicio import reiniciar
+    reiniciar(sessao, "carla")
+    monkeypatch.setenv("STONEFALCON_DEMO_NOVA", "1")
+    with TestClient(app):
+        pass
+    with Session(db.motor()) as s:
+        assert selo.origem(s) == "carla" and not _abertos(s)

@@ -32,9 +32,9 @@ export default function Catalogo({ pessoa }: { pessoa: Persona }) {
           <div className="grid gap-3 md:grid-cols-2">
             {q.data.ferramentas.filter((f) => f.modulo === mod).map((f) => (
               <article key={f.id} className={"caixa p-4 " + (f.disponivel_para_mim ? "" : "opacity-70")}>
-                <div className="flex items-start justify-between gap-3">
-                  <h3 className="text-base">{f.nome}</h3>
-                  <div className="flex shrink-0 gap-1.5">
+                <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+                  <h3 className="min-w-[10rem] flex-1 text-base">{f.nome}</h3>
+                  <div className="flex flex-wrap gap-1.5">
                     {f.plugin && <Link to={"/plugins/" + f.plugin} className="selo bg-info-fundo text-info hover:underline">{f.origem}</Link>}
                     <span className={"selo " + COR_CLASSE[f.classificacao]}>{f.classificacao}</span>
                     <span className="selo bg-papel text-tinta-2">{f.acao}</span>

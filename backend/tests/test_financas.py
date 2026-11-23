@@ -199,3 +199,19 @@ def test_orcamento_do_processo(api, sessao):
     assert api.put(f"/api/v1/processos/{pid}/orcamento", json={"valor_brl": 1}, headers=como("marina")).status_code == 403
     linha = next(x for x in api.get("/api/v1/financas/resumo", headers=h).json()["por_agente"] if x["id"] == pid)
     assert linha["orcamento_mensal_brl"] == 150 and linha["tipo"] == "processo"
+
+
+# ---- 8.3.1: o histórico de demonstração não depende do dia em que a demo é semeada ----
+def test_historico_a_duracao_sorteada_nunca_dispara_a_regra_de_lentidao():
+    """Faixa de duração com razão abaixo do fator da regra: o p95 recente nunca passa de 2x a mediana só por acaso."""
+    assert historico.DURACAO_MAX_MS / historico.DURACAO_MIN_MS < alertas.LENTIDAO_FATOR
+
+
+def test_historico_escalada_antes_do_agente_nao_gasta_o_custo_dele(sessao):
+    """Uma execução escalada só carrega o custo dos passos que rodaram: o custo do processo é a soma dos passos."""
+    semear(sessao)
+    escaladas = [e for e in sessao.exec(select(rm.Execucao).where(rm.Execucao.demo == True)).all()   # noqa: E712
+                 if e.dono_tipo == "processo" and e.status == rm.ESCALADA]
+    assert escaladas
+    for e in escaladas:
+        assert e.custo_usd == pytest.approx(sum(p.get("custo_usd") or 0.0 for p in e.passos.values()), abs=1e-6), e.motivo
