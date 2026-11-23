@@ -43,6 +43,8 @@ body {
 }
 h1, h2, h3 { @apply font-titulo font-semibold tracking-tight; }
 :focus-visible { outline: 2px solid rgb(var(--pedra)); outline-offset: 2px; border-radius: 6px; }
+/* o alerta aberto pelo Início recebe o foco por código: o anel aparece mesmo quando o navegador não marca :focus-visible */
+.alerta-focavel:focus { outline: 2px solid rgb(var(--pedra)); outline-offset: 2px; }
 
 @layer components {
   .caixa { @apply bg-folha border border-linha rounded-caixa shadow-caixa; }
@@ -134,4 +136,21 @@ h1, h2, h3 { @apply font-titulo font-semibold tracking-tight; }
 @media (prefers-reduced-motion: reduce) { .falcao-voante { transition: none; } }
 
 /* Destaque curto no alvo de um voo de retorno (pedra-fundo por ~1,6 s); vale também sobre o menu escuro. */
+/* Balão de fala do falcão (fora da camada de voo, que é aria-hidden: o balão é anunciado e tem botão de fechar) */
+.falcao-balao-camada { position: fixed; inset: 0; z-index: 36; pointer-events: none; }
+.falcao-balao { position: absolute; left: 0; top: 0; display: flex; align-items: flex-start; gap: .5rem; max-width: min(320px, calc(100vw - 16px)); pointer-events: auto;
+  background: rgb(var(--folha)); color: rgb(var(--tinta)); border: 1px solid rgb(var(--linha)); border-radius: 12px; padding: .5rem .5rem .5rem .75rem;
+  font-size: .875rem; line-height: 1.35; box-shadow: 0 6px 18px rgb(0 0 0 / .16); animation: falcao-balao-entra .18s ease-out; }
+.falcao-balao p { margin: 0; padding-top: .1rem; }
+.falcao-balao-fechar { flex-shrink: 0; width: 1.5rem; height: 1.5rem; border-radius: 6px; line-height: 1; font-size: 1.1rem; color: rgb(var(--tinta-3)); }
+.falcao-balao-fechar:hover { background: rgb(var(--papel)); color: rgb(var(--tinta)); }
+/* a ponta do balão, do lado do falcão */
+.falcao-balao::before { content: ""; position: absolute; width: 10px; height: 10px; background: inherit; border: inherit; transform: rotate(45deg); }
+.falcao-balao[data-lado="direita"]::before { left: -6px; top: 14px; border-right: 0; border-top: 0; }
+.falcao-balao[data-lado="esquerda"]::before { right: -6px; top: 14px; border-left: 0; border-bottom: 0; }
+.falcao-balao[data-lado="abaixo"]::before { top: -6px; left: 20px; border-right: 0; border-bottom: 0; }
+.falcao-balao[data-lado="acima"]::before { bottom: -6px; left: 20px; border-left: 0; border-top: 0; }
+@keyframes falcao-balao-entra { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .falcao-balao { animation: none; } }
+
 .falcao-destaque { background-color: rgb(var(--pedra-fundo)) !important; color: rgb(var(--pedra-forte)) !important; box-shadow: 0 0 0 3px rgb(var(--pedra) / .35); transition: background-color .2s ease; }

@@ -118,10 +118,7 @@ def marcar_lido(alerta_id: str, pessoa: Persona = Depends(usuario_atual), s: Ses
     al = s.get(alertas.Alerta, alerta_id)
     if al is None or al not in alertas.visiveis(s, pessoa, so_abertos=False):
         raise HTTPException(status_code=404, detail="Alerta não encontrado.")
-    if pessoa.id not in (al.lido_por or []):
-        al.lido_por = sorted(set(al.lido_por or []) | {pessoa.id})
-        s.add(al)
-        s.commit()
+    alertas.marcar_lido(s, al, pessoa)
     return {"ok": True}
 
 

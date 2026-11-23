@@ -13,8 +13,8 @@ Regras:
   provedor_fora      — provedor de IA indisponível (queda simulada pelo CoE; o balanceador delega)
 
 v8.1: as mesmas regras valem para PROCESSOS publicados ou pausados (agente_falhando/agente_lento viram processo_falhando/
-processo_lento, e `orcamento` e `conector_*` ganham o processo como dono). O alerta de processo vai ao dono do processo (e à
-Engenharia, no caso de sistema) e leva a "Abrir o processo". Alerta de sistema vale UMA vez por processo (não por trabalhador):
+processo_lento, e `orcamento` e `conector_*` ganham o processo como dono). O alerta de processo vai ao dono do processo, aos criadores das áreas com quem ele é compartilhado (v8.3) e, no caso de
+sistema, à Engenharia e leva a "Abrir o processo". Alerta de sistema vale UMA vez por processo (não por trabalhador):
 os agentes trabalhadores de um processo não abrem alerta de SISTEMA por conta própria (quem abre é o processo). Falhando, lento e
 orçamento seguem por agente, mas as execuções de um processo são do processo, então o trabalhador só alerta pelo que rodar
 sozinho. Os agentes que rodam sozinhos continuam como estavam.
@@ -29,9 +29,10 @@ from sqlmodel import Field, Session, SQLModel, select
 from ..agents import modelos as am
 from ..agents.blueprint import Blueprint
 from ..agents.ciclo import ErroCiclo
+from ..agents.dono import AGENTE, PROCESSO
 from ..audit import trilha
 from ..core.db import trava
-from ..core.identidade import ENGENHARIA_PLATAFORMA, GESTOR_IA, PERSONAS, Persona
+from ..core.identidade import CRIADOR, ENGENHARIA_PLATAFORMA, GESTOR_IA, PERSONAS, Persona
 from ..core.relogio import agora
 from ..llm import balanceador, registro
 from ..processos import modelos as pm
@@ -150,7 +151,7 @@ def _condicoes_dono(s: Session, d, tipo: str) -> list[dict]:
 
 
 def _condicoes_agente(s: Session, a: am.Agente) -> list[dict]:
-    return _condicoes_dono(s, a, "agente")
+    return _condicoes_dono(s, a, AGENTE)
 
 
 def regras_que_valem(s: Session, d, tipo: str) -> set[str]:
@@ -186,12 +187,31 @@ def _engenharia() -> list[str]:
     return [p.id for p in PERSONAS.values() if p.tem(ENGENHARIA_PLATAFORMA)]
 
 
+def destinatarios_do_processo(p: pm.Processo) -> list[str]:
+    """Quem responde por um processo: o dono e, v8.3, os criadores de cada área com quem ele é compartilhado (elas dependem
+    dele, então ouvem dos problemas dele). Sem repetir ninguém."""
+    areas = set(p.compartilhado_com or [])
+    return sorted({p.dono} | {x.id for x in PERSONAS.values() if x.area in areas and x.tem(CRIADOR)})
+
+
 def _abrir_ou_atualizar(s: Session, abertos: dict[str, Alerta], chave: str, dados: dict, agente_id: str | None,
                         destinatarios: list[str], vistos: set[str], processo_id: str | None = None) -> None:
     vistos.add(chave)
     agora_iso = agora().isoformat()
     a = abertos.get(chave)
     if a:
+        novos = sorted(set(destinatarios))
+        if novos != sorted(a.destinatarios or []):   # o processo passou a ser (ou deixou de ser) compartilhado com outra área
+            saiu_quem_tratava = a.tratando_por is not None and a.tratando_por not in novos
+            trilha.registrar(s, "alerta_destinatarios_alterados", "sistema", agente_id or processo_id,
+                             {"alerta": a.id, "de": sorted(a.destinatarios or []), "para": novos,
+                              "tratando_por_removido": a.tratando_por if saiu_quem_tratava else None},
+                             dono_tipo=PROCESSO if processo_id else AGENTE)
+            a.destinatarios, a.atualizado_em = novos, agora_iso
+            a.lido_por = [x for x in (a.lido_por or []) if x in novos]   # quem saiu não conta mais como leitor
+            if saiu_quem_tratava:   # quem assumiu deixou de receber o alerta: ele volta a estar sem dono
+                a.tratando_por = a.tratando_nota = a.tratando_desde = None
+            s.add(a)
         if a.detalhe != dados["detalhe"] or a.severidade != dados["severidade"]:
             a.detalhe, a.severidade, a.atualizado_em = dados["detalhe"], dados["severidade"], agora_iso
             a.ocorrencias += 1
@@ -204,7 +224,7 @@ def _abrir_ou_atualizar(s: Session, abertos: dict[str, Alerta], chave: str, dado
     abertos[chave] = a
     trilha.registrar(s, "alerta_aberto", "sistema", agente_id or processo_id, {
         "alerta": a.id, "regra": a.regra, "severidade": a.severidade, "conector": a.conector,
-        "destinatarios": a.destinatarios, "titulo": a.titulo}, dono_tipo="processo" if processo_id else "agente")
+        "destinatarios": a.destinatarios, "titulo": a.titulo}, dono_tipo=PROCESSO if processo_id else AGENTE)
 
 
 def avaliar(s: Session) -> dict:
@@ -222,8 +242,8 @@ def avaliar(s: Session) -> dict:
             for c in _condicoes_agente(s, a):
                 _abrir_ou_atualizar(s, abertos, "%s:%s:" % (c["regra"], a.id), c, a.id, [a.dono], vistos)
         for p, _bp in processos:
-            for c in _condicoes_dono(s, p, "processo"):
-                _abrir_ou_atualizar(s, abertos, "%s:%s:" % (c["regra"], p.id), c, None, [p.dono], vistos, processo_id=p.id)
+            for c in _condicoes_dono(s, p, PROCESSO):
+                _abrir_ou_atualizar(s, abertos, "%s:%s:" % (c["regra"], p.id), c, None, destinatarios_do_processo(p), vistos, processo_id=p.id)
 
         for cid, c in _condicoes_conectores(s).items():
             c = dict(c, conector=cid)
@@ -231,7 +251,7 @@ def avaliar(s: Session) -> dict:
             dependentes = [(a, bp) for a, bp in ativos if cid in bp.ferramentas_usadas() and a.id not in trabalhadores]
             for p in dep_processos:   # uma vez por processo, não por trabalhador
                 _abrir_ou_atualizar(s, abertos, "%s:%s:%s" % (c["regra"], p.id, cid), c, None,
-                                    [p.dono] + _engenharia(), vistos, processo_id=p.id)
+                                    destinatarios_do_processo(p) + _engenharia(), vistos, processo_id=p.id)
             for a, _bp in dependentes:
                 _abrir_ou_atualizar(s, abertos, "%s:%s:%s" % (c["regra"], a.id, cid), c, a.id,
                                     [a.dono] + _engenharia(), vistos)
@@ -253,7 +273,7 @@ def avaliar(s: Session) -> dict:
             s.add(a)
             resolvidos.append(a.id)
             trilha.registrar(s, "alerta_resolvido", "sistema", a.agente_id or a.processo_id, {"alerta": a.id, "regra": a.regra, "tratando_por": a.tratando_por},
-                             dono_tipo="processo" if a.processo_id else "agente")
+                             dono_tipo=PROCESSO if a.processo_id else AGENTE)
         s.commit()
         return {"abertos": sorted(vistos - antes), "resolvidos": resolvidos}
 
@@ -269,6 +289,15 @@ def visiveis(s: Session, p: Persona, so_abertos: bool = True) -> list[Alerta]:
     if p.tem(GESTOR_IA):
         return list(todos)
     return [a for a in todos if p.id in (a.destinatarios or [])]
+
+
+def marcar_lido(s: Session, al: Alerta, p: Persona) -> Alerta:
+    """"Marcar como lido" para `p` (a tela e a demonstração usam esta mesma função; não mexe no estado do alerta)."""
+    if p.id not in (al.lido_por or []):
+        al.lido_por = sorted(set(al.lido_por or []) | {p.id})
+        s.add(al)
+        s.commit()
+    return al
 
 
 def score(taxa_sucesso: float | None, alertas_abertos: list[Alerta]) -> dict:

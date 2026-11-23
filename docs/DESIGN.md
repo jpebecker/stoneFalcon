@@ -67,11 +67,12 @@ Foco visível global: `:focus-visible` desenha um contorno de 2 px na cor `pedra
 ## 5. Padrões de tela
 
 - **Entrada** (`pages/Entrar.tsx`): marca, aviso opcional, a roda (a partir de `md`) ou os cartões (abaixo de `md`), e a nota “Login simulado de demonstração… Pessoas e dados são fictícios.”
-- **Área logada** (`App.tsx`): menu lateral escuro (`tinta`) à esquerda com as abas permitidas e o aviso de protótipo; cabeçalho fixo com selo de modo (simulado ou real), sino de alertas e o menu da pessoa; conteúdo em coluna de até 1400 px.
+- **Área logada** (`App.tsx`): menu lateral escuro (`tinta`) à esquerda com o poleiro do falcão ao lado da marca, as abas permitidas e o aviso de protótipo; cabeçalho fixo com selo de modo (simulado ou real), sino de alertas e o menu da pessoa; conteúdo em coluna de até 1400 px.
+- **Menu lateral em grupos** (`components/MenuLateral.tsx`): Início e quatro grupos sanfonados por finalidade (Construir: Estúdio, Agentes, Processos, Plugins, Ferramentas; Acompanhar: Execuções, Saúde, Revisões; Gestão e valor: Painel executivo, Finanças, Mapa de IA, Auditoria; Apresentação: Roteiros, Perguntas da Ferramenta). Só apresentação: quem vê cada aba vem do back. O cabeçalho do grupo é um botão com `aria-expanded` e `aria-controls` (Enter e Espaço alternam); um grupo aberto por vez; o grupo da página atual abre a cada navegação; grupo sem aba permitida não aparece e grupo com uma aba é um link simples. O grupo aberto é lembrado por navegador (conveniência, com `try/catch`). O menu rola por dentro se a janela for baixa (nenhuma aba fica inalcançável). Uma aba dentro de um grupo recolhido leva `data-alvo-recuo`, e o voo de retorno pousa no cabeçalho do grupo.
 - **Páginas de lista e detalhe:** título, ação principal (`botao-pedra`) à direita, conteúdo em `.caixa`.
 - **Canvas** (React Flow): arestas em `tinta-3`; nó novo e aresta recém-ligada destacados em `pedra`.
 - **Barra do roteiro:** fixa na base enquanto há roteiro ativo; o conteúdo ganha folga inferior.
-- **Estados vazios, de erro e de carga:** frase curta em português dizendo o que houve e o que fazer; erro em `text-erro` ou `role="alert"`; carga com `aria-busy` e o falcão pairando ao lado do texto (`Carregando`); lista vazia com o falcão parado (`Vazio`); erro e bloqueio nunca levam o falcão.
+- **Estados vazios, de erro e de carga:** frase curta em português dizendo o que houve e o que fazer; erro em `text-erro` ou `role="alert"`; carga com `aria-busy` e o falcão pairando ao lado do texto (`Carregando`); lista vazia com o falcão parado (`Vazio`, que aceita uma `dica` para o balão sugerir o próximo passo); erro e bloqueio nunca levam o falcão.
 - **Tela estreita:** o que é desenho radial ou canvas ganha alternativa em cartões ou lista.
 
 ## 6. A roda seletora de personas
@@ -101,8 +102,8 @@ Regras que todo ticket de tela deve seguir:
 2. **Nome acessível.** Todo controle sem texto visível (ícone, foto, fatia) tem `aria-label` ou `alt`.
 3. **Cor não basta.** Estado e categoria também em texto ou ícone; contraste de texto adequado sobre `papel` e `folha`.
 4. **Avisos.** Erro de formulário e de servidor com `role="alert"`; carga com `aria-busy`; região que muda sozinha com `aria-live`.
-5. **Movimento com propósito.** Animação só para dar retorno ou orientar (ampliar a fatia, entrada de nó novo); curta (≈ 0,2 s para retorno) e sem efeito decorativo.
-6. **Reduzir movimento.** Toda animação ou transição nova tem tratamento em `@media (prefers-reduced-motion: reduce)` (sem animação, estado final direto). Já cobertos: roda, Mapa de IA, `animate-pulse` e o falcão (batida de asa, travessia, destaque e saída da camada de voo).
+5. **Movimento com propósito.** Animação só para dar retorno ou orientar (ampliar a fatia, entrada de nó novo); curta (≈ 0,2 s para retorno) e sem efeito decorativo. A exceção é o falcão: desde a 8.3 ele também tem os papéis de presença, guia e ambiente, cada um com o seu limite (teto de frequência, nunca enquanto a pessoa digita, com um diálogo aberto ou durante um voo de ação), descritos na regra de movimento do §8.
+6. **Reduzir movimento.** Toda animação ou transição nova tem tratamento em `@media (prefers-reduced-motion: reduce)` (sem animação, estado final direto). Já cobertos: roda, Mapa de IA, `animate-pulse` e o falcão (batida de asa, travessia, destaque, saída da camada de voo, entrada do balão e o poleiro, que fica parado). Com movimento reduzido o falcão companheiro não faz voo de chegada, não tem comportamento ambiente e o balão aparece sem animação (§8, regra de movimento).
 7. **Imagens que falham.** Foto de persona nunca deixa buraco: iniciais na cor da persona.
 8. **Idioma.** `lang="pt-BR"`; texto em português do Brasil, linguagem simples, sem jargão.
 9. **Tela estreita.** Sem rolagem horizontal; alternativa para desenhos radiais e canvas.
@@ -110,13 +111,42 @@ Regras que todo ticket de tela deve seguir:
 
 ## 8. O falcão
 
-O animal do nome Stone**Falcon** (grupo PinkFalcon) tem duas formas. O **rosto** é o ícone do sistema e fica sempre visível. O **corpo** é animado (pairando e voo lateral) e aparece só nos momentos de retorno. Os dois são desenhados por código em `scripts/gera_falcao.mjs`, em traço de pincel que engrossa e afina, e usam as cores do sistema: traço `pedra`, penas `falcao`, rastro `tinta-3`; sobre o menu escuro (`claro`), tons mais claros. Os arquivos gerados (`frontend/src/components/falcao/quadros.ts`, `frontend/public/icone.svg`, `extensao/icones/rosto.*` e os PNGs) entram no Git e **não se editam à mão**: mude o gerador e rode `node scripts/gera_falcao.mjs`.
+O animal do nome Stone**Falcon** (grupo PinkFalcon) tem duas formas. O **rosto** é o ícone do sistema e fica sempre visível. O **corpo** é animado (pairando e voo lateral). Desde a 8.3 ele é um **companheiro**: fica no **poleiro** ao lado da marca, fala pelo **balão** e voa para dar retorno e para guiar (veja a regra de movimento). Os dois são desenhados por código em `scripts/gera_falcao.mjs`, em traço de pincel que engrossa e afina, e usam as cores do sistema: traço `pedra`, penas `falcao`, rastro `tinta-3`; sobre o menu escuro (`claro`), tons mais claros. Os arquivos gerados (`frontend/src/components/falcao/quadros.ts`, `frontend/public/icone.svg`, `extensao/icones/rosto.*` e os PNGs) entram no Git e **não se editam à mão**: mude o gerador e rode `node scripts/gera_falcao.mjs`.
 
 **Rosto (marca).** Arco verde da cabeça, bico em gancho claro, penas rosa do pescoço; é legível em 16 px. Aparece no menu, na entrada, no favicon, no painel e no botão flutuante da extensão. Sobre o quadrado escuro usa `#1FB37A`, `#E0428F` e `#E8F3EE` (os valores da `Marca`).
 
 **Corpo.** `<Falcao estado="parado" | "voo" | "estatico" direcao tamanho />`: quadro de 128 × 112, 6 quadros em 1,1 s parado e 8 quadros em 0,56 s no voo (com rastro). O traço engrossa em tamanhos pequenos (×1,7 até 48 px, ×1,3 até 72 px). É sempre `aria-hidden`: o falcão nunca é a única informação.
 
-**Regra de movimento (§7.5).** O corpo só aparece para dar retorno ou orientar, por isso **só depois de uma ação da pessoa** e **no máximo um voo por ação**. Com movimento reduzido (§7.6) não há batida de asa nem travessia: o falcão aparece parado no destino por 1,2 s e some.
+**Regra de movimento (amplia a regra 5 do §7 na 8.3).** O falcão é parte da interface, não só um efeito de retorno. Ele pode estar em quatro papéis, cada um com o seu limite:
+
+1. **Poleiro (presença).** Parado ao lado da marca, no menu, em toda tela logada (quadro estático, sem animação). Enquanto um voo acontece o poleiro fica vazio e, quando o voo termina, o falcão volta a ele. Não é decoração que se mexe: não anima sozinho.
+2. **Retorno (feedback de uma ação).** Como sempre: **só depois de uma ação da pessoa** e **no máximo um voo por ação**.
+3. **Guia (roteiros guiados).** Em cada etapa de um roteiro ele voa até o elemento que a pessoa deve usar e fala a ação no balão (ticket 09). É a pessoa que está conduzindo a demonstração; a cada etapa, no máximo um voo.
+4. **Ambiente (rotinas do falcão).** Comportamentos que acontecem sozinhos, cada um ligado a algo real do estado da pessoa (alerta novo, dica de página, primeira execução do dia, estado vazio; ticket 10). Limites que valem para todos juntos:
+   - **Teto de frequência:** no máximo um comportamento ambiente a cada poucos minutos (um só agendador decide; dois nunca na mesma janela).
+   - **Nunca** enquanto a pessoa digita, com um diálogo aberto, durante um voo de ação ou durante um roteiro guiado (o roteiro é do papel de guia).
+   - **Nunca** move o foco, bloqueia um clique nem cobre o botão da ação da tela.
+   - Desligado com movimento reduzido e com o falcão silenciado.
+
+**Rotinas ambiente** (`Ambiente`, `agendador.ts`). Um **agendador único** decide por todas, com o teto de 3 minutos (`CONFIG_AMBIENTE.capMs`, ajustável) e as regras acima; uma rotina que não pode rodar agora espera a sua vez (a de maior prioridade vai primeiro) e desiste se envelhecer. São cinco, cada uma ligada a algo real:
+
+| Rotina | Gatilho real | O que faz |
+|---|---|---|
+| Alerta novo | O número de **não lidos do sino sobe** (a primeira leitura não conta) | Sai do poleiro, voa até o sino e diz uma linha ("Chegou um alerta novo."). |
+| Dica | Um minuto sem mexer na tela | Uma dica curta da página atual, uma vez por página (lista em `DICAS`, em português simples). |
+| Espreguiçar | 40 s sem mexer, e só às vezes | O poleiro paira no lugar e olha para o outro lado por ~2,5 s. Sem voo e sem fala. |
+| Primeira do dia | A primeira execução bem-sucedida **da pessoa, nesta sessão** (não é histórico, teste nem rotina agendada) | Uma comemoração curta no balão; uma vez por pessoa por dia. |
+| Estado vazio | Uma lista vazia com `dica` (`Vazio`) | O balão sugere o próximo passo. |
+
+Para rever cada rotina sem esperar o relógio, `window.__ambiente.capMs` ajusta o teto pelo console (em desenvolvimento). Quem mantém a página local de teste do falcão (`frontend/falcao-teste.html`, fora do Git) tem nela o poleiro, o balão e um botão por rotina: os de "forçar" ignoram o agendador e "Pedir as três" mostra o teto e a prioridade.
+
+**Balão de fala** (`Balao`, `falar(texto)` em `useFalcao()`): uma frase curta, em português simples, junto de onde o falcão está (o poleiro, ou o elemento para onde ele voou). Fica numa região `role="status"` `aria-live="polite"` (anunciada sem tirar o foco), some sozinho (5 a 10 s, conforme o tamanho; parado enquanto o ponteiro ou o foco estiverem nele), pode ser dispensado (botão × ou Esc) e **nunca cobre o botão da ação da tela** (`data-alvo="acao-…"`): se o lugar de costume cobriria, usa outro lado. Trocar de página o recolhe. Só uma fala por vez.
+
+**Saudação.** Ao entrar pela roda, o falcão voa até o poleiro e cumprimenta pelo primeiro nome com uma frase sobre o dia: quantos alertas a pessoa tem abertos e quantos ainda não leu. Trocar de perfil pelo menu não faz festa.
+
+**Silenciar o falcão.** O interruptor está no menu da pessoa (canto de cima à direita). Ligado, não há balão nem comportamento ambiente; o poleiro e os voos que respondem a uma ação continuam. É por navegador e só uma conveniência: se o armazenamento do navegador falhar, o falcão segue falando e nada quebra.
+
+**Movimento reduzido (§7.6).** O poleiro continua parado; não há voo de chegada nem comportamento ambiente; o balão aparece sem animação; os voos de retorno viram aparições paradas no destino por 1,2 s, como antes.
 
 | Momento | Onde | O que faz |
 |---|---|---|
@@ -125,13 +155,14 @@ O animal do nome Stone**Falcon** (grupo PinkFalcon) tem duas formas. O **rosto**
 | Publicar agente ou processo | Estúdio, Agente, Editor de processo | Voa até a aba Agentes ou Processos. |
 | Enviar para revisão / pedir plugin | Estúdio, Editor de processo, Criar plugin | Paira enquanto gera; voa até Revisões ou, se a pessoa não tem a aba, até o sino. |
 | Analisar o trecho e executar | Painel da extensão | Paira no lugar dos blocos pulsantes. |
-| Entrar pela roda | Entrada → Início | Voo de boas-vindas até a marca do menu. |
+| Entrar pela roda | Entrada → Início | Voo de boas-vindas até o poleiro, onde o falcão pousa e fala a saudação no balão (sem voo e sem animação com movimento reduzido). |
+| Estar no menu | Toda tela logada | Parado no poleiro, ao lado da marca; vazio enquanto voa. |
 | Etapa do roteiro concluída | Barra do roteiro | Voo curto da etapa feita até a próxima (única exceção em que o falcão voa por cima da barra). |
 | Lista vazia | Alertas, Revisões, Execuções, Plugins | Parado, sem animação, ao lado da frase (`Vazio`). |
 
-**Quando não usar:** erro, falha, bloqueio de guardrail, listas cheias, e qualquer voo sem uma ação da pessoa antes. Não use o falcão como decoração nem para preencher espaço.
+**Quando não usar:** erro, falha, bloqueio de guardrail, listas cheias, e qualquer voo fora dos quatro papéis acima. Não use o falcão como decoração nem para preencher espaço.
 
-**Camada de voo** (`ProvedorFalcao`, `useFalcao()`): `voar({ de, para, alternativo, aoChegar })` e `retornar({ de, para: "aba-execucoes", alternativo: "sino" })`. Os alvos são elementos com `data-alvo` (`aba-<nome>`, `sino`, `marca`). A camada é fixa, fica acima do conteúdo e do menu e abaixo da barra do roteiro, sem capturar cliques; um voo por vez, cancelado ao trocar de página. O falcão paira ~0,9 s ao lado do alvo e some em 0,25 s; o alvo ganha o destaque `pedra-fundo` por ~1,6 s, porque o retorno não pode depender só do movimento. Alvo ausente ou fora da tela: voa até o alternativo ou não voa, sem erro.
+**Camada de voo** (`ProvedorFalcao`, `useFalcao()`): `voar({ de, para, alternativo, aoChegar })` e `retornar({ de, para: "aba-execucoes", alternativo: "sino" })`. Os alvos são elementos com `data-alvo` (`aba-<nome>`, `grupo-<nome>`, `sino`, `marca`, `poleiro`, `acao-<nome>`); `sobre: true` pousa em cima do alvo (o poleiro) em vez de ao lado. Uma aba dentro de um grupo recolhido do menu leva `data-alvo-recuo` e o falcão pousa no cabeçalho do grupo. A camada é fixa, fica acima do conteúdo e do menu e abaixo da barra do roteiro, sem capturar cliques; um voo por vez, cancelado ao trocar de página. O falcão paira ~0,9 s ao lado do alvo e some em 0,25 s; o alvo ganha o destaque `pedra-fundo` por ~1,6 s, porque o retorno não pode depender só do movimento. Alvo ausente ou fora da tela: voa até o alternativo ou não voa, sem erro.
 
 ## 9. Ícones da interface
 

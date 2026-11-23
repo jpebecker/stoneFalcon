@@ -89,6 +89,19 @@ PERSONAS = {p.id: p for p in [
 ]}
 
 
+def areas_da_demo() -> dict[str, str]:
+    """As áreas da empresa que têm gente na demo: id -> nome como a tela mostra."""
+    vistas: dict[str, str] = {}
+    for p in PERSONAS.values():
+        vistas.setdefault(p.area, p.area_nome)
+    return vistas
+
+
+def nome_da_area(area: str) -> str:
+    """O nome de uma área como a tela mostra ("logistica" -> "Logística"); uma área sem ninguém na demo volta pelo próprio id."""
+    return areas_da_demo().get(area, area)
+
+
 def obter_persona(persona_id: str) -> Persona:
     p = PERSONAS.get((persona_id or "").strip().lower())
     if not p:

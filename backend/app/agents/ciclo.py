@@ -21,7 +21,7 @@ from sqlmodel import Session, select
 
 from ..audit import trilha
 from ..core.db import trava
-from ..core.identidade import CRIADOR, GESTOR_IA, REVISOR_SEGURANCA, Persona
+from ..core.identidade import CRIADOR, GESTOR_IA, REVISOR_SEGURANCA, Persona, areas_da_demo
 from ..core.relogio import agora
 from . import modelos as m
 from .blueprint import Blueprint
@@ -34,6 +34,11 @@ class ErroCiclo(Exception):
     def __init__(self, mensagem: str, status: int = 409):
         super().__init__(mensagem)
         self.status = status
+
+
+def compartilhado_com_area(a, area: str) -> bool:
+    """O agente ou processo `a` foi compartilhado com `area` (além da própria área dele)."""
+    return area in (a.compartilhado_com or [])
 
 
 def _slug(nome: str, padrao: str = "agente") -> str:
@@ -99,11 +104,11 @@ class Ciclo:
         return self.t.modelo.model_validate(self.versao(s, a.id, a.versao_publicada).blueprint)
 
     def pode_ver(self, p: Persona, a) -> bool:
-        return (p.area == a.area or p.area in (a.compartilhado_com or []) or p.id == a.dono
+        return (p.area == a.area or compartilhado_com_area(a, p.area) or p.id == a.dono
                 or p.tem(GESTOR_IA) or p.tem(REVISOR_SEGURANCA))
 
     def pode_executar(self, p: Persona, a) -> bool:
-        return p.area == a.area or p.area in (a.compartilhado_com or []) or p.id == a.dono
+        return p.area == a.area or compartilhado_com_area(a, p.area) or p.id == a.dono
 
     def _pode_editar(self, p: Persona, a) -> None:
         if not (p.id == a.dono or (p.tem(CRIADOR) and p.area == a.area)):
@@ -280,6 +285,9 @@ class Ciclo:
     def compartilhar(self, s: Session, p: Persona, dono_id: str, areas: list[str]):
         a = self.obter(s, dono_id)
         self._pode_editar(p, a)
+        desconhecidas = sorted({x for x in areas if x and x not in areas_da_demo()})
+        if desconhecidas:
+            raise ErroCiclo("Área desconhecida: %s." % ", ".join(desconhecidas), 422)
         a.compartilhado_com = sorted({x for x in areas if x and x != a.area})
         a.atualizado_em = agora().isoformat()
         _salvar(s, a)

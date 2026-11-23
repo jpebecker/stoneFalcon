@@ -38,7 +38,7 @@ function Cartao({ item }: { item: ItemRevisao }) {
         <textarea className="campo min-h-[70px]" value={parecer} onChange={(e) => setParecer(e.target.value)} />
       </label>
       <div className="flex gap-2">
-        <button className="botao-pedra" disabled={!parecer.trim() || decidir.isPending} onClick={() => decidir.mutate(true)}>Aprovar e publicar</button>
+        <button className="botao-pedra" data-alvo="acao-aprovar" disabled={!parecer.trim() || decidir.isPending} onClick={() => decidir.mutate(true)}>Aprovar e publicar</button>
         <button className="botao-claro" disabled={!parecer.trim() || decidir.isPending} onClick={() => decidir.mutate(false)}>Rejeitar</button>
       </div>
       {decidir.isError && <p className="text-sm text-erro">{(decidir.error as Error).message}</p>}
@@ -57,7 +57,7 @@ export default function Revisoes() {
         <p className="mt-1 text-tinta-2">Toda versão de agente de risco alto passa por aqui antes de ir ao ar. Quem escreveu a versão não pode revisá-la.</p>
       </div>
       {q.isError && <p className="text-erro">{(q.error as Error).message}</p>}
-      {q.data?.length === 0 && fila.length === 0 && <Vazio>Nada esperando revisão.</Vazio>}
+      {q.data?.length === 0 && fila.length === 0 && <Vazio dica="Quando alguém publicar algo de risco alto, a revisão chega aqui.">Nada esperando revisão.</Vazio>}
       {q.data?.map((item) => <Cartao key={item.versao.id} item={item} />)}
       {fila.length > 0 && (
         <section className="space-y-4" aria-label="Pedidos de integração de plugin">

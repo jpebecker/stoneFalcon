@@ -1,11 +1,14 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Link, NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
-import { api, definirPerfil, perfilAtual, type Persona, type Saude } from "./api/cliente";
+import { Link, Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import { api, definirPerfil, perfilAtual, type Alerta, type Persona, type Saude } from "./api/cliente";
 import Avatar from "./components/Avatar";
-import Icone, { type NomeIcone } from "./components/Icone";
+import Icone from "./components/Icone";
+import Ambiente from "./components/falcao/Ambiente";
+import Poleiro from "./components/falcao/Poleiro";
 import { alvoDe, ProvedorFalcao, useFalcao } from "./components/falcao/Voo";
 import Marca from "./components/Marca";
+import MenuLateral from "./components/MenuLateral";
 import AgenteDetalhe from "./pages/AgenteDetalhe";
 import Auditoria from "./pages/Auditoria";
 import Alertas from "./pages/Alertas";
@@ -37,24 +40,17 @@ import { BarraRoteiro, ProvedorRoteiro } from "./roteiro/Controle";
 import { useEstadoRoteiro } from "./roteiro/estado";
 import { versaoCurta } from "./components/formato";
 
-// O menu e as rotas só leem `pessoa.abas`, que vem do back (a fonte da verdade do acesso por perfil).
-const NAV: { aba: string; para: string; rotulo: string; icone: NomeIcone }[] = [
-  { aba: "inicio", para: "/", rotulo: "Início", icone: "inicio" },
-  { aba: "roteiros", para: "/roteiros", rotulo: "Roteiros", icone: "roteiros" },
-  { aba: "painel", para: "/painel", rotulo: "Painel executivo", icone: "painel" },
-  { aba: "mapa", para: "/mapa", rotulo: "Mapa de IA", icone: "mapa" },
-  { aba: "estudio", para: "/estudio", rotulo: "Estúdio", icone: "estudio" },
-  { aba: "agentes", para: "/agentes", rotulo: "Agentes", icone: "agentes" },
-  { aba: "processos", para: "/processos", rotulo: "Processos", icone: "processos" },
-  { aba: "plugins", para: "/plugins", rotulo: "Plugins", icone: "plugins" },
-  { aba: "revisoes", para: "/revisoes", rotulo: "Revisões", icone: "revisoes" },
-  { aba: "execucoes", para: "/execucoes", rotulo: "Execuções", icone: "execucoes" },
-  { aba: "saude", para: "/saude", rotulo: "Saúde", icone: "saude" },
-  { aba: "financas", para: "/financas", rotulo: "Finanças", icone: "financas" },
-  { aba: "ferramentas", para: "/ferramentas", rotulo: "Ferramentas", icone: "ferramentas" },
-  { aba: "auditoria", para: "/auditoria", rotulo: "Auditoria", icone: "auditoria" },
-  { aba: "perguntas", para: "/perguntas", rotulo: "Perguntas da Ferramenta", icone: "perguntas" },
-];
+// O menu (components/MenuLateral) e as rotas só leem `pessoa.abas`, que vem do back (a fonte da verdade do acesso por perfil).
+
+/** A frase de boas-vindas: o primeiro nome e quantos alertas abertos a pessoa tem (os não lidos entre eles). */
+export function saudar(nome: string, alertas: Alerta[] | null): string {
+  const oi = `Olá, ${nome.split(" ")[0]}!`;
+  if (alertas === null) return oi;
+  const abertos = alertas.length, novos = alertas.filter((a) => !a.lido).length;
+  if (abertos === 0) return `${oi} Nenhum alerta aberto por aqui.`;
+  const total = `${abertos} ${abertos === 1 ? "alerta aberto" : "alertas abertos"}`;
+  return `${oi} Você tem ${total}${novos ? `, ${novos} ${novos === 1 ? "ainda não lido" : "ainda não lidos"}` : ""}.`;
+}
 
 /** Rota restrita: quem não tem a aba (ex.: endereço digitado) volta ao Início, sem tela quebrada. */
 function Guarda({ pessoa, aba, children }: { pessoa: Persona; aba: string; children: ReactNode }) {
@@ -65,6 +61,7 @@ function MenuPessoa({ pessoa, aoTrocar, aoSair }: { pessoa: Persona; aoTrocar: (
   const [aberto, setAberto] = useState(false);
   const caixa = useRef<HTMLDivElement>(null);
   const perfis = useQuery({ queryKey: ["perfis"], queryFn: () => api<Persona[]>("/perfis") });
+  const { silenciado, alternarSilencio } = useFalcao();
   useEffect(() => {
     if (!aberto) return;
     const fora = (e: MouseEvent) => { if (!caixa.current?.contains(e.target as Node)) setAberto(false); };
@@ -93,6 +90,12 @@ function MenuPessoa({ pessoa, aoTrocar, aoSair }: { pessoa: Persona; aoTrocar: (
             </button>
           ))}
           <div className="mt-1 border-t border-linha pt-1">
+            <button role="menuitemcheckbox" aria-checked={silenciado} data-testid="silenciar-falcao" onClick={alternarSilencio}
+              title="Sem recados nem aparições por conta própria. Os voos que respondem a uma ação continuam."
+              className="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-tinta-2 hover:bg-papel">
+              Silenciar o falcão
+              <span className={"selo " + (silenciado ? "bg-pedra-fundo text-pedra-forte" : "bg-papel text-tinta-3")}>{silenciado ? "ligado" : "desligado"}</span>
+            </button>
             <button role="menuitem" className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-tinta-2 hover:bg-papel" onClick={() => { setAberto(false); aoSair(); }}><Icone nome="sair" />Sair para a tela inicial</button>
           </div>
         </div>
@@ -133,16 +136,23 @@ function AppInterno() {
   // qualquer que seja a tela em que a pessoa anterior estava
   const entrarNoInicio = (id: string) => { trocar(id); navegar("/"); };
   // entrar pela roda: voo de boas-vindas até a marca do menu (só aqui; trocar de pessoa pelo menu não faz festa)
-  const { voar } = useFalcao();
+  const { voar, falar } = useFalcao();
   const boasVindas = useRef(false);
   const entrarPelaRoda = (id: string) => { boasVindas.current = true; entrarNoInicio(id); };
-  useEffect(() => {
-    if (!boasVindas.current || !perfil) return;
-    boasVindas.current = false;
-    window.setTimeout(() => voar({ de: { x: window.innerWidth * 0.62, y: window.innerHeight * 0.5 }, para: alvoDe("marca") }), 350);
-  }, [perfil, voar]);
-
   const pessoa = eu.data;
+  useEffect(() => {
+    if (!boasVindas.current || !perfil || !pessoa) return;
+    boasVindas.current = false;
+    // o falcão chega ao poleiro e cumprimenta pelo primeiro nome, com uma frase sobre o dia (os alertas abertos)
+    const saudacao = api<Alerta[]>("/alertas?abertos=true").then((l) => saudar(pessoa.nome, l), () => saudar(pessoa.nome, null));
+    const reduzido = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.setTimeout(async () => {
+      const texto = await saudacao;
+      if (reduzido) falar(texto);   // movimento reduzido: sem voo de chegada, só o recado
+      else voar({ de: { x: window.innerWidth * 0.62, y: window.innerHeight * 0.5 }, para: alvoDe("poleiro"), sobre: true, aoChegar: () => { falar(texto); } });
+    }, 350);
+  }, [perfil, pessoa, voar, falar]);
+
   const podePerguntas = !!pessoa?.abas.includes("perguntas");
 
   // atalho do modo apresentador: Alt+B abre as Perguntas da Ferramenta de qualquer tela (só para quem tem a aba)
@@ -170,19 +180,13 @@ function AppInterno() {
   return (
     <ProvedorRoteiro trocar={trocar}>
       <div className="flex min-h-full">
-        <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col gap-8 bg-tinta px-4 py-6 text-white">
-          <Marca claro />
-          <nav className="flex flex-col gap-1" aria-label="Seções">
-            {NAV.filter((n) => pessoa?.abas.includes(n.aba)).map((n) => (
-              <NavLink key={n.para} to={n.para} end={n.para === "/"} data-alvo={"aba-" + n.aba}
-                className={({ isActive }) => "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition " +
-                  (isActive ? "bg-white text-tinta" : "text-white/75 hover:bg-white/10 hover:text-white")}>
-                <Icone nome={n.icone} tamanho={18} />
-                {n.rotulo}
-              </NavLink>
-            ))}
-          </nav>
-          <p className="mt-auto text-xs leading-relaxed text-white/45">
+        <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col gap-6 bg-tinta px-4 py-6 text-white">
+          <div className="relative">
+            <Marca claro />
+            <Poleiro className="absolute -right-1 -top-1" />
+          </div>
+          <MenuLateral abas={pessoa?.abas ?? []} />
+          <p className="shrink-0 text-xs leading-relaxed text-white/45">
             <span className="mb-1 block font-semibold text-white/70" data-testid="versao">StoneFalcon {saude.data ? versaoCurta(saude.data.versao) : ""}</span>
             Protótipo acadêmico (UFSC) para o desafio StoneLab. Não é um produto oficial da Stone. Pessoas e dados são fictícios.
           </p>
@@ -241,6 +245,7 @@ function AppInterno() {
           </main>
         </div>
       </div>
+      <Ambiente pessoa={pessoa} naoLidos={notif.data?.nao_lidos} />
       <BarraRoteiro />
     </ProvedorRoteiro>
   );

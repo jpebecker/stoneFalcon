@@ -108,12 +108,15 @@ export type RegistroPasso = {
 
 export type Pendencia = { passo: string; tipo: "ferramenta" | "aprovacao"; conector?: string; conector_nome?: string; entrada?: Record<string, unknown>; justificativa?: string | null; titulo?: string };
 
+/** O `agente_id`/`dono_id` das execuções de teste do Estúdio (o "Testar" de um rascunho). */
+export const SANDBOX = "sandbox";
+
 export type Execucao = {
   id: string; agente_id: string | null; dono_tipo?: "agente" | "processo"; dono_id?: string | null; versao?: number | null; agente_nome: string; area: string; persona: string; status: string;
   motivo: string | null; entrada: Record<string, unknown>; blueprint: Blueprint; passos: Record<string, RegistroPasso>;
   pendencia: Pendencia | null; resultado: string | null; chamadas_modelo: number; tokens_entrada: number;
   tokens_saida: number; custo_usd: number; custo_brl: number; duracao_ms: number; duracao_estimada_ms: number;
-  simulado: boolean; inicio: string; fim: string | null;
+  simulado: boolean; demo?: boolean; inicio: string; fim: string | null;
   resultado_tela?: string; passos_tela?: Record<string, RegistroPasso>;
   rotina?: { rotina: string; origem: string } | null;
 };
@@ -157,7 +160,7 @@ export type NoMapa = {
   rota?: string; usada_por?: number; integrado?: boolean; externo?: boolean; classificacao?: string; ferramentas?: string[] | number;
 };
 export type MapaIA = {
-  dias: number; colunas: { id: string; rotulo: string }[]; nos: NoMapa[]; ligacoes: { de: string; para: string; volume: number }[];
+  dias: number; colunas: { id: string; rotulo: string }[]; nos: NoMapa[]; ligacoes: { de: string; para: string; volume: number; compartilhado?: boolean }[];
   totais: { processos: number; agentes: number; modelos: number; plugins: number; ferramentas: number; plataformas: number; execucoes: number }; tem_demo: boolean;
   filtros: { area: string | null; provedor: string | null; areas: string[]; provedores: { id: string; nome: string }[] };
   execucoes_recentes: ExecucaoRecenteMapa[];
@@ -207,6 +210,8 @@ export type ProcessoBlueprint = {
 export type Processo = {
   id: string; nome: string; area: string; dono: string; estado: Agente["estado"]; versao_publicada: number | null; ultima_versao: number;
   risco: "baixo" | "medio" | "alto"; compartilhado_com: string[]; motivo_estado: string | null; orcamento_mensal_brl: number;
+  /** v8.3: nomes para a tela (a área e o dono do processo; as áreas com quem ele é dividido) */
+  area_nome?: string; dono_nome?: string; compartilhado_nomes?: string[];
   roteiro_id: string | null; criado_em: string; atualizado_em: string; execucoes: number; escaladas: number; custo_brl: number;
   as_is: { roteiro_id: string; processo: string; persona: string } | null; agentes: string[];
   agentes_info?: { id: string; nome: string; estado: string; motivo: string | null }[];
@@ -292,6 +297,8 @@ export type PassoRoteiro = {
   preenche: { descricao?: string; nome_agente?: string; cenario_alerta?: boolean; processo?: ProcessoPronto;
     plugin?: { ferramenta_mercado: string; descricao_publica: string; finalidade: string; areas: string[]; classificacao: string }; entrada?: Record<string, string>; parecer?: string; fonte?: { tipo: string; url: string };
     frequencia?: "semanal" | "diaria"; dia_semana?: number; hora?: string }; externa: boolean;
+  /** o `data-alvo` do controle para onde o falcão voa e aponta neste passo (sem ele, o falcão só fala do poleiro) */
+  alvo?: string | null;
 };
 
 export type AsIs = { minutos: number; hipotese: boolean; dor: string; passos: string[]; erros: string[] };

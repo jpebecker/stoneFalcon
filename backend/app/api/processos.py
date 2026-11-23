@@ -15,7 +15,7 @@ from ..agents.dono import PROCESSO, Dono
 from ..agents.governanca import avaliar_risco, estimar_custo, estimar_duracao_ms, ferramentas_sem_permissao
 from ..audit import trilha
 from ..core.db import sessao
-from ..core.identidade import CRIADOR, GESTOR_IA, Persona, exigir, usuario_atual
+from ..core.identidade import CRIADOR, GESTOR_IA, PERSONAS, Persona, exigir, nome_da_area, usuario_atual
 from ..observability import avaliar_seguro
 from ..processos import modelos as pm
 from ..processos.blueprint import ProcessoBlueprint
@@ -72,6 +72,10 @@ def _resumo(p: pm.Processo, s: Session) -> dict:
     d["escaladas"] = sum(1 for e in execs if e.status == "escalada")
     d["custo_brl"] = round(sum(e.custo_usd for e in execs) * motor.precos.usd_para_brl(1.0), 4)
     d["as_is"] = _as_is(p.roteiro_id)
+    # v8.3: o processo compartilhado é o mesmo nos dois lados; a tela mostra de quem é e com quem é dividido
+    d["area_nome"] = nome_da_area(p.area)
+    d["dono_nome"] = PERSONAS[p.dono].nome if p.dono in PERSONAS else p.dono
+    d["compartilhado_nomes"] = [nome_da_area(a) for a in (p.compartilhado_com or [])]
     d["agentes"] = agentes_do_processo(s, p)
     d["agentes_info"] = [{"id": a.id, "nome": a.nome, "estado": a.estado, "motivo": a.motivo_estado}
                          for a in (s.get(am.Agente, i) for i in d["agentes"]) if a is not None]
@@ -280,7 +284,10 @@ class PedidoCompartilhar(BaseModel):
 def compartilhar(processo_id: str, pedido: PedidoCompartilhar, pessoa: Persona = Depends(usuario_atual),
                  s: Session = Depends(sessao)):
     try:
-        return _dump(s, ciclo.compartilhar(s, pessoa, processo_id, pedido.areas))
+        p = ciclo.compartilhar(s, pessoa, processo_id, pedido.areas)
+        avaliar_seguro(s)   # os alertas abertos do processo passam a chegar (ou deixam de chegar) às áreas na hora
+        s.refresh(p)
+        return _resumo(p, s)
     except ErroCiclo as e:
         _erro(e)
 

@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { api, perfilAtual, type Persona, type Roteiro } from "../api/cliente";
 import Avatar from "../components/Avatar";
 import { useFalcao } from "../components/falcao/Voo";
+import { useGuia } from "./Guia";
 import { definirRoteiro, estadoAtual, resolverRota, useRoteiro } from "./estado";
 
 type Controle = {
@@ -92,6 +93,7 @@ export function BarraRoteiro() {
   const [ocupado, setOcupado] = useState(false);
   const { voar } = useFalcao();
   const perfis = useQuery({ queryKey: ["perfis"], queryFn: () => api<Persona[]>("/perfis"), staleTime: Infinity });
+  useGuia(roteiro?.id, estado?.passo ?? 0, passo);   // o falcão leva a pessoa ao controle do passo e diz o que fazer
   if (!estado || !roteiro || !passo) return null;
   const total = roteiro.passos.length;
   const i = Math.min(estado.passo, total - 1);

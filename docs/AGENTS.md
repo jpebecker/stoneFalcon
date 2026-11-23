@@ -8,7 +8,7 @@ Como trabalhar neste repositório sem ler a história das versões. Comece pelos
 | [REQUIREMENTS.md](REQUIREMENTS.md) | O que a plataforma precisa fazer e respeitar: personas, matriz de acesso, requisitos, critérios de todo ticket. |
 | [DESIGN.md](DESIGN.md) | Linguagem visual: cores, tipografia, componentes, a roda de personas, acessibilidade e movimento. |
 
-Outros: [LEIA-ME.md](../LEIA-ME.md) (visão do produto e uso) e, nesta pasta, os planos de trabalho (um `.md` por plano, com os tickets dentro; o da 8.1 é [PLANO-PROCESSOS-ALERTAS.md](PLANO-PROCESSOS-ALERTAS.md) e o da 8.2, [PLANO-FALCAO.md](PLANO-FALCAO.md)).
+Outros: [LEIA-ME.md](../LEIA-ME.md) (visão do produto e uso) e, nesta pasta, os planos de trabalho (um `.md` por plano, com os tickets dentro; o da 8.1 é [PLANO-PROCESSOS-ALERTAS.md](PLANO-PROCESSOS-ALERTAS.md), o da 8.2, [PLANO-FALCAO.md](PLANO-FALCAO.md) e o da 8.3, [PLANO-MENU-ALERTAS-FALCAO.md](PLANO-MENU-ALERTAS-FALCAO.md)).
 
 > Protótipo acadêmico (UFSC) para o desafio StoneLab. Não é um produto da Stone. Pessoas, áreas e dados são fictícios.
 
@@ -104,7 +104,7 @@ python scripts/fumaca_iniciar.py
 - Não calcule permissão no front, nem duplique a lista de abas.
 - Não grave dado real ou pessoal; os dados de demonstração são inventados.
 - Não use `--workers` no back nem tarefas que dependam de vários processos.
-- Não rode “Reiniciar a demo” contra um banco que importa: **apaga o banco, inclusive a trilha de auditoria**.
+- Não rode “Reiniciar a demo” contra um banco que importa: **apaga o banco, inclusive a trilha de auditoria**. Desde a 8.3 o mesmo acontece **sozinho ao ligar** quando o banco não tem o selo de versão do seed ou tem um selo antigo (todo banco da 8.2 ou anterior); para ligar sobre um banco que importa, use `STONEFALCON_SEMEAR=0` (veja [ARCHITECTURE.md](ARCHITECTURE.md)).
 - Não mude a versão, o contrato da API ou a matriz de acesso sem o ticket pedir; atualize os documentos ([REQUIREMENTS.md](REQUIREMENTS.md), [ARCHITECTURE.md](ARCHITECTURE.md)) quando mudar.
 - Não pule a CI nem os hooks.
 

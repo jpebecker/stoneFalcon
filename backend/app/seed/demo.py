@@ -1,6 +1,7 @@
 """Estado inicial da demo: agentes trabalhadores e processos já publicados, passando pelo ciclo de vida real.
 
-Roda uma vez, quando o banco está vazio (desligue com STONEFALCON_SEMEAR=0).
+Roda quando o banco está vazio; a partida (partida.py) também refaz um banco sem o selo da versão atual do seed
+(desligue tudo com STONEFALCON_SEMEAR=0).
 Tudo passa pelas mesmas funções que a tela usa, então a auditoria já nasce íntegra.
 
 v8: cada agente de vários passos da v7 virou um trabalhador (um passo de IA) mais um processo de blocos que o usa
@@ -13,7 +14,7 @@ from ..agents import modelos as m
 from ..core.identidade import PERSONAS
 from ..processos.blueprint import ProcessoBlueprint
 from ..processos.tipo import ciclo as ciclo_processos
-from . import alertas_demo, arquivos_demo, historico
+from . import alertas_demo, arquivos_demo, historico, selo
 from .catalogo import CHAVES, DEMOS, ROTEIRO, TRABALHADORES, processo
 
 
@@ -45,6 +46,7 @@ def semear(s: Session, sem: frozenset[str] | set[str] = frozenset(), alertas: bo
     historico.gerar(s)
     if alertas:
         alertas_demo.moldar(s)
+    selo.gravar(s)                 # com que versão do seed este banco nasceu (veja selo.py e partida.py)
     return True
 
 

@@ -88,7 +88,7 @@ export function AcoesPlugin({ p, aoMudar }: { p: Plugin; aoMudar?: () => void })
       <div className="flex flex-wrap items-center gap-2">
         {p.estado === "integrado" && <Link to={"/plugins/" + p.id} className="botao-pedra">Abrir</Link>}
         {p.pode_integrar && (
-          <button className="botao-pedra" disabled={integrar.isPending} onClick={() => { setAviso(null); integrar.mutate(); }}>
+          <button className="botao-pedra" data-alvo="acao-integrar" disabled={integrar.isPending} onClick={() => { setAviso(null); integrar.mutate(); }}>
             {integrar.isPending ? "Integrando…" : rotuloIntegrar}
           </button>
         )}

@@ -45,6 +45,7 @@ def criar_tabelas() -> None:
     from ..processos import modelos as _processos  # noqa: F401
     from ..rotinas import modelos as _rotinas  # noqa: F401
     from ..runtime import modelos  # noqa: F401
+    from ..seed import selo as _selo  # noqa: F401
     from ..tools import executor  # noqa: F401
     SQLModel.metadata.create_all(motor())
     acrescentar_colunas(motor())

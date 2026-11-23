@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { api, type Execucao, type ItemRevisao, type Persona } from "../api/cliente";
+import { SANDBOX, api, type Execucao, type ItemRevisao, type Persona } from "../api/cliente";
+import CartaoAlertas from "../components/CartaoAlertas";
 import { COR_STATUS, NOME_STATUS, quando, reais } from "../components/formato";
 import { useControle } from "../roteiro/Controle";
 import { useEstadoRoteiro } from "../roteiro/estado";
@@ -47,6 +48,8 @@ export default function Inicio({ pessoa }: { pessoa: Persona }) {
           </div>
         </section>
       )}
+
+      <CartaoAlertas />
 
       {criador && (
         <Link to="/estudio" className="caixa flex items-center justify-between gap-6 border-pedra/30 bg-pedra-fundo/40 p-6 transition hover:border-pedra">
@@ -118,7 +121,7 @@ export default function Inicio({ pessoa }: { pessoa: Persona }) {
           {execs.data?.map((e) => (
             <Link key={e.id} to={"/execucoes/" + e.id} className="flex items-center gap-4 px-5 py-3 text-sm hover:bg-papel">
               <span className={"selo " + COR_STATUS[e.status]}>{NOME_STATUS[e.status] ?? e.status}</span>
-              <span className="flex-1 font-medium">{e.agente_nome}{e.agente_id === "sandbox" && <span className="ml-2 text-xs text-tinta-3">teste</span>}</span>
+              <span className="flex-1 font-medium">{e.agente_nome}{e.agente_id === SANDBOX && <span className="ml-2 text-xs text-tinta-3">teste</span>}</span>
               <span className="text-tinta-3">{reais(e.custo_brl)}</span>
               <span className="w-32 text-right text-tinta-3">{quando(e.inicio)}</span>
             </Link>

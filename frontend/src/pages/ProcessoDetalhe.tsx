@@ -5,9 +5,11 @@ import { api, type Agente, type Execucao, type Mudanca, type Persona, type Proce
 import CampoEntrada from "../components/CampoEntrada";
 import LinhaDoTempo from "../components/LinhaDoTempo";
 import ListaMudancas from "../components/ListaMudancas";
+import PainelCompartilhar, { useAreas } from "../components/PainelCompartilhar";
 import PainelRotina from "../components/PainelRotina";
 import { BLOCOS, COR_ESTADO, COR_RISCO, NOME_ESTADO, NOME_EVENTO, NOME_RISCO, quando, reais } from "../components/formato";
 import Icone from "../components/Icone";
+import SeloCompartilhado from "../components/SeloCompartilhado";
 import Carregando from "../components/falcao/Carregando";
 import { alvoDe, useFalcao } from "../components/falcao/Voo";
 
@@ -20,7 +22,10 @@ export default function ProcessoDetalhe({ pessoa }: { pessoa: Persona }) {
   const [entrada, setEntrada] = useState<Record<string, string>>({});
   const [exe, setExe] = useState<Execucao | null>(null);
   const [diff, setDiff] = useState<{ numero: number; mudancas: Mudanca[] } | null>(null);
-  useEffect(() => { setExe(null); setEntrada({}); }, [id]);
+  const [compartilhando, setCompartilhando] = useState(false);
+  const areas = useAreas();
+  const nomeDaArea = (a: unknown) => areas.data?.find((x) => x.id === a)?.nome ?? String(a);
+  useEffect(() => { setExe(null); setEntrada({}); setCompartilhando(false); }, [id]);
 
   const recarregar = () => { qc.invalidateQueries({ queryKey: ["processo", id] }); qc.invalidateQueries({ queryKey: ["processos"] }); };
   const { retornar } = useFalcao();
@@ -62,6 +67,7 @@ export default function ProcessoDetalhe({ pessoa }: { pessoa: Persona }) {
             <h1 className="text-3xl">{p.nome}</h1>
             <span className={"selo " + COR_ESTADO[p.estado]}>{NOME_ESTADO[p.estado]}</span>
             <span className={"selo " + COR_RISCO[p.risco]}>{NOME_RISCO[p.risco]}</span>
+            <SeloCompartilhado p={p} pessoa={pessoa} />
           </div>
           <p className="mt-1 text-tinta-2">{bp?.objetivo}</p>
           <p className="mt-1 text-sm text-tinta-3">Área {p.area} · dono {p.dono} · {p.execucoes} execuções · {reais(p.custo_brl)} gastos</p>
@@ -70,11 +76,15 @@ export default function ProcessoDetalhe({ pessoa }: { pessoa: Persona }) {
         </div>
         <div className="flex flex-wrap gap-2">
           {p.pode_editar && p.estado !== "depreciado" && <Link to={`/processos/${p.id}/editar`} className="botao-claro">Editar processo</Link>}
+          {p.pode_editar && p.estado !== "depreciado" && (
+            <button className="botao-claro" data-alvo="acao-compartilhar" aria-expanded={compartilhando} aria-controls="painel-compartilhar"
+              onClick={() => setCompartilhando((v) => !v)}>Compartilhar</button>
+          )}
           {p.pode_editar && ultima?.estado === "rascunho" && p.estado !== "depreciado" && (
             <button className="botao-pedra" data-alvo="acao-publicar" onClick={() => acao.mutate({ rota: "publicar" })}><Icone nome="publicar" />Publicar v{ultima.numero}</button>
           )}
           {operador && p.estado === "publicado" && (
-            <button className="botao-claro" onClick={() => { const m = prompt("Motivo da pausa (opcional):") ?? ""; acao.mutate({ rota: "pausar", corpo: { motivo: m } }); }}>Pausar</button>
+            <button className="botao-claro" data-alvo="acao-pausar" onClick={() => { const m = prompt("Motivo da pausa (opcional):") ?? ""; acao.mutate({ rota: "pausar", corpo: { motivo: m } }); }}>Pausar</button>
           )}
           {operador && p.estado === "pausado" && <button className="botao-claro" onClick={() => acao.mutate({ rota: "retomar" })}>Retomar</button>}
           {podeDepreciar && p.estado !== "depreciado" && (
@@ -83,6 +93,7 @@ export default function ProcessoDetalhe({ pessoa }: { pessoa: Persona }) {
         </div>
       </div>
       {acao.isError && <p className="text-sm text-erro">{(acao.error as Error).message}</p>}
+      {compartilhando && p.pode_editar && <div id="painel-compartilhar"><PainelCompartilhar p={p} aoFechar={() => setCompartilhando(false)} /></div>}
       {p.alertas_agentes && p.alertas_agentes.length > 0 && (
         <ul className="space-y-1 rounded-lg bg-alerta-fundo p-3 text-sm text-alerta" role="alert" data-testid="alertas-agentes">
           {p.alertas_agentes.map((a) => (
@@ -157,6 +168,9 @@ export default function ProcessoDetalhe({ pessoa }: { pessoa: Persona }) {
                 <span className="absolute -left-[21px] top-1.5 h-2.5 w-2.5 rounded-full bg-pedra" />
                 <div className="font-medium">{NOME_EVENTO[e.tipo] ?? e.tipo}{e.dados.versao ? ` · v${e.dados.versao}` : ""}</div>
                 <div className="text-xs text-tinta-3">{e.ator} · {quando(e.quando)}</div>
+                {Array.isArray(e.dados.areas) && (
+                  <div className="text-xs text-tinta-2">{e.dados.areas.length ? "com " + e.dados.areas.map(nomeDaArea).join(", ") : "sem compartilhamento"}</div>
+                )}
                 {typeof e.dados.motivo === "string" && e.dados.motivo && <div className="text-xs text-tinta-2">{e.dados.motivo}</div>}
                 {typeof e.dados.parecer === "string" && <div className="text-xs text-tinta-2">{e.dados.parecer}</div>}
               </li>

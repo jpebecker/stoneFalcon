@@ -1,5 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
+import { estadoAtual } from "../../roteiro/estado";
+import { CONFIG_AMBIENTE, digitando, dialogoAberto, movimentoReduzido, type Rotina } from "./agendador";
+import Balao, { tempoDaFala, type Fala } from "./Balao";
 import Falcao from "./Falcao";
 
 /** Um alvo do voo: um elemento da tela ou um ponto (px da janela). Ausente = sem alvo. */
@@ -12,6 +15,8 @@ export interface PedidoVoo {
   para: Alvo;
   /** Se `para` estiver ausente ou fora da tela (menu recolhido), voa até este (ex.: o botão do menu). */
   alternativo?: Alvo;
+  /** Pousa EM CIMA do alvo (o poleiro), em vez de ao lado dele. */
+  sobre?: boolean;
   /** Voa por cima da barra do roteiro (só o voo da etapa concluída, que acontece dentro dela). */
   acima?: boolean;
   /**
@@ -44,8 +49,35 @@ const MIN_MS = 600;
 /** Voo de retorno: os alvos são nomes de `data-alvo`; o que recebe o falcão ganha o destaque curto ao chegar. */
 export interface Retorno { de?: Alvo; para: string; alternativo?: string }
 
-interface ApiFalcao { voar: (p: PedidoVoo) => void; retornar: (r: Retorno) => void; cancelar: () => void }
-const nada: ApiFalcao = { voar: (p) => p.aoChegar?.(), retornar: () => {}, cancelar: () => {} };
+/** Opções de uma fala: onde o balão aponta (o poleiro, se não disser), por quanto tempo fica e se ignora o silêncio. */
+export interface OpcoesFala { alvo?: Alvo; ms?: number; forcar?: boolean }
+
+interface ApiFalcao {
+  voar: (p: PedidoVoo) => void; retornar: (r: Retorno) => void; cancelar: () => void;
+  /** Há um voo na tela (o poleiro fica vazio enquanto isso). */
+  emVoo: boolean;
+  /** Mostra uma frase curta no balão. Não faz nada se a pessoa silenciou o falcão (salvo `forcar`). Devolve se mostrou. */
+  falar: (texto: string, opcoes?: OpcoesFala) => boolean;
+  calar: () => void;
+  /** "Silenciar o falcão": sem balão e sem comportamento ambiente; os voos de retorno de uma ação continuam. */
+  silenciado: boolean;
+  alternarSilencio: () => void;
+  /**
+   * Pede ao agendador uma rotina ambiente (veja agendador.ts). Roda quando as regras deixarem (teto de frequência, sem digitar, sem
+   * diálogo, sem voo, sem roteiro, sem silêncio, sem movimento reduzido). Com `forcar`, roda já (só a página de teste usa).
+   */
+  pedirAmbiente: (r: Rotina, o?: { forcar?: boolean }) => void;
+  /** O poleiro faz a animação de se espreguiçar e olhar em volta (sem voo), por alguns segundos. */
+  esticando: boolean;
+  esticar: () => void;
+}
+const nada: ApiFalcao = { voar: (p) => p.aoChegar?.(), retornar: () => {}, cancelar: () => {}, emVoo: false, falar: () => false, calar: () => {}, silenciado: false, alternarSilencio: () => {},
+  pedirAmbiente: (r, o) => { if (o?.forcar) r.executar(); }, esticando: false, esticar: () => {} };
+
+// O silêncio é conveniência de quem usa (por navegador): se o armazenamento falhar, o falcão segue falando e nada quebra.
+const CHAVE_SILENCIO = "stonefalcon.falcao.silenciado";
+const lerSilencio = (): boolean => { try { return localStorage.getItem(CHAVE_SILENCIO) === "1"; } catch { return false; } };
+const guardarSilencio = (v: boolean) => { try { if (v) localStorage.setItem(CHAVE_SILENCIO, "1"); else localStorage.removeItem(CHAVE_SILENCIO); } catch { /* sem armazenamento */ } };
 const Contexto = createContext<ApiFalcao>(nada);
 
 /**
@@ -57,6 +89,19 @@ export const useFalcao = () => useContext(Contexto);
 /** Elemento marcado com `data-alvo="nome"` (abas do menu, sino, marca), para usar em `de`/`para`. */
 export function alvoDe(nome: string): Element | null {
   return document.querySelector<Element>(`[data-alvo="${nome}"]`);
+}
+
+/**
+ * O elemento `data-alvo="nome"` se ele estiver na tela. Uma aba dentro de um grupo recolhido do menu não está (fica oculta): vale o
+ * cabeçalho do grupo (`data-alvo-recuo`). Sem nenhum dos dois na tela, `null`.
+ */
+export function alvoNaTela(nome: string): Element | null {
+  const el = alvoDe(nome);
+  if (!el) return null;
+  if (centroDe(el)) return el;
+  const recuo = el.getAttribute("data-alvo-recuo");
+  const grupo = recuo ? alvoDe(recuo) : null;
+  return grupo && centroDe(grupo) ? grupo : null;
 }
 
 /** Destaque curto (pedra-fundo por ~1,6 s) no alvo do voo: o retorno não depende só do movimento. */
@@ -92,7 +137,7 @@ function destinoDe(a: Alvo, deX: number): { x: number; y: number } | null {
 function resolver(p: PedidoVoo, caminho: string, id: number): Voo | null {
   const dePonto = centroDe(p.de);
   const refX = dePonto?.x ?? 0;
-  let para = destinoDe(p.para, refX);
+  let para = p.sobre && p.para instanceof Element ? centroDe(p.para) : destinoDe(p.para, refX);
   let chegada = p.para instanceof Element ? p.para : undefined;
   if (!para) { para = destinoDe(p.alternativo, refX); chegada = p.alternativo instanceof Element ? p.alternativo : undefined; }
   if (!para || !Number.isFinite(para.x) || !Number.isFinite(para.y)) return null; // sem alvo na tela: não voa
@@ -158,6 +203,8 @@ export function ProvedorFalcao({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
   const [voo, setVoo] = useState<Voo | null>(null);
   const contador = useRef(0);
+  const [fala, setFala] = useState<Fala | null>(null);
+  const [silenciado, setSilenciado] = useState(lerSilencio);
 
   const voar = useCallback((p: PedidoVoo) => {
     const novo = resolver(p, window.location.pathname, ++contador.current);
@@ -165,7 +212,8 @@ export function ProvedorFalcao({ children }: { children: ReactNode }) {
     setVoo(novo); // substitui o voo em curso, se houver
   }, []);
   const retornar = useCallback((r: Retorno) => {
-    voar({ de: r.de, para: alvoDe(r.para), alternativo: r.alternativo ? alvoDe(r.alternativo) : null, aoChegar: destacar });
+    const para = alvoNaTela(r.para) ?? alvoDe(r.para);   // aba em grupo recolhido: pousa no cabeçalho do grupo (`data-alvo-recuo`)
+    voar({ de: r.de, para, alternativo: r.alternativo ? alvoDe(r.alternativo) : null, aoChegar: destacar });
   }, [voar]);
   const cancelar = useCallback(() => setVoo(null), []);
   const aoFim = useCallback((id: number) => setVoo((v) => (v?.id === id ? null : v)), []);
@@ -173,7 +221,55 @@ export function ProvedorFalcao({ children }: { children: ReactNode }) {
   // trocar de página cancela o voo que veio da página anterior (um voo iniciado já na nova página segue)
   useEffect(() => { setVoo((v) => (v && v.caminho !== pathname ? null : v)); }, [pathname]);
 
-  const valor = useMemo(() => ({ voar, retornar, cancelar }), [voar, retornar, cancelar]);
+  const calar = useCallback(() => setFala(null), []);
+  const silencioRef = useRef(silenciado);
+  silencioRef.current = silenciado;
+  const falar = useCallback((texto: string, o: OpcoesFala = {}) => {
+    if (silencioRef.current && !o.forcar) return false;
+    setFala({ id: ++contador.current, texto, alvo: o.alvo, ms: o.ms ?? tempoDaFala(texto) });
+    return true;
+  }, []);
+  const alternarSilencio = useCallback(() => {
+    setSilenciado((v) => { guardarSilencio(!v); return !v; });
+    setFala(null);   // silenciar também recolhe o recado que estiver na tela
+  }, []);
+  // o recado é da página em que nasceu: trocar de página o recolhe
+  useEffect(() => { setFala(null); }, [pathname]);
+
+  const emVoo = voo !== null;
+
+  // ---- agendador do comportamento ambiente (uma fila só para todas as rotinas) ----
+  const [esticando, setEsticando] = useState(false);
+  const esticar = useCallback(() => { setEsticando(true); window.setTimeout(() => setEsticando(false), 2600); }, []);
+  const emVooRef = useRef(emVoo); emVooRef.current = emVoo;
+  const falaRef = useRef(fala); falaRef.current = fala;
+  const pendentes = useRef(new Map<string, Rotina & { vence: number }>());
+  const ultimoAmbiente = useRef(0);
+  const rodar = useCallback(() => {
+    const agora = Date.now();
+    for (const [id, r] of pendentes.current) if (r.vence < agora) pendentes.current.delete(id);
+    if (pendentes.current.size === 0) return;
+    const livre = !silencioRef.current && !movimentoReduzido() && !emVooRef.current && !falaRef.current && !estadoAtual()
+      && !digitando() && !dialogoAberto() && agora - ultimoAmbiente.current >= CONFIG_AMBIENTE.capMs && document.visibilityState === "visible";
+    if (!livre) return;
+    const primeira = [...pendentes.current.values()].sort((a, b) => b.prio - a.prio)[0];
+    pendentes.current.delete(primeira.id);
+    ultimoAmbiente.current = agora;   // o teto conta a partir de agora: nenhuma outra rotina entra na janela
+    primeira.executar();
+  }, []);
+  const pedirAmbiente = useCallback((r: Rotina, o: { forcar?: boolean } = {}) => {
+    if (o.forcar) { r.executar(); return; }
+    pendentes.current.set(r.id, { ...r, vence: Date.now() + (r.validadeMs ?? 120_000) });
+    rodar();
+  }, [rodar]);
+  useEffect(() => {
+    if (pathname.startsWith("/extensao")) return;
+    const t = window.setInterval(rodar, CONFIG_AMBIENTE.tiqueMs);
+    return () => clearInterval(t);
+  }, [rodar, pathname]);
+
+  const valor = useMemo(() => ({ voar, retornar, cancelar, emVoo, falar, calar, silenciado, alternarSilencio, pedirAmbiente, esticando, esticar }),
+    [voar, retornar, cancelar, emVoo, falar, calar, silenciado, alternarSilencio, pedirAmbiente, esticando, esticar]);
   // o painel da extensão é escuro: a camada herda os tokens do `.ext-tema`
   const extensao = pathname.startsWith("/extensao");
   return (
@@ -182,6 +278,7 @@ export function ProvedorFalcao({ children }: { children: ReactNode }) {
       <div className={"falcao-camada" + (extensao ? " ext-tema" : "") + (voo?.acima ? " falcao-acima" : "")} aria-hidden="true">
         {voo && <Camada key={voo.id} voo={voo} aoFim={aoFim} />}
       </div>
+      {!extensao && <Balao fala={fala} aoFechar={calar} />}
     </Contexto.Provider>
   );
 }

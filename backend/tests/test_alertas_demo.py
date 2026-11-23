@@ -6,6 +6,7 @@ from app.audit import trilha
 from app.core import db
 from app.core.identidade import PERSONAS
 from app.observability import alertas
+from app.processos import modelos as pm
 from app.roteiros.reinicio import reiniciar
 from app.runtime import modelos as rm
 from app.seed.demo import semear
@@ -54,7 +55,7 @@ def test_nenhum_alerta_e_inserido_direto_todos_nascem_da_avaliacao(sessao):
     assert {a.id for a in abertos} <= set(eventos) and all(e.ator == "sistema" for e in eventos.values())
     assert alertas.avaliar(sessao)["abertos"] == []                      # a mesma regra, sobre o mesmo estado: nada novo
     # desfeito o estado, as regras fecham o que abriram (nada ficou "chumbado")
-    for cid in ("consultar_estoque", "listar_transacoes"):
+    for cid in ("consultar_estoque", "listar_transacoes", "listar_chargebacks"):
         executor.definir_falha(sessao, cid, None, "lucas")
     fechados = alertas.avaliar(sessao)["resolvidos"]
     assert {a.id for a in abertos if a.regra.startswith("conector_")} <= set(fechados)
@@ -93,13 +94,18 @@ def test_api_do_sino_mostra_os_alertas_de_cada_persona(api, sessao):
 
 
 def test_cada_cenario_toca_so_a_propria_persona(sessao):
-    """Ninguém recebe alerta de cenário de outra persona (a Helena vê todos, a Engenharia recebe os de sistema)."""
+    """Ninguém recebe alerta de cenário de outra persona (a Helena vê todos, a Engenharia recebe os de sistema): cada alerta
+    de processo que a pessoa vê é de um processo dela, e o principal dela continua entre os não lidos."""
     semear(sessao)
     for perfil, (regra, trecho) in ESPERADO.items():
-        if perfil in ("helena", "lucas"):
+        if perfil == "helena":
             continue
-        meus = [(a.regra, a.titulo) for a in alertas.visiveis(sessao, PERSONAS[perfil])]
-        assert len(meus) == 1 and meus[0][0] == regra and trecho.lower() in meus[0][1].lower(), (perfil, meus)
+        for a in alertas.visiveis(sessao, PERSONAS[perfil], so_abertos=False):
+            if perfil == "lucas" and a.regra.startswith(("conector_", "provedor_")):
+                continue                                                  # a Engenharia recebe os alertas de sistema
+            proc = sessao.get(pm.Processo, a.processo_id) if a.processo_id else None
+            assert proc is not None and (proc.dono == perfil or PERSONAS[perfil].area in (proc.compartilhado_com or [])), (perfil, a.titulo)
+        assert any(a.regra == regra and trecho.lower() in a.titulo.lower() for a in _nao_lidos(sessao, perfil)), perfil
 
 
 def test_o_processo_do_lucas_segue_de_pe_para_triar_o_incidente(api, sessao):

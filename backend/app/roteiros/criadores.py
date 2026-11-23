@@ -12,7 +12,7 @@ from .catalogo import Passo, Roteiro, _ctx, _medir, _min
 def _criar(persona: str, chave: str, descricao: str, fala: str) -> Passo:
     return Passo("criar", "Criar o agente trabalhador", persona, "/estudio",
                  "Clique em “Montar meu agente”: o texto vem preenchido. O Estúdio monta UM agente, que faz uma tarefa. Confira o nome e clique em “Publicar”.",
-                 fala, {"descricao": descricao, "nome_agente": NOME_AGENTE[chave]})
+                 fala, {"descricao": descricao, "nome_agente": NOME_AGENTE[chave]}, alvo="acao-montar")
 
 
 def _montar(persona: str, chave: str, fala: str, acao: str, slack: bool = False) -> Passo:
@@ -22,7 +22,7 @@ def _montar(persona: str, chave: str, fala: str, acao: str, slack: bool = False)
 
 def _alerta(persona: str, acao: str, fala: str) -> Passo:
     """O passo "veja e trate o seu alerta" de cada roteiro: o cenário nasce de uma regra real (a tela chama o endpoint do cenário)."""
-    return Passo("alerta", "Veja e trate o seu alerta", persona, "/alertas", acao, fala, {"cenario_alerta": True})
+    return Passo("alerta", "Veja e trate o seu alerta", persona, "/alertas", acao, fala, {"cenario_alerta": True}, alvo="acao-alerta")
 
 
 def _processo(chave: str) -> str:
@@ -53,14 +53,14 @@ MARINA = Roteiro(
         Passo("testar", "Testar o processo no sandbox", "marina", "/processos/novo",
               "Escolha o lojista pelo nome e rode o teste: a entrada já vem preenchida.",
               "Dados pessoais viram marcadores antes de qualquer modelo. A linha do tempo mostra cada bloco e o agente que rodou dentro dele.",
-              {"entrada": {"lojista_id": "L1001", "pergunta": "Em quanto tempo o estorno cai para o cliente?"}}),
+              {"entrada": {"lojista_id": "L1001", "pergunta": "Em quanto tempo o estorno cai para o cliente?"}}, alvo="acao-executar"),
         Passo("publicar", "Publicar o processo", "marina", "/processos/novo",
               "Clique em “Publicar”: risco baixo, vai ao ar na hora, sem fila.",
-              "Risco baixo publica direto: os guardrails da plataforma já cobrem este processo."),
+              "Risco baixo publica direto: os guardrails da plataforma já cobrem este processo.", alvo="acao-publicar"),
         Passo("usar", "Usar o processo na plataforma", "marina", "/processos/" + _processo("duvida"),
               "Execute com o lojista e a dúvida já preenchidos.",
               "Cadastro e política rodam juntos; o texto final cita a regra.",
-              {"entrada": {"lojista_id": "L1002", "pergunta": "Qual o prazo de estorno de uma venda no débito?"}}),
+              {"entrada": {"lojista_id": "L1002", "pergunta": "Qual o prazo de estorno de uma venda no débito?"}}, alvo="acao-executar"),
         Passo("extensao", "Usar pela extensão no helpdesk", "marina", "/demo/helpdesk?chamado=4812&perfil=marina",
               "No helpdesk, selecione o texto do chamado e clique em “Perguntar ao StoneFalcon”.",
               "O mesmo processo, agora dentro da ferramenta onde ela já trabalha.", externa=True),
@@ -94,19 +94,19 @@ RAFAEL = Roteiro(
         Passo("testar", "Testar com um lojista sem risco", "rafael", "/processos/novo",
               "Rode o teste com o lojista sem contestações: a condição segue o caminho “não” e nada é proposto.",
               "Mesmo processo, outro lojista: sem sinal de risco, o ramo da retenção aparece como pulado.",
-              {"entrada": {"lojista_id": "L1001"}}),
+              {"entrada": {"lojista_id": "L1001"}}, alvo="acao-executar"),
         Passo("publicar", "Enviar o processo para a revisão da Segurança", "rafael", "/processos/novo",
               "Clique em “Enviar para revisão”: risco alto não vai direto ao ar.",
-              "O processo toca dado restrito e uma ação sensível. Por isso passa pelos quatro olhos."),
+              "O processo toca dado restrito e uma ação sensível. Por isso passa pelos quatro olhos.", alvo="acao-publicar"),
         Passo("revisao", "Revisão de segurança (Lucas)", "lucas", "/revisoes",
               "O Lucas lê o que mudou e aprova com o parecer preenchido.",
               "O Lucas não constrói processos: ele aprova só os de risco alto.",
-              {"parecer": "Retenção de repasse protegida por confirmação humana; acesso restrito à área de risco. Aprovado."}),
+              {"parecer": "Retenção de repasse protegida por confirmação humana; acesso restrito à área de risco. Aprovado."}, alvo="acao-aprovar"),
         Passo("usar", "Executar com o lojista suspeito", "rafael", "/processos/" + _processo("triagem"),
               "Execute com o lojista de risco alto e confirme a retenção quando o processo parar.",
               "Cadastro e contestações rodam juntos; o agente analisa e o roteador explica o modelo. "
               "A retenção só acontece depois da confirmação do Rafael.",
-              {"entrada": {"lojista_id": "L1003"}}),
+              {"entrada": {"lojista_id": "L1003"}}, alvo="acao-executar"),
         Passo("extensao", "Usar pela extensão no helpdesk", "rafael", "/demo/helpdesk?chamado=4815&perfil=rafael",
               "No helpdesk, selecione o texto do chamado do lojista e peça a triagem pela extensão.",
               "A mesma triagem, a partir do chamado que chegou da Operação.", externa=True),
@@ -140,14 +140,14 @@ CARLA = Roteiro(
         Passo("testar", "Testar com o colaborador escolhido por nome", "carla", "/processos/novo",
               "Escolha o colaborador pelo nome e rode o teste.",
               "O CPF e o e-mail da ficha viram marcadores: o modelo nunca vê o dado real.",
-              {"entrada": {"colaborador_id": "C501", "pergunta": "Quantos dias de férias eu tenho e como peço?"}}),
+              {"entrada": {"colaborador_id": "C501", "pergunta": "Quantos dias de férias eu tenho e como peço?"}}, alvo="acao-executar"),
         Passo("publicar", "Publicar o processo", "carla", "/processos/novo",
               "Clique em “Publicar”: leitura confidencial é risco médio e vai ao ar direto.",
-              "Leitura confidencial é risco médio: publica direto, com o acesso limitado à área."),
+              "Leitura confidencial é risco médio: publica direto, com o acesso limitado à área.", alvo="acao-publicar"),
         Passo("usar", "Usar o processo", "carla", "/processos/" + _processo("ferias"),
               "Execute com o colaborador e a pergunta já preenchidos.",
               "A resposta vem com o saldo da ficha e a regra da política, sem dado pessoal no texto.",
-              {"entrada": {"colaborador_id": "C501", "pergunta": "Quantos dias de férias eu tenho e como peço?"}}),
+              {"entrada": {"colaborador_id": "C501", "pergunta": "Quantos dias de férias eu tenho e como peço?"}}, alvo="acao-executar"),
         Passo("auditoria", "Provar que nada vazou", "lucas", "/auditoria",
               "Abra o evento da ferramenta de RH: só há marcadores no lugar do CPF e do e-mail.",
               "A auditoria registra o que foi mascarado, nunca o dado em si."),
@@ -175,7 +175,7 @@ THIAGO = Roteiro(
         Passo("integrar", "Integrar o plugin do Slack", "thiago", "/plugins/slack",
               "Abra o plugin do Slack e clique em “Integrar”: risco baixo, entra na hora.",
               "Marketplace é a aquisição, Catálogo é a governança: o Slack é interno, então o criador integra sozinho e a "
-              "ferramenta passa a aparecer no Catálogo, com a origem “plugin Slack”."),
+              "ferramenta passa a aparecer no Catálogo, com a origem “plugin Slack”.", alvo="acao-integrar"),
         _criar("thiago", "troca", "Quando o lojista pede troca de maquininha eu confiro o cadastro, a regra de troca e o estoque do modelo "
                "ao mesmo tempo, abro o chamado na logística, aviso o lojista e aviso o canal da logística no Slack. Levo uns 12 minutos.",
                "A ferramenta de estoque entrou no catálogo uma vez; o Slack acabou de entrar pelo marketplace. O Thiago só descreve."),
@@ -184,14 +184,14 @@ THIAGO = Roteiro(
         Passo("testar", "Testar no sandbox", "thiago", "/processos/novo",
               "Escolha o lojista e o modelo e rode o teste: os três primeiros blocos rodam juntos.",
               "Três blocos na mesma coluna rodam ao mesmo tempo: o tempo é o do mais lento, não a soma.",
-              {"entrada": {"lojista_id": "L1002", "modelo": "Maquininha Pro", "relato": "A tela ficou preta e a maquininha não liga mais."}}),
+              {"entrada": {"lojista_id": "L1002", "modelo": "Maquininha Pro", "relato": "A tela ficou preta e a maquininha não liga mais."}}, alvo="acao-executar"),
         Passo("publicar", "Publicar o processo", "thiago", "/processos/novo",
               "Clique em “Publicar”: risco médio, vai ao ar direto.",
-              "Escrita em outro sistema é risco médio: publica direto."),
+              "Escrita em outro sistema é risco médio: publica direto.", alvo="acao-publicar"),
         Passo("usar", "Usar o processo com estoque baixo", "thiago", "/processos/" + _processo("troca"),
               "Execute com o modelo de estoque baixo: o chamado já sai avisando.",
               "O estoque do modelo Smart está baixo e o agente diz isso no resumo do chamado.",
-              {"entrada": {"lojista_id": "L1003", "modelo": "Maquininha Smart", "relato": "A tela ficou preta e a maquininha não liga mais."}}),
+              {"entrada": {"lojista_id": "L1003", "modelo": "Maquininha Smart", "relato": "A tela ficou preta e a maquininha não liga mais."}}, alvo="acao-executar"),
         Passo("canal", "Ver o aviso no canal do Slack", "thiago", "/plugins/slack",
               "Abra a página do Slack: a mensagem do processo aparece no canal #logistica.",
               "A página consolidada do plugin mostra quem usa, quantas chamadas, o custo e a janela do canal, "
