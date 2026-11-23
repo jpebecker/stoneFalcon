@@ -39,6 +39,7 @@ def _tokens_do_custo(chave: str, custo_usd: float) -> tuple[int, int]:
     return int(custo_usd * 0.5 / m.preco_entrada * 1_000_000), int(custo_usd * 0.5 / m.preco_saida * 1_000_000)
 
 
+DURACAO_MIN_MS, DURACAO_MAX_MS = 4000, 7500   # máx/mín = 1,9: abaixo do fator da regra de lentidão (alertas.LENTIDAO_FATOR)
 VOLUME_DIA = {"atendimento": 22, "risco": 9, "pessoas": 12, "logistica": 10, "engenharia": 5, "gestao": 2}   # execuções por dia útil
 
 
@@ -106,19 +107,25 @@ def gerar(s: Session, dias: int = 30, semente: int = 7, apenas: set[str] | None 
                 if rnd.random() < FRACAO_OUTROS_PROVEDORES:   # outro provedor: o custo muda pela razão das tabelas
                     usado = rnd.choice(EQUIVALENTES[chave])
                     custo_usd *= registro.obter(usado).peso / registro.obter(chave).peso
+                passos = _passos(bp, est, custo_usd, status, motivo) if processo else {}
+                if processo and status == rm.ESCALADA:   # escalou num passo: os passos seguintes não rodaram nem gastaram
+                    gasto = sum(x["custo_usd"] for x in passos.values())
+                    tudo_forte_usd *= gasto / custo_usd if custo_usd else 0.0
+                    custo_usd = gasto
                 t_in, t_out = _tokens_do_custo(usado, custo_usd)
                 criadas.append(rm.Execucao(
                     id=uuid.uuid4().hex[:12], agente_id=None if processo else a.id, dono_tipo="processo" if processo else "agente",
                     dono_id=a.id, versao=a.versao_publicada, agente_nome=a.nome, area=a.area,
                     persona=rnd.choice(pessoas), status=status, motivo=motivo, entrada={}, blueprint=bp.model_dump(),
-                    passos=_passos(bp, est, custo_usd, status, motivo) if processo else {},
+                    passos=passos,
                     resultado=None if status != rm.CONCLUIDA else "(histórico de demonstração)",
                     chamadas_modelo=est.chamadas_modelo, custo_usd=round(custo_usd, 8),
                     custo_tudo_forte_usd=round(tudo_forte_usd, 8),
                     tokens_entrada=t_in, tokens_saida=t_out,
                     por_modelo={usado: {"chamadas": est.chamadas_modelo, "custo_usd": round(custo_usd, 8),
                                         "tokens_entrada": t_in, "tokens_saida": t_out}},
-                    duracao_estimada_ms=int(rnd.uniform(2500, 9000) * (2.5 if ruim else 1)),
+                    # faixa com razão < LENTIDAO_FATOR (2x): o acaso sozinho nunca abre "está mais lento que o normal"
+                    duracao_estimada_ms=int(rnd.uniform(DURACAO_MIN_MS, DURACAO_MAX_MS) * (2.5 if ruim else 1)),
                     simulado=True, demo=True, inicio=inicio.isoformat(), fim=inicio.isoformat()))
     with trava:
         for e in criadas:

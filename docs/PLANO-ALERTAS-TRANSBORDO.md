@@ -71,7 +71,7 @@ executions (including one waiting for confirmation and one escalated). It ran at
 | 02 | Titles are never squeezed by metadata or badges | — | feito |
 | 03 | Seed stamp knows a tour reset; `iniciar.bat` brings the alerts back | — | feito |
 | 04 | At least 2 unread alerts per persona | 03 | feito |
-| 05 | Overflow rule in DESIGN.md, README prints and version 8.3.1 | 01, 02, 04 | parcial (2 date-dependent pytest failures, also on `main`) |
+| 05 | Overflow rule in DESIGN.md, README prints and version 8.3.1 | 01, 02, 04 | feito |
 
 Initial frontier: **01**, **02** and **03** (independent). Two tracks: visual (01, 02) and alerts (03 → 04). They meet at 05.
 
@@ -191,7 +191,7 @@ force a clean demo. The version goes to 8.3.1.
 
 **Blocked by:** 01, 02, 04.
 
-**Status:** parcial (full CI set: `pytest -q` has 2 date-dependent failures that also fail on `main`)
+**Status:** feito
 
 - [x] DESIGN.md has the overflow rule with a short do/don't.
 - [x] Prints 07-execucao and 09-alertas (and 02-inicio if needed) re-captured. Print 07 shows the pending input wrapped
@@ -199,8 +199,8 @@ force a clean demo. The version goes to 8.3.1.
 - [x] README / LEIA-ME.md explain what happens to the demo when a tour was run and how to force a clean demo.
 - [x] AGENTS.md links this plan. This plan's statuses set to "feito" (or "parcial" with the reason).
 - [x] Version 8.3.1 in the single source and its copies. `python scripts/verifica_versao.py` passes.
-- [ ] Full CI set green: `npm run build`, `verifica_extensao.py`, `verifica_versao.py` and `fumaca_iniciar.py` pass. `pytest -q`: 804 passed, 2 failed on `main` too
-      (`test_financas_por_processo_com_detalhe_por_agente`, `test_roteiros_alerta[thiago]`: date-dependent, not touched here).
+- [x] Full CI set green: `npm run build`, `verifica_extensao.py`, `verifica_versao.py` and `fumaca_iniciar.py` pass. `pytest -q`: 806 passed
+      after fixing the 2 date-dependent failures in the demo history (see Notes).
 
 
 ---
@@ -219,3 +219,7 @@ force a clean demo. The version goes to 8.3.1.
   alert), two slow systems were shaped: "Consultar cadastro do lojista" and "Buscar política interna". The rule opens one alert per
   dependent process, so Marina, Rafael and Carla each get one more unread alert about their own process; Lucas, Thiago and Helena
   already have them marked as read. More alerts than 6 open (8 in total) because other processes use the same systems.
+- **CI fix (date-dependent tests):** `seed/historico.py` drew durations from 2.5–9 s, so on some dates plain noise crossed the
+  "2x the median" slowness rule (a false "Revisão mensal do custo de IA está mais lento" alert). The range is now 4–7.5 s
+  (ratio < 2). A run escalated before the agent step was also charged 40% of a full run that no step carried, so the
+  process cost more than its agent whenever the bad days fell inside the month; it now carries only the steps that ran.
