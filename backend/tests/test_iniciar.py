@@ -55,7 +55,7 @@ def test_mudou_a_versao_ou_o_codigo_das_telas_recompila(copia):
     assert a.front_precisa_compilar(copia) is True
     a.marcar_front(copia)
     v = copia / "backend/app/core/versao.py"
-    v.write_text(v.read_text(encoding="utf-8").replace('"8.2.0"', '"8.3.0"'), encoding="utf-8")
+    v.write_text(v.read_text(encoding="utf-8").replace('"8.3.0"', '"8.4.0"'), encoding="utf-8")
     assert a.front_precisa_compilar(copia) is True
 
 

@@ -67,11 +67,12 @@ Foco visível global: `:focus-visible` desenha um contorno de 2 px na cor `pedra
 ## 5. Padrões de tela
 
 - **Entrada** (`pages/Entrar.tsx`): marca, aviso opcional, a roda (a partir de `md`) ou os cartões (abaixo de `md`), e a nota “Login simulado de demonstração… Pessoas e dados são fictícios.”
-- **Área logada** (`App.tsx`): menu lateral escuro (`tinta`) à esquerda com as abas permitidas e o aviso de protótipo; cabeçalho fixo com selo de modo (simulado ou real), sino de alertas e o menu da pessoa; conteúdo em coluna de até 1400 px.
+- **Área logada** (`App.tsx`): menu lateral escuro (`tinta`) à esquerda com o poleiro do falcão ao lado da marca, as abas permitidas e o aviso de protótipo; cabeçalho fixo com selo de modo (simulado ou real), sino de alertas e o menu da pessoa; conteúdo em coluna de até 1400 px.
+- **Menu lateral em grupos** (`components/MenuLateral.tsx`): Início e quatro grupos sanfonados por finalidade (Construir: Estúdio, Agentes, Processos, Plugins, Ferramentas; Acompanhar: Execuções, Saúde, Revisões; Gestão e valor: Painel executivo, Finanças, Mapa de IA, Auditoria; Apresentação: Roteiros, Perguntas da Ferramenta). Só apresentação: quem vê cada aba vem do back. O cabeçalho do grupo é um botão com `aria-expanded` e `aria-controls` (Enter e Espaço alternam); um grupo aberto por vez; o grupo da página atual abre a cada navegação; grupo sem aba permitida não aparece e grupo com uma aba é um link simples. O grupo aberto é lembrado por navegador (conveniência, com `try/catch`). O menu rola por dentro se a janela for baixa (nenhuma aba fica inalcançável). Uma aba dentro de um grupo recolhido leva `data-alvo-recuo`, e o voo de retorno pousa no cabeçalho do grupo.
 - **Páginas de lista e detalhe:** título, ação principal (`botao-pedra`) à direita, conteúdo em `.caixa`.
 - **Canvas** (React Flow): arestas em `tinta-3`; nó novo e aresta recém-ligada destacados em `pedra`.
 - **Barra do roteiro:** fixa na base enquanto há roteiro ativo; o conteúdo ganha folga inferior.
-- **Estados vazios, de erro e de carga:** frase curta em português dizendo o que houve e o que fazer; erro em `text-erro` ou `role="alert"`; carga com `aria-busy` e o falcão pairando ao lado do texto (`Carregando`); lista vazia com o falcão parado (`Vazio`); erro e bloqueio nunca levam o falcão.
+- **Estados vazios, de erro e de carga:** frase curta em português dizendo o que houve e o que fazer; erro em `text-erro` ou `role="alert"`; carga com `aria-busy` e o falcão pairando ao lado do texto (`Carregando`); lista vazia com o falcão parado (`Vazio`, que aceita uma `dica` para o balão sugerir o próximo passo); erro e bloqueio nunca levam o falcão.
 - **Tela estreita:** o que é desenho radial ou canvas ganha alternativa em cartões ou lista.
 
 ## 6. A roda seletora de personas

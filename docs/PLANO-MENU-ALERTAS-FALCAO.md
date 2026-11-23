@@ -95,7 +95,7 @@ What was checked in the code and in the local database before writing the ticket
 | 08 | Falcon companion: perch, speech bubble and the new motion rule | 01 | feito |
 | 09 | Falcon as the guide of guided tours | 08 | feito |
 | 10 | Falcon ambient routines | 08, 03 | feito |
-| 11 | Docs, tours and version 8.3.0 | 01, 04, 06, 07, 09, 10 | ready-for-agent |
+| 11 | Docs, tours and version 8.3.0 | 01, 04, 06, 07, 09, 10 | feito |
 
 Initial frontier: **01**, **02** and **05** (independent). Three tracks: menu → falcon (01, 08, 09, 10), alerts (02, 03,
 04) and shared processes (05, 06, 07); they meet at 10 (needs alerts), 06 (needs the stamp) and 11.
@@ -410,9 +410,17 @@ texts that mention where tabs are, and the version bumped to 8.3.0 everywhere th
 
 **Blocked by:** 01, 04, 06, 07, 09, 10.
 
-**Status:** ready-for-agent
+**Status:** feito
 
-- [ ] Docs updated as listed; this plan's statuses set to "feito" (or "parcial" with the reason).
-- [ ] Tour texts and `fala` lines that refer to menu positions match the grouped menu.
-- [ ] Version 8.3.0 in the single source and the copies; `python scripts/verifica_versao.py` passes.
-- [ ] Full CI set green: `pytest -q`, `npm run build`, `verifica_extensao.py`, `verifica_versao.py`.
+- [x] Docs updated as listed; this plan's statuses set to "feito" (or "parcial" with the reason).
+- [x] Tour texts and `fala` lines that refer to menu positions match the grouped menu.
+- [x] Version 8.3.0 in the single source and the copies; `python scripts/verifica_versao.py` passes.
+- [x] Full CI set green: `pytest -q`, `npm run build`, `verifica_extensao.py`, `verifica_versao.py`.
+
+**Notes (what was built):** version 8.3.0 in the single source and its copies (`versao.py`, `pyproject.toml`, `manifest.json` name and
+version, `package.json`, `package-lock.json`); the tests that quote the version were updated (`test_esteira.py`, `test_iniciar.py`).
+DESIGN.md (menu groups, falcon companion, rules and routines), ARCHITECTURE.md, REQUIREMENTS.md (RF-03, RF-71, RF-77, new
+RF-77b), AGENTS.md (link to this plan), LEIA-ME.md (new 8.3 section) and ENSAIO-GERAL.md (version and an 8.3 rehearsal item)
+were updated. No tour text or `fala` line mentions a menu position (they only mention the bell and the screens by name), so
+none needed changing. The full CI set was run locally: `pytest -q`, `npm run build`, `verifica_extensao.py`,
+`verifica_versao.py` (`fumaca_iniciar.py` was not run).

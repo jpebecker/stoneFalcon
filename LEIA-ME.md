@@ -69,10 +69,17 @@ cd backend && uv run pytest -q                   # sem chave nem internet
 | Agente: decisão, ferramentas, sequência/paralelo, raciocínio | Grafo de passos (paralelos rodam juntos), loop pensar → agir → observar com tool use, limites de passos e de custo, escalada segura para humano | `app/runtime` |
 | Critérios de avaliação (tempo, custo, produtividade, erros, ROI) | Painel executivo com os 5, medidos nas execuções | Painel executivo |
 
+## Novidades da 8.3
+
+- **Menu lateral em grupos.** Início mais quatro grupos sanfonados (Construir, Acompanhar, Gestão e valor, Apresentação); abrir um fecha os outros, e o grupo da página atual abre sozinho. Grupo sem aba permitida some e grupo com uma aba só vira link. Todas as abas da Helena cabem em 1366 × 768, e o menu rola por dentro em janelas mais baixas. O acesso continua vindo só do back.
+- **Alertas de verdade em todos os perfis.** O seed ganhou um **selo de versão**: um banco semeado por uma versão antiga volta ao estado inicial atual ao subir (com uma linha de log); um banco atual não é tocado. Cada persona entra com um alerta não lido, um lido, um em tratamento (com nota) e um resolvido, todos abertos e fechados pelas regras reais. O Início mostra o card **“Seus alertas”**.
+- **Processo compartilhado entre áreas.** O selo “Compartilhado” aparece nos dois lados, as execuções ficam visíveis e abríveis para as duas áreas, o Mapa de IA liga as duas áreas pelo processo e o alerta do processo chega ao dono **e** aos criadores das áreas com quem ele é compartilhado. O dono compartilha (e para de compartilhar) pelo botão **Compartilhar** do processo.
+- **O falcão companheiro.** Fica no **poleiro**, ao lado da marca; fala por um **balão**; cumprimenta pelo nome ao entrar pela roda; **guia os roteiros** (voa até o controle de cada passo e diz a ação); e tem rotinas próprias com um teto de frequência (alerta novo, dica da página, espreguiçar, primeira execução do dia, dica nos estados vazios). O interruptor **“Silenciar o falcão”** fica no menu da pessoa. Regras em [`docs/DESIGN.md`](docs/DESIGN.md) §8.
+
 ## Novidades da 8.2
 
-- **O falcão da plataforma.** O **rosto** do falcão (arco verde, bico em gancho, penas rosa) vira a marca: menu, entrada, favicon e extensão. O **corpo**, animado, só aparece quando a plataforma responde a uma ação: paira ao lado do status enquanto executa ou monta, voa até o sino ou até a aba certa (Execuções, Agentes, Processos, Revisões) ao concluir, faz um voo de boas-vindas até a marca ao entrar pela roda e fica parado nos estados vazios. Nunca aparece em erro ou bloqueio. Com “reduzir movimento” ligado, só surge parado no destino. Regras em [`docs/DESIGN.md`](docs/DESIGN.md) §8.
-- **Ícones de linha** nas 15 abas do menu, nos botões de ação principal, nos selos de resultado e no menu da pessoa, sempre ao lado do texto.
+- **O falcão da plataforma.** O **rosto** do falcão (arco verde, bico em gancho, penas rosa) vira a marca: menu, entrada, favicon e extensão. O **corpo**, animado, aparecia só quando a plataforma responde a uma ação (na 8.3 ele ganhou poleiro, balão e rotinas próprias, veja acima): paira ao lado do status enquanto executa ou monta, voa até o sino ou até a aba certa (Execuções, Agentes, Processos, Revisões) ao concluir, faz um voo de boas-vindas até a marca ao entrar pela roda e fica parado nos estados vazios. Nunca aparece em erro ou bloqueio. Com “reduzir movimento” ligado, só surge parado no destino. Regras em [`docs/DESIGN.md`](docs/DESIGN.md) §8.
+- **Ícones de linha** nas 15 abas do menu (agrupado na 8.3), nos botões de ação principal, nos selos de resultado e no menu da pessoa, sempre ao lado do texto.
 - **Desenho por código.** `node scripts/gera_falcao.mjs` gera os desenhos (quadros do corpo, favicon, ícones da extensão); os arquivos gerados ficam no Git. Vindo da 8.1: recarregue a extensão em `chrome://extensions` para ver o ícone novo.
 
 ## Novidades da 8.1
