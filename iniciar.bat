@@ -2,7 +2,8 @@
 chcp 65001 >nul
 cd /d "%~dp0"
 title StoneFalcon
-rem Variaveis opcionais: STONEFALCON_PORTA (padrao 8765), STONEFALCON_SEM_NAVEGADOR=1, STONEFALCON_SEM_PAUSA=1
+rem Variaveis opcionais: STONEFALCON_PORTA (padrao 8765), STONEFALCON_SEM_NAVEGADOR=1, STONEFALCON_SEM_PAUSA=1,
+rem STONEFALCON_DEMO_NOVA=1 (refaz a demonstracao do zero, com alertas: APAGA o banco e a trilha de auditoria)
 set "PORTA=8765"
 if defined STONEFALCON_PORTA set "PORTA=%STONEFALCON_PORTA%"
 echo.
@@ -49,7 +50,12 @@ if errorlevel 10 (
   goto :erro
 )
 
+if defined STONEFALCON_DEMO_NOVA if not "%STONEFALCON_DEMO_NOVA%"=="0" if not "%STONEFALCON_SEMEAR%"=="0" (
+  echo   ATENCAO: STONEFALCON_DEMO_NOVA esta ligada. A demonstracao sera refeita do zero a cada vez que ligar:
+  echo   o banco e a trilha de auditoria serao APAGADOS. Para voltar ao normal: set STONEFALCON_DEMO_NOVA=
+)
 echo   Abrindo http://localhost:%PORTA%  (para desligar: feche esta janela ou Ctrl+C)
+echo   A linha "Demo:" logo abaixo diz o que foi feito com a demonstracao: criada, mantida ou refeita.
 if not defined STONEFALCON_SEM_NAVEGADOR start "" http://localhost:%PORTA%
 backend\.venv\Scripts\python.exe -m uvicorn --app-dir backend app.main:app --port %PORTA%
 goto :fim

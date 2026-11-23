@@ -74,6 +74,13 @@ Foco visível global: `:focus-visible` desenha um contorno de 2 px na cor `pedra
 - **Barra do roteiro:** fixa na base enquanto há roteiro ativo; o conteúdo ganha folga inferior.
 - **Estados vazios, de erro e de carga:** frase curta em português dizendo o que houve e o que fazer; erro em `text-erro` ou `role="alert"`; carga com `aria-busy` e o falcão pairando ao lado do texto (`Carregando`); lista vazia com o falcão parado (`Vazio`, que aceita uma `dica` para o balão sugerir o próximo passo); erro e bloqueio nunca levam o falcão.
 - **Tela estreita:** o que é desenho radial ou canvas ganha alternativa em cartões ou lista.
+- **Texto dinâmico nunca estoura o cartão (8.3.1).** JSON, motivos, entradas e nomes vindos de dados quebram a linha ou rolam **dentro da própria caixa**; um título ao lado de selos ou de metadados mantém uma largura mínima e os selos descem para baixo dele, em vez de espremê-lo. Nenhuma tela rola para o lado em 1024 px ou mais.
+
+  | Faça | Não faça |
+  |---|---|
+  | `<pre className="max-h-64 overflow-auto whitespace-pre-wrap [overflow-wrap:anywhere]">` para JSON e texto preformatado | `<pre>` sem quebra nem rolagem: um valor longo alarga a página inteira |
+  | Linha com título e selos: `flex flex-wrap`, título com `min-w-[…rem] flex-1`, selos num `flex flex-wrap` | Selos com `shrink-0` ao lado de um título sem largura mínima: o título vira uma palavra por linha |
+  | `[overflow-wrap:anywhere]` em linha que imprime um valor sem espaços (ex.: a “entrada” de uma execução) | Contar com os espaços do texto para quebrar |
 
 ## 6. A roda seletora de personas
 

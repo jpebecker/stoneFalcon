@@ -71,7 +71,7 @@ Atenção: **só o Claude roda de verdade; os outros provedores são simulados**
 O tempo acima é uma **estimativa por contagem de palavras e cliques** (a fala corrida soma menos de 5 min), ainda não cronometrada ao vivo.
 
 ### Checklist do fluxo v8 (antes de apresentar)
-- [ ] `uv run pytest -q` verde e `npm run build` feito; versão **8.3.0** em `/api/v1/saude` e na extensão (`StoneFalcon 8.3`).
+- [ ] `uv run pytest -q` verde e `npm run build` feito; versão **8.3.1** em `/api/v1/saude` e na extensão (`StoneFalcon 8.3`).
 - [ ] Reiniciar a demo e conferir: o seletor radial abre com seis pessoas; Plugins mostra “Arquivos e Planilhas” com o selo **real**; Processos lista onze processos (a Helena e o Lucas têm o seu) e o sino de cada pessoa já traz alertas.
 - [ ] Ensaiar uma vez, como Thiago: agente → processo → rotina → Arquivos e Planilhas (prévia e download) → “Crie o seu plugin”; depois, como Helena e Lucas, as duas aprovações.
 - [ ] Em Finanças (Helena): custo por processo, a lista dos agentes dentro de um processo e **Exportar para planilha** (o arquivo novo aparece no plugin).

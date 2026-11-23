@@ -1,5 +1,6 @@
 """Teste de fumaça dos scripts de início: roda iniciar.bat (Windows) ou iniciar.sh (Mac/Linux) do jeito que uma pessoa
-rodaria, espera a plataforma responder em /api/v1/saude com a versão certa, confere que as telas são servidas e desliga.
+rodaria, espera a plataforma responder em /api/v1/saude com a versão certa, confere que as telas são servidas e que a demonstração
+tem alertas não lidos (/api/v1/notificacoes/contagem) e desliga.
 
 Uso: python scripts/fumaca_iniciar.py [porta]      (a esteira de CI roda no Ubuntu e no Windows)
 Código de saída 0 = a plataforma subiu e respondeu a versão esperada.
@@ -35,6 +36,20 @@ def _desligar(proc: subprocess.Popen) -> None:
         proc.wait(timeout=20)
     except subprocess.TimeoutExpired:
         proc.kill()
+
+
+PERSONAS = ("marina", "rafael", "carla", "thiago", "lucas", "helena")
+
+
+def _personas_com_alerta(porta: int) -> list[str]:
+    """As pessoas que têm alerta não lido no sino (a demonstração semeada tem que dar alerta a todas)."""
+    achou = []
+    for perfil in PERSONAS:
+        pedido = urllib.request.Request("http://127.0.0.1:%d/api/v1/notificacoes/contagem" % porta, headers={"X-Usuario": perfil})
+        with urllib.request.urlopen(pedido, timeout=5) as r:
+            if json.loads(r.read()).get("nao_lidos", 0) > 0:
+                achou.append(perfil)
+    return achou
 
 
 def main(argv: list[str]) -> int:
@@ -79,12 +94,17 @@ def main(argv: list[str]) -> int:
             pagina = r.read().decode("utf-8", "replace")
         if "/assets/" not in pagina:
             problemas.append("as telas compiladas não foram servidas (sem /assets/ na página inicial)")
+        com_alerta = [] if problemas else _personas_com_alerta(porta)
+        sem_alerta = [p for p in PERSONAS if p not in com_alerta]
+        if not problemas and sem_alerta:
+            problemas.append("a demonstração subiu sem alertas não lidos para: %s (/api/v1/notificacoes/contagem)" % ", ".join(sem_alerta))
         for p in problemas:
             print("ERRO: " + p)
         if problemas:
             print("\n".join(linhas[-40:]))
             return 1
-        print("Fumaça ok: %s respondeu a versão %s em %.0f s." % (Path(cmd[-1]).name, esperado, time.time() - inicio))
+        print("Fumaça ok: %s respondeu a versão %s em %.0f s; %d pessoa(s) com alertas não lidos." % (
+            Path(cmd[-1]).name, esperado, time.time() - inicio, len(com_alerta)))
         return 0
     finally:
         _desligar(proc)

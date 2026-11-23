@@ -69,6 +69,13 @@ cd backend && uv run pytest -q                   # sem chave nem internet
 | Agente: decisão, ferramentas, sequência/paralelo, raciocínio | Grafo de passos (paralelos rodam juntos), loop pensar → agir → observar com tool use, limites de passos e de custo, escalada segura para humano | `app/runtime` |
 | Critérios de avaliação (tempo, custo, produtividade, erros, ROI) | Painel executivo com os 5, medidos nas execuções | Painel executivo |
 
+## Novidades da 8.3.1
+
+- **O sino volta a ter alertas depois de um roteiro.** O selo do seed agora guarda **como** o banco foi semeado. Os roteiros guiados começam sem alertas de propósito; antes, ao ligar de novo com `iniciar.bat`, a plataforma via o selo atual e mantinha o banco sem alertas. Agora um banco reiniciado por um roteiro é refeito como demonstração completa ao ligar (com uma linha de log dizendo o motivo). Custo aceito: ligar de novo **no meio de um roteiro** perde o estado dele; é só refazê-lo em Roteiros.
+- **`iniciar.bat` / `iniciar.sh` dizem o que fizeram com a demonstração** (criada, mantida ou refeita) numa linha “Demo: …”. Para refazer a demonstração do zero, ligue com `STONEFALCON_DEMO_NOVA=1` (Windows: `set STONEFALCON_DEMO_NOVA=1` antes do `iniciar.bat`; Mac/Linux: `STONEFALCON_DEMO_NOVA=1 sh iniciar.sh`). **Atenção:** isso apaga o banco e a trilha de auditoria.
+- **Pelo menos 2 alertas não lidos por pessoa.** Marina, Rafael e Carla ganham mais um alerta de sistema lento (cadastro do lojista e política), ligado ao processo de cada um. Nenhum alerta é inserido direto: as regras reais o abrem.
+- **Texto que não estoura o cartão.** O JSON da ação pendente (“O agente quer: …”) quebra a linha dentro do próprio quadro; o título de cada passo da execução e os selos das Ferramentas não são mais espremidos. Regra nova em `docs/DESIGN.md`.
+
 ## Novidades da 8.3
 
 - **Menu lateral em grupos.** Início mais quatro grupos sanfonados (Construir, Acompanhar, Gestão e valor, Apresentação); abrir um fecha os outros, e o grupo da página atual abre sozinho. Grupo sem aba permitida some e grupo com uma aba só vira link. Todas as abas da Helena cabem em 1366 × 768, e o menu rola por dentro em janelas mais baixas. O acesso continua vindo só do back.

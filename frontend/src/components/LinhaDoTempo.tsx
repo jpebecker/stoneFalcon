@@ -8,22 +8,22 @@ import { BLOCOS, COR_STATUS, ICONE_STATUS, NOME_STATUS, NOME_TIPO, ms, reais } f
 function Saida({ valor }: { valor: unknown }) {
   if (valor == null) return null;
   if (typeof valor === "string") return <p className="whitespace-pre-wrap text-sm text-tinta">{valor}</p>;
-  return <pre className="max-h-56 overflow-auto rounded-lg bg-papel p-3 text-xs text-tinta-2">{JSON.stringify(valor, null, 2)}</pre>;
+  return <pre className="max-h-56 overflow-auto whitespace-pre-wrap rounded-lg bg-papel p-3 text-xs text-tinta-2 [overflow-wrap:anywhere]">{JSON.stringify(valor, null, 2)}</pre>;
 }
 
 function CartaoPasso({ r, cotacao }: { r: RegistroPasso; cotacao: number }) {
   const [aberto, setAberto] = useState(false);
   return (
     <li className="caixa p-4">
-      <button className="flex w-full items-center gap-3 text-left" onClick={() => setAberto(!aberto)} aria-expanded={aberto}>
-        <span className={"selo " + COR_STATUS[r.status]}>{ICONE_STATUS[r.status] && <Icone nome={ICONE_STATUS[r.status]} tamanho={14} />}{NOME_STATUS[r.status] ?? r.status}</span>
-        <span className="flex-1 font-medium">{r.titulo}</span>
-        <span className="flex items-center gap-1.5 text-xs text-tinta-3">
-          {r.bloco ? BLOCOS[r.bloco]?.nome : NOME_TIPO[r.tipo]}{r.agente ? " · agente " + r.agente.nome : ""}{r.modelo ? " · " + r.modelo : ""}
+      <button className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 text-left" onClick={() => setAberto(!aberto)} aria-expanded={aberto}>
+        <span className={"selo shrink-0 " + COR_STATUS[r.status]}>{ICONE_STATUS[r.status] && <Icone nome={ICONE_STATUS[r.status]} tamanho={14} />}{NOME_STATUS[r.status] ?? r.status}</span>
+        <span className="min-w-[16rem] flex-1 break-words font-medium">{r.titulo}</span>
+        <span className="flex flex-wrap items-center gap-x-1.5 text-xs text-tinta-3">
+          <span>{r.bloco ? BLOCOS[r.bloco]?.nome : NOME_TIPO[r.tipo]}{r.agente ? " · agente " + r.agente.nome : ""}{r.modelo ? " · " + r.modelo : ""}</span>
           {r.modelo && r.modelo_simulado && <SeloSimulado />}
           {r.modelo && <span className="text-tinta-2">{reais(r.custo_usd * cotacao)}</span>}
         </span>
-        <span className="w-20 text-right text-xs text-tinta-3">{ms(r.duracao_estimada_ms)}</span>
+        <span className="w-20 shrink-0 text-right text-xs text-tinta-3">{ms(r.duracao_estimada_ms)}</span>
       </button>
       {r.motivo && <p className={"mt-2 text-sm " + (r.status === "pulado" ? "text-tinta-3" : "text-falcao")}>{r.motivo}</p>}
       {r.reserva && <p className="mt-2 rounded-lg bg-alerta-fundo p-2 text-sm text-alerta">⚠ Resposta de reserva: {r.reserva}</p>}
@@ -95,7 +95,7 @@ export default function LinhaDoTempo({ exe, pessoa, cotacao, aoMudar }: {
         <div className="rounded-caixa border border-alerta/40 bg-alerta-fundo/60 p-4">
           <h3 className="text-base">O agente quer: {exe.pendencia.conector_nome ?? exe.pendencia.titulo}</h3>
           {exe.pendencia.justificativa && <p className="mt-1 text-sm text-tinta-2">{exe.pendencia.justificativa}</p>}
-          {exe.pendencia.entrada && <pre className="mt-2 rounded-lg bg-folha p-2 text-xs">{JSON.stringify(exe.pendencia.entrada, null, 2)}</pre>}
+          {exe.pendencia.entrada && <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap rounded-lg bg-folha p-2 text-xs [overflow-wrap:anywhere]">{JSON.stringify(exe.pendencia.entrada, null, 2)}</pre>}
           {podeDecidir ? (
             <div className="mt-3 flex gap-2">
               <button className="botao-pedra" disabled={decidir.isPending} onClick={() => decidir.mutate(true)}>Confirmar ação</button>

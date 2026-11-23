@@ -55,7 +55,7 @@ def test_nenhum_alerta_e_inserido_direto_todos_nascem_da_avaliacao(sessao):
     assert {a.id for a in abertos} <= set(eventos) and all(e.ator == "sistema" for e in eventos.values())
     assert alertas.avaliar(sessao)["abertos"] == []                      # a mesma regra, sobre o mesmo estado: nada novo
     # desfeito o estado, as regras fecham o que abriram (nada ficou "chumbado")
-    for cid in ("consultar_estoque", "listar_transacoes", "listar_chargebacks"):
+    for cid in ("consultar_estoque", "listar_transacoes", "listar_chargebacks", "consultar_lojista", "buscar_politica"):
         executor.definir_falha(sessao, cid, None, "lucas")
     fechados = alertas.avaliar(sessao)["resolvidos"]
     assert {a.id for a in abertos if a.regra.startswith("conector_")} <= set(fechados)
@@ -120,3 +120,56 @@ def test_a_moldagem_do_orcamento_e_do_sistema_nao_de_uma_pessoa(sessao):
     semear(sessao)
     moldados = [e for e in trilha.listar(sessao, tipo="orcamento_definido", limite=500) if (e.dados or {}).get("origem")]
     assert moldados and all(e.ator == "sistema" for e in moldados)
+
+
+# ---- v8.3.1/04: pelo menos 2 alertas não lidos por persona, e a mistura lido / em tratamento / resolvido continua ----
+
+def _todos_visiveis(s, perfil):
+    return alertas.visiveis(s, PERSONAS[perfil], so_abertos=False)
+
+
+def test_cada_persona_tem_ao_menos_2_nao_lidos_e_a_mistura_completa(sessao):
+    semear(sessao)
+    for perfil, persona in PERSONAS.items():
+        abertos = alertas.visiveis(sessao, persona)
+        nao_lidos = [a for a in abertos if perfil not in (a.lido_por or [])]
+        lidos = [a for a in abertos if perfil in (a.lido_por or []) and a.tratando_por is None]
+        tratando = [a for a in abertos if a.tratando_por == perfil and a.tratando_nota]
+        resolvidos = [a for a in _todos_visiveis(sessao, perfil) if a.resolvido_em]
+        assert len(nao_lidos) >= 2, (perfil, [(a.regra, a.titulo) for a in nao_lidos])
+        assert lidos and tratando and resolvidos, (perfil, len(lidos), len(tratando), len(resolvidos))
+
+
+def test_os_novos_alertas_de_marina_rafael_e_carla_sao_dos_processos_deles(sessao):
+    semear(sessao)
+    donos = {"marina": "Resposta a dúvidas de lojistas", "rafael": "Triagem de chargebacks", "carla": "Orientação de férias"}
+    for perfil, processo in donos.items():
+        novos = [a for a in _nao_lidos(sessao, perfil) if a.regra == "conector_lento"
+                 and a.conector in ("consultar_lojista", "buscar_politica")]
+        assert novos, perfil
+        for a in novos:
+            assert perfil in a.destinatarios and processo.lower() in sessao.get(pm.Processo, a.processo_id).nome.lower(), (perfil, a.titulo)
+    # Helena, Lucas e Thiago já leram os novos: a contagem deles não cresce por causa deles
+    for perfil in ("helena", "lucas", "thiago"):
+        assert not [a for a in _nao_lidos(sessao, perfil) if a.conector in ("consultar_lojista", "buscar_politica")], perfil
+
+
+def test_os_novos_alertas_nascem_da_avaliacao_e_sobrevivem_a_duas_rodadas_da_vigia(sessao):
+    semear(sessao)
+    novos = [a for a in _abertos(sessao) if a.conector in ("consultar_lojista", "buscar_politica")]
+    assert len(novos) >= 6                              # um por processo que depende do sistema (cadastro e política)
+    abertura = {e.dados["alerta"]: e for e in trilha.listar(sessao, tipo="alerta_aberto", limite=1000)}
+    assert all(a.id in abertura and abertura[a.id].ator == "sistema" for a in novos)    # nunca inseridos direto
+    antes = sorted(a.id for a in _abertos(sessao))
+    for _ in range(2):
+        resultado = alertas.avaliar(sessao)
+        assert resultado["abertos"] == [] and resultado["resolvidos"] == []
+    assert sorted(a.id for a in _abertos(sessao)) == antes
+
+
+def test_roteiro_guiado_continua_comecando_limpo_e_o_passo_do_alerta_funciona(sessao):
+    reiniciar(sessao, "helena")
+    assert not [a for a in _abertos(sessao) if a.conector in ("consultar_lojista", "buscar_politica")]   # os sistemas lentos novos não vazam
+    from app.seed.alertas_demo import moldar_persona
+    moldar_persona(sessao, "helena")
+    assert [a.regra for a in _abertos(sessao)] == ["orcamento"]

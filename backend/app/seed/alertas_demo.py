@@ -25,6 +25,10 @@ guiados começam limpos):
      não aceita hora inventada.
   2. ABERTOS: o principal (não lido) mais um segundo alerta que a pessoa já leu e um terceiro que ela já assumiu, com nota.
      A Helena, que vê tudo e acompanha os outros, só deixa como não lidos os alertas principais.
+  2b. SISTEMAS LENTOS (v8.3.1): "Consultar cadastro do lojista" e "Buscar política" estão lentos. As duas ferramentas são lidas
+     por vários processos, e a regra abre um alerta por processo que depende delas: com isso a Marina (dúvidas), o Rafael
+     (triagem) e a Carla (férias) ganham mais um alerta ainda NÃO lido, cada um sobre o que é dele. Lucas, Thiago e Helena já os
+     leram (a Engenharia e a Logística já acompanham os sistemas), então a contagem deles não cresce.
   3. COMPARTILHADO: o "Registro de incidente de sistema" (Thiago, compartilhado com a Engenharia) está falhando. O mesmo alerta
      chega ao Thiago e ao Lucas, ainda não lido por nenhum dos dois: quem assumir ao vivo aparece "em tratamento" para o outro.
 
@@ -61,6 +65,8 @@ FATOR_LENTO = 3.0            # as execuções recentes demoram 3x: o p95 passa d
 SISTEMA_LENTO_THIAGO = "consultar_estoque"   # só o processo de trocas usa
 SISTEMA_FORA_LUCAS = "listar_transacoes"     # nenhum processo usa: alerta só da Engenharia
 SISTEMA_LENTO_RAFAEL = "listar_chargebacks"  # só a triagem de chargebacks usa
+SISTEMA_LENTO_LOJISTA = "consultar_lojista"  # dúvidas (Marina), triagem (Rafael) e trocas (Thiago) leem o cadastro
+SISTEMA_LENTO_POLITICA = "buscar_politica"   # dúvidas (Marina), férias (Carla) e trocas (Thiago) leem a política
 PROVEDOR_DO_HISTORICO = "google"             # a queda que já passou (provedor de IA simulado)
 NOME_COMPARTILHADO = "Registro de incidente de sistema"   # o processo do Thiago compartilhado com a Engenharia (Lucas)
 MOLDAGEM = "cenário de demonstração"
@@ -225,6 +231,12 @@ def _aberto(s: Session, regra: str, processo: pm.Processo | None = None, conecto
     return s.exec(q).first()
 
 
+def _abertos_do_conector(s: Session, conector: str) -> list[alertas.Alerta]:
+    """Os alertas abertos de um sistema integrado: a regra abre um por processo que depende dele."""
+    return list(s.exec(select(alertas.Alerta).where(alertas.Alerta.regra == "conector_lento")
+                       .where(alertas.Alerta.conector == conector).where(alertas.Alerta.resolvido_em.is_(None))))
+
+
 def _historico_resolvido(s: Session, *ligar: Callable[[], Desfazer]) -> None:
     """Molda tudo, deixa as regras ABRIREM os alertas, desfaz e deixa as regras FECHÁ-LOS (duas rodadas para todas as
     histórias, que tocam coisas diferentes). Nada é escrito no alerta à mão."""
@@ -291,6 +303,8 @@ def _historias_abertas(s: Session) -> list[alertas.Alerta]:
     if troca is not None:
         _ligar_orcamento(s, troca)
     executor.definir_falha(s, SISTEMA_LENTO_RAFAEL, "lento", "sistema")
+    executor.definir_falha(s, SISTEMA_LENTO_LOJISTA, "lento", "sistema")
+    executor.definir_falha(s, SISTEMA_LENTO_POLITICA, "lento", "sistema")
     alertas.avaliar(s)
     # 2) o que cada pessoa já fez com eles: ler (segundo alerta) e assumir com nota (terceiro)
     lidos = [
@@ -309,7 +323,13 @@ def _historias_abertas(s: Session) -> list[alertas.Alerta]:
         _lido(s, al, pessoa)
     for al, pessoa, nota in assumidos:
         _assumido(s, al, pessoa, nota)
-    return [al for al, *_ in (*lidos, *assumidos) if al is not None]
+    # os dois sistemas lentos: fica não lido para Marina, Rafael e Carla; quem acompanha sistemas (Engenharia, Logística) já leu
+    sistemas = [al for c in (SISTEMA_LENTO_LOJISTA, SISTEMA_LENTO_POLITICA) for al in _abertos_do_conector(s, c)]
+    for al in sistemas:
+        for pessoa in ("lucas", "thiago"):
+            if pessoa in (al.destinatarios or []):
+                _lido(s, al, pessoa)
+    return [al for al, *_ in (*lidos, *assumidos) if al is not None] + sistemas
 
 
 def moldar(s: Session) -> dict:

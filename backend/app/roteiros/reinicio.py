@@ -54,7 +54,7 @@ def reiniciar(s: Session | None = None, roteiro_id: str | None = None) -> dict:
     balanceador.zerar()   # desfaz a queda simulada de provedor e a carga de teste
     rotinas.zerar()       # o relógio das rotinas volta ao normal (as agendas somem com o banco)
     with Session(db.motor()) as nova:
-        semear(nova, sem=roteiro.sem if roteiro else frozenset(), alertas=roteiro is None)
+        semear(nova, sem=roteiro.sem if roteiro else frozenset(), alertas=roteiro is None, origem=roteiro.id if roteiro else None)
         if roteiro and roteiro.preparar:
             PREPARAR[roteiro.preparar](nova)
     return {"ok": True, "roteiro": roteiro.id if roteiro else None}
