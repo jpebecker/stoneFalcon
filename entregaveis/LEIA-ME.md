@@ -8,6 +8,8 @@
 | `telas/` | Prints do protótipo (v6: personas, Roteiros, Perguntas e Plugins; v7: telas 14 a 19, extensão, vários provedores, balanceador, Mapa de IA e Finanças por provedor) seguindo o roteiro do LEIA-ME, depois de "Reiniciar a demo". |
 | `gerador/` | Scripts que reproduzem tudo a partir das premissas. |
 
+> **Versão dos entregáveis:** planilha, deck e `telas/` foram gerados na **v7** (18/11/2026) e não mostram o que veio na v8 (processos em blocos, alertas tratáveis, falcão). Os números continuam valendo: a calculadora e as premissas não mudaram até a 8.3.1 (payback no mês 21, VPL de R$ 773.842 e TIR de 57,4% conferidos com `projetar()` em 24/11/2026). Os prints atuais do produto ficam em [`docs/prints/`](../docs/prints/).
+
 ## Números principais (cenário base)
 
 Payback no **mês 21**, VPL de **R$ 0,77 mi** (36 meses, 12% a.a.), TIR de **57% a.a.**: iguais aos da calculadora do protótipo.
@@ -32,7 +34,7 @@ node gerar_apresentacao.js                        # deck + checagem-numeros.md
 
 ## Decisões tomadas sem a equipe (as "decisões em aberto" do plano)
 
-1. **Tempo:** deck para 10 a 12 min + 2 min de demo (15 slides). Cortar os slides 2 e 4 se o tempo for menor.
+1. **Tempo:** deck para 10 a 12 min + 2 min de demo (15 slides na v6; 17 + 3 anexos desde a v7). Cortar os slides 2 e 4 se o tempo for menor.
 2. **Demo:** ao vivo, com vídeo como reserva. **O vídeo não foi gravado.**
 3. **Modelos reais:** sem chave. O cenário "Base medido" usa o tamanho dos passos e o roteador do código, e o histórico de 30 dias do protótipo é **sintético**, não medição.
 4. **Construir × comprar:** Microsoft Copilot Studio, Zapier Agents e n8n Business, com preços públicos de 15/11/2026.

@@ -1,0 +1,21 @@
+Custos para implantar na Stone
+
+Desenvolvimento base + implantação (3 devs + 1 GP + 1 QA, 5 meses): R$ 600 mil (R$ 690 mil com 15% de contingência)
+Módulos adicionais de integração: R$ 50 a 100 mil por módulo (pacote com 4 ≈ R$ 300 mil)
+Manutenção mensal (hospedagem + domínio + n8n): R$ 2,8 mil a 6,9 mil/mês (+ R$ 16 mil/mês se houver time de sustentação)
+Tokens de IA para 6.000 usuários: ≈ R$ 8,5 mil/mês (faixa de R$ 4,3 mil a 21 mil)
+
+O que esses números assumem:
+
+Equipe paga como pleno de fintech: Dev R$ 150/h, GP R$ 180/h, QA R$ 120/h.
+Dólar a R$ 5,52 e euro a R$ 6,12.
+5 perguntas por usuário por dia útil.
+Distribuição das perguntas: 40% respondidas pela base, 48% pelo Haiku e 12% pelo Sonnet.
+
+Pontos de atenção:
+
+O Sonnet recebe só 12% das perguntas, mas responde por cerca de 92% do custo. A maior economia vem de fazer a base aprovada crescer.
+O n8n não está no código atual. Ele deve servir só para as integrações: se todas as perguntas passassem por ele, estourariam o limite de execuções do plano.
+A cotação do dólar no arquivo de configuração (COTACAO_DOLAR) já está em 5,52; confiram a do dia antes da apresentação.
+
+Os valores de hospedagem são estimativas de mercado. Os preços dos modelos, do n8n e as faixas salariais vieram de fontes públicas de outubro e novembro de 2026.

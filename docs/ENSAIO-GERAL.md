@@ -8,13 +8,13 @@ Este arquivo (ticket 10 da v6, antes o 16 da v5) diz o que conferir antes de apr
 cd backend && uv run pytest -q tests/test_roteiros.py tests/test_acesso.py tests/test_plugins.py
 ```
 
-O teste percorre Marina, Rafael, Carla, Thiago, Lucas e Helena do início ao fim **pela API**, com as mesmas entradas que o roteiro mostra na tela, sem chave da API e sem internet. Para cada roteiro ele confere o agente montado, o teste no sandbox, a publicação (direta ou com revisão), a execução, o cartão AS IS × TO BE (cada número com a origem: medido, estimado, premissa ou hipótese) e de 3 a 5 Perguntas da Ferramenta por persona (só a Helena as lê). `test_acesso.py` confere a matriz de acesso para os seis perfis e `test_plugins.py` o marketplace. Também confere o reinício por roteiro, a busca por nome (lojista e colaborador), a sugestão da extensão e o helpdesk fictício. O conjunto todo: `uv run pytest -q` (698 testes). O pitch v8 tem teste próprio (`tests/test_pitch.py`) e a matriz de acesso da v7 está em `tests/test_matriz_v7.py`.
+O teste percorre Marina, Rafael, Carla, Thiago, Lucas e Helena do início ao fim **pela API**, com as mesmas entradas que o roteiro mostra na tela, sem chave da API e sem internet. Para cada roteiro ele confere o agente montado, o teste no sandbox, a publicação (direta ou com revisão), a execução, o cartão AS IS × TO BE (cada número com a origem: medido, estimado, premissa ou hipótese) e de 3 a 5 Perguntas da Ferramenta por persona (só a Helena as lê). `test_acesso.py` confere a matriz de acesso para os seis perfis e `test_plugins.py` o marketplace. Também confere o reinício por roteiro, a busca por nome (lojista e colaborador), a sugestão da extensão e o helpdesk fictício. O conjunto todo: `uv run pytest -q` (808 testes na 8.3.1). O pitch v8 tem teste próprio (`tests/test_pitch.py`) e a matriz de acesso da v7 está em `tests/test_matriz_v7.py`.
 
 ## 2. Checklist antes de apresentar
 
 **Na véspera**
 - [ ] Preços e dólar conferidos (`COTACAO_DOLAR` em `backend/app/core/config.py` e a tabela de preços em `backend/app/llm/precos.py`). O LEIA-ME diz a data da última conferência.
-- [ ] `uv run pytest -q` passando (698 testes) e `npm run build` feito em `frontend` (o servidor serve `frontend/dist`).
+- [ ] `uv run pytest -q` passando (808 testes) e `npm run build` feito em `frontend` (o servidor serve `frontend/dist`).
 - [ ] Decidir o modo: **simulado** (sem chave, resultado idêntico sempre, recomendado para o palco) ou **modelos reais** (chave em `backend/.env`, limite de gasto mensal definido). No modo real, se o serviço do modelo falhar (rede, limite), o passo usa a resposta pré-determinada e a tela mostra **“resposta de reserva”** (desligue com `STONEFALCON_RESERVA=0`); erro de chave ou de modelo escala em vez de fingir.
 - [ ] Extensão carregada no Chrome (`chrome://extensions` → Modo do desenvolvedor → Carregar sem compactação → `extensao`) e conexão testada nas opções. Sem a extensão, a página `/demo/helpdesk` abre o mesmo painel sozinha (plano B).
 
