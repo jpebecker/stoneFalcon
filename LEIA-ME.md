@@ -14,7 +14,7 @@ Precisa do **Python 3.11+** e, só na primeira vez, do **Node.js LTS** (para com
 - **Windows:** dois cliques em `iniciar.bat`.
 - **Mac/Linux:** `sh iniciar.sh`.
 
-**Atualizando de uma versão anterior (v7 ou antes):** é só rodar o script da versão nova na mesma pasta. Ele **recompila as telas** quando a versão ou o código delas mudou (por isso não abre mais as telas antigas) e **reinstala as dependências do back** quando o `backend/requirements.txt` mudou. O banco (`backend/dados`) continua valendo: a v8 só acrescenta tabelas e colunas. **Vindo da v7:** remova a extensão antiga em `chrome://extensions` e carregue a pasta `extensao` de novo (o Chrome guarda a versão antiga). Se o Chrome ainda mostrar a extensão antiga, remova-a em `chrome://extensions` e carregue a pasta `extensao` de novo.
+**Atualizando de uma versão anterior (v7 ou antes):** é só rodar o script da versão nova na mesma pasta. Ele **recompila as telas** quando a versão ou o código delas mudou (por isso não abre mais as telas antigas) e **reinstala as dependências do back** quando o `backend/requirements.txt` mudou. O banco (`backend/dados`) continua valendo: a v8 só acrescenta tabelas e colunas. **Vindo da v7:** remova a extensão antiga em `chrome://extensions` e carregue a pasta `extensao` de novo (o Chrome guarda a versão antiga).
 
 Mensagens claras em português para o que costuma dar errado: **Python abaixo de 3.11**, **Node.js ausente** (só quando falta compilar as telas) e **porta ocupada** (outra cópia aberta; use `STONEFALCON_PORTA=8766`). Variáveis opcionais: `STONEFALCON_PORTA` (padrão 8765), `STONEFALCON_SEM_NAVEGADOR=1` e, no Windows, `STONEFALCON_SEM_PAUSA=1`.
 
@@ -35,7 +35,7 @@ cd backend && uv run pytest -q                   # sem chave nem internet
 ```
 
 ### Extensão copiloto (Chrome/Edge)
-> **Vinha da v7 (ou anterior)?** Remova a extensão antiga em `chrome://extensions` e carregue a pasta `extensao` de novo: o Chrome guarda a versão antiga até isso. Depois da troca, a página de extensões mostra **StoneFalcon 8.1** (versão 8.1.0).
+> **Vinha da v7 (ou anterior)?** Remova a extensão antiga em `chrome://extensions` e carregue a pasta `extensao` de novo: o Chrome guarda a versão antiga até isso. Depois da troca, a página de extensões mostra **StoneFalcon 8.3** (versão 8.3.1).
 
 `chrome://extensions` → Modo do desenvolvedor → **Carregar sem compactação** → pasta `extensao`. Na primeira vez abre uma tela de boas-vindas e testa a conexão com a plataforma (com diagnóstico: servidor desligado, endereço errado, demora). Depois:
 
@@ -46,7 +46,7 @@ cd backend && uv run pytest -q                   # sem chave nem internet
 
 ## Como contribuir
 
-- **Um ticket = um commit** num branch do plano (um PR por ticket também serve); os planos e os critérios de aceite ficam em [`docs/`](docs/) (o da 8.1 é [PLANO-PROCESSOS-ALERTAS.md](docs/PLANO-PROCESSOS-ALERTAS.md)); o guia de trabalho é [docs/AGENTS.md](docs/AGENTS.md).
+- **Um ticket = um commit** num branch do plano (um PR por ticket também serve); os planos e os critérios de aceite ficam em [`docs/`](docs/) (o mais recente, da 8.3.1, é [PLANO-ALERTAS-TRANSBORDO.md](docs/PLANO-ALERTAS-TRANSBORDO.md); a lista completa está em [docs/AGENTS.md](docs/AGENTS.md)); o guia de trabalho é [docs/AGENTS.md](docs/AGENTS.md).
 - **A esteira de CI** (`.github/workflows/ci.yml`) roda em todo PR e em `main` e precisa estar verde para juntar:
   1. **Back:** `pytest` em Python 3.11 e 3.14, em modo simulado (sem chave da API).
   2. **Front:** checagem de tipos e compilação de produção (`npm run build`).
@@ -57,6 +57,8 @@ cd backend && uv run pytest -q                   # sem chave nem internet
 - Configuração do repositório (feita no GitHub, fora do código): em *Settings → Branches*, proteger `main` exigindo os jobs da esteira verdes antes de juntar.
 
 ## O que o desafio pede e onde está
+
+> O enunciado do desafio (`contexto-desafio.pdf`) e os critérios de avaliação são material do StoneLab e não estão neste repositório; a tabela resume o que eles pedem. O documento de custos da equipe está em [`docs/custos-estimados.txt`](docs/custos-estimados.txt).
 
 | Requisito (contexto-desafio.pdf) | Como o StoneFalcon atende | Onde |
 |---|---|---|

@@ -7,3 +7,6 @@ __pycache__/
 node_modules/
 dist/
 *.tsbuildinfo
+
+# GIFs do pitch (~34 MB): gerados por entregaveis/gerador/gravar_gifs.py, ficam fora do Git
+entregaveis/gifs/

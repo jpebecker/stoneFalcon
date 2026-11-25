@@ -301,7 +301,7 @@ cd backend && uv run pytest -q
 
 A esteira (`.github/workflows/ci.yml`) roda em todo PR e na `main`:
 
-1. **Back:** `pytest` em Python 3.11 e 3.14, em modo simulado (700+ testes, incluindo os seis roteiros de ponta a ponta pela API).
+1. **Back:** `pytest` em Python 3.11 e 3.14, em modo simulado (800+ testes, incluindo os seis roteiros de ponta a ponta pela API).
 2. **Front:** checagem de tipos e build de produção.
 3. **Extensão:** manifesto válido e arquivos citados existem.
 4. **Versão:** extensão, API e front com o mesmo número (fonte: `backend/app/core/versao.py`).
@@ -330,3 +330,7 @@ A esteira (`.github/workflows/ci.yml`) roda em todo PR e na `main`:
 | [docs/ENSAIO-GERAL.md](docs/ENSAIO-GERAL.md) | Roteiro do pitch e checklist |
 | [docs/AGENTS.md](docs/AGENTS.md) | Guia de trabalho no repositório |
 | [entregaveis/LEIA-ME.md](entregaveis/LEIA-ME.md) | Análise financeira e apresentação |
+
+## Licença
+
+Todos os direitos reservados. O repositório é público só para consulta; veja [LICENSE](LICENSE).
